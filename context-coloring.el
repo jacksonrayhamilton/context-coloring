@@ -1,56 +1,6 @@
-;; Musings:
-
-;; Each time a function statement/expression is encountered, a new scope is
-;; created. New scopes use the next unique color. Multiple scopes within the
-;; same scope have the same color.
-
-;; function statement syntax:
-;;
-;; function name([param1[, param2[, ..., paramN]]]) { [statements] }
-
-;; A function statement's name is added to the previous scope and is colored in
-;; the previous scope's color. The rest of the function is part of the new
-;; scope.
-
-;; function expression syntax:
-;;
-;; function [name]([param1[, param2[, ..., paramN]]]) { [statements] }
-
-;; A function expression's name, if it has one, is part of the new scope created
-;; by the expression.
-
-
-;; JSLINT strategy:
-
-;; Colors for levels:
-
-;; white
-;; #ffff80
-;; #cdfacd
-;; #d8d8ff
-;; #e7c7ff
-;; #ffcdcd
-;; #ffe390
-;; #cdcdcd
-
-;; - Obtain the buffer's contents, pipe them to a JSLint server.
-;; - Run code through JSLINT.
-;; - Pipe `JSLINT.data().tokens` back to emacs.
-;; - Iterate through the tokens.
-;;   - On line `line`, from `from` through `thru` inclusive, color the area
-;;   according to `function.level`
-;; - ...
-;; - Profit.
-
-;; elisp functions that may come in handy:
-
-;; save-excursion: Wrap the whole body in this.
-;; goto-line, move-to-column: Finding ranges to apply colors to.
-;; with-silent-modifications: The colorization itself.
-
 (require 'json)
 
-;; Faces for highlighting blocks by nested level:
+;;; Faces
 
 (defface context-coloring-depth-0-face
   '((((background light)) (:foreground "#ffffff"))
@@ -107,7 +57,7 @@ Determines depth at which to cycle through faces again.")
 
 ;;; Face utility functions
 
-(defun context-coloring-depth-face (depth)
+(defsubst context-coloring-depth-face (depth)
   "Return face-name for DEPTH as a string 'context-coloring-depth-DEPTH-face'.
 For example: 'context-coloring-depth-1-face'."
   (intern-soft
@@ -124,23 +74,25 @@ For example: 'context-coloring-depth-1-face'."
                      (- context-coloring-face-count 1)))))
            "-face")))
 
-(defconst context-coloring-path
-  (file-name-directory (or load-file-name buffer-file-name)))
-
-(defun context-coloring-get-point (line column)
+(defsubst context-coloring-get-point (line column)
   (save-excursion
     (goto-line line)
     (move-to-column column)
     (point)))
 
-(defun context-coloring ()
+;;; The coloring.
+
+(defconst context-coloring-path
+  (file-name-directory (or load-file-name buffer-file-name)))
+
+(defun context-coloring-propertize-region (start end)
   (interactive)
   (let* ((json (shell-command-to-string
-                 (format "echo '%s' | %s"
-                         (buffer-substring-no-properties
-                          (point-min)
-                          (point-max))
-                         (expand-file-name "./tokenizer/tokenizer" context-coloring-path))))
+                (format "echo '%s' | %s"
+                        (buffer-substring-no-properties
+                         (point-min)
+                         (point-max))
+                        (expand-file-name "./tokenizer/tokenizer" context-coloring-path))))
          (tokens (let ((json-array-type 'list))
                    (json-read-from-string json))))
     (with-silent-modifications
@@ -152,5 +104,29 @@ For example: 'context-coloring-depth-1-face'."
                (start (context-coloring-get-point line (- from 1)))
                (end (context-coloring-get-point line (- thru 1)))
                (face (context-coloring-depth-face level)))
-          (message "from %s to %s, use face %s" start end face)
           (add-text-properties start end `(font-lock-face ,face rear-nonsticky t)))))))
+
+;;; Minor mode:
+
+;;;###autoload
+(define-minor-mode context-coloring-mode
+  "Context-based code coloring for JavaScript, inspired by Douglas Crockford."
+  nil " Context" nil
+  (if (not context-coloring-mode)
+      (progn
+        (jit-lock-unregister 'context-coloring-propertize-region))
+    (jit-lock-register 'context-coloring-propertize-region)))
+
+;;;###autoload
+(defun context-coloring-mode-enable ()
+  (context-coloring-mode 1))
+
+;;;###autoload
+(defun context-coloring-mode-disable ()
+  (context-coloring-mode 0))
+
+;;;###autoload
+(define-globalized-minor-mode global-context-coloring-mode
+  context-coloring-mode context-coloring-mode-enable)
+
+(provide 'context-coloring)
