@@ -93,7 +93,7 @@ Return the name of the temporary file."
   (let* ((temp-file (context-coloring-save-buffer-to-temp))
          (json (shell-command-to-string
                 (format "%s < %s"
-                        (expand-file-name "./tokenizer/tokenizer" context-coloring-path)
+                        (expand-file-name "./bin/tokenizer" context-coloring-path)
                         temp-file)))
          (tokens (let ((json-array-type 'list))
                    (json-read-from-string json))))
