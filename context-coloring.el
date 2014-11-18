@@ -57,7 +57,7 @@ Determines depth at which to cycle through faces again.")
 
 ;;; Face utility functions
 
-(defsubst context-coloring-depth-face (depth)
+(defsubst context-coloring-level-face (depth)
   "Return face-name for DEPTH as a string 'context-coloring-depth-DEPTH-face'.
 For example: 'context-coloring-depth-1-face'."
   (intern-soft
@@ -73,12 +73,6 @@ For example: 'context-coloring-depth-1-face'."
                 (mod (- depth 1)
                      (- context-coloring-face-count 1)))))
            "-face")))
-
-(defsubst context-coloring-get-point (line column)
-  (save-excursion
-    (goto-line line)
-    (move-to-column column)
-    (point)))
 
 (defun context-coloring-save-buffer-to-temp ()
   "Save buffer to temp file.
@@ -105,13 +99,9 @@ Return the name of the temporary file."
                    (json-read-from-string json))))
     (with-silent-modifications
       (dolist (token tokens)
-        (let* ((line (cdr (assoc 'line token)))
-               (from (cdr (assoc 'from token)))
-               (thru (cdr (assoc 'thru token)))
-               (level (cdr (assoc 'level token)))
-               (start (context-coloring-get-point line (- from 1)))
-               (end (context-coloring-get-point line (- thru 1)))
-               (face (context-coloring-depth-face level)))
+        (let ((start (cdr (assoc 's token)))
+              (end (cdr (assoc 'e token)))
+              (face (context-coloring-level-face (cdr (assoc 'l token)))))
           (add-text-properties start end `(font-lock-face ,face rear-nonsticky t)))))
     (delete-file temp-file)))
 

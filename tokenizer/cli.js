@@ -4,7 +4,25 @@ var JSLINT = require('./jslint'),
     util = require('util'),
 
     // Accumulated input.
-    whole = '';
+    whole = '',
+
+    // Acquires the number of accumulated characters after the end of each line.
+    getTotals = function (file) {
+        var lines = file.split('\n'),
+            total = 0,
+            totals = {
+                0: total
+            },
+            i = 0,
+            length = lines.length;
+        while (i < length) {
+            total += lines[i].length + 1;
+            totals[i + 1] = total;
+            i += 1;
+        }
+        totals[i + 1] = total + 1;
+        return totals;
+    };
 
 process.stdin.setEncoding('utf8');
 
@@ -16,16 +34,24 @@ process.stdin.on('readable', function () {
 });
 
 process.stdin.on('end', function () {
-    var data, tokens;
+    var data, totals, out, i, tokens, length, token, origin, level, total;
 
     // Generate a syntax tree for the input.
     JSLINT(whole);
     data = JSLINT.data();
 
+    totals = getTotals(whole);
+
     // Minimize an otherwise-circular structure.
-    tokens = data.tokens.map(function (token) {
-        var origin = token,
-            level;
+    out = [];
+    i = 0;
+    tokens = data.tokens;
+    length = tokens.length;
+
+    while (i < length) {
+        token = tokens[i];
+
+        origin = token;
 
         // We always consider the function keyword to be "part" of the scope it
         // creates, even if the name leaks in the case of function statements.
@@ -43,14 +69,16 @@ process.stdin.on('end', function () {
         } else {
             level = origin.function.level;
         }
+        total = totals[token.line - 1];
 
-        return {
-            from: token.from,
-            level: level,
-            line: token.line,
-            thru: token.thru
-        };
-    });
+        out.push({
+            l: level,
+            s: total + token.from,
+            e: total + token.thru
+        });
 
-    console.log(JSON.stringify(tokens));
+        i += 1;
+    }
+
+    console.log(JSON.stringify(out));
 });
