@@ -99,10 +99,12 @@ Return the name of the temporary file."
                    (json-read-from-string json))))
     (with-silent-modifications
       (dolist (token tokens)
-        (let ((start (cdr (assoc 's token)))
-              (end (cdr (assoc 'e token)))
+        (let ((s (cdr (assoc 's token)))
+              (e (cdr (assoc 'e token)))
               (face (context-coloring-level-face (cdr (assoc 'l token)))))
-          (add-text-properties start end `(font-lock-face ,face rear-nonsticky t)))))
+          (when (and (>= s start)
+                     (<= e end))
+            (add-text-properties s e `(font-lock-face ,face rear-nonsticky t))))))
     (delete-file temp-file)))
 
 ;;; Minor mode:
@@ -118,14 +120,14 @@ Return the name of the temporary file."
       (progn
         (setq jit-lock-stealth-time nil)
         (setq jit-lock-chunk-size 500)
-        (setq jit-lock-contextually `syntax-driven)
+        ;;(setq jit-lock-contextually `syntax-driven)
         (jit-lock-unregister 'context-coloring-fontify-region)
         (jit-lock-register 'font-lock-fontify-region))
     (setq jit-lock-stealth-time 1)
     (setq jit-lock-chunk-size 536870911)
-    (setq jit-lock-contextually nil)
+    ;;(setq jit-lock-contextually nil)
     (jit-lock-unregister 'font-lock-fontify-region)
-    (jit-lock-register 'context-coloring-fontify-region)))
+    (jit-lock-register 'context-coloring-fontify-region t)))
 
 ;;;###autoload
 (defun context-coloring-mode-enable ()
