@@ -80,6 +80,15 @@ For example: 'context-coloring-depth-1-face'."
     (move-to-column column)
     (point)))
 
+(defun context-coloring-save-buffer-to-temp ()
+  "Save buffer to temp file.
+Return the name of the temporary file."
+  (let ((file-name (make-temp-file "context-coloring")))
+    ;; Do not flush short-lived temporary files onto disk.
+    (let ((write-region-inhibit-fsync t))
+      (write-region nil nil file-name nil 0))
+    file-name))
+
 ;;; The coloring.
 
 (defconst context-coloring-path
@@ -87,12 +96,11 @@ For example: 'context-coloring-depth-1-face'."
 
 (defun context-coloring-propertize-region (start end)
   (interactive)
-  (let* ((json (shell-command-to-string
-                (format "echo '%s' | %s"
-                        (buffer-substring-no-properties
-                         (point-min)
-                         (point-max))
-                        (expand-file-name "./tokenizer/tokenizer" context-coloring-path))))
+  (let* ((temp-file (context-coloring-save-buffer-to-temp))
+         (json (shell-command-to-string
+                (format "%s < %s"
+                        (expand-file-name "./tokenizer/tokenizer" context-coloring-path)
+                        temp-file)))
          (tokens (let ((json-array-type 'list))
                    (json-read-from-string json))))
     (with-silent-modifications
