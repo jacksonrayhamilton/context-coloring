@@ -112,7 +112,16 @@ Determines depth at which to cycle through faces again.")
 For example: 'context-coloring-depth-1-face'."
   (intern-soft
    (concat "context-coloring-depth-"
-           (number-to-string (mod depth context-coloring-face-count))
+           (number-to-string
+            (or
+             ;; Has a face directly mapping to it.
+             (and (< depth context-coloring-face-count)
+                  depth)
+             ;; After the number of available faces are used up, pretend the 0th
+             ;; face doesn't exist.
+             (+ 1
+                (mod (- depth 1)
+                     (- context-coloring-face-count 1)))))
            "-face")))
 
 (defconst context-coloring-path
