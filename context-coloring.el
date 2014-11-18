@@ -94,7 +94,7 @@ Return the name of the temporary file."
 (defconst context-coloring-path
   (file-name-directory (or load-file-name buffer-file-name)))
 
-(defun context-coloring-propertize-region (start end)
+(defun context-coloring-fontify-region (start end)
   (interactive)
   (let* ((temp-file (context-coloring-save-buffer-to-temp))
          (json (shell-command-to-string
@@ -112,7 +112,8 @@ Return the name of the temporary file."
                (start (context-coloring-get-point line (- from 1)))
                (end (context-coloring-get-point line (- thru 1)))
                (face (context-coloring-depth-face level)))
-          (add-text-properties start end `(font-lock-face ,face rear-nonsticky t)))))))
+          (add-text-properties start end `(font-lock-face ,face rear-nonsticky t)))))
+    (delete-file temp-file)))
 
 ;;; Minor mode:
 
@@ -120,10 +121,16 @@ Return the name of the temporary file."
 (define-minor-mode context-coloring-mode
   "Context-based code coloring for JavaScript, inspired by Douglas Crockford."
   nil " Context" nil
+  (make-local-variable 'jit-lock-chunk-size)
+  (make-local-variable 'jit-lock-contextually)
   (if (not context-coloring-mode)
       (progn
-        (jit-lock-unregister 'context-coloring-propertize-region))
-    (jit-lock-register 'context-coloring-propertize-region)))
+        (setq jit-lock-chunk-size 500)
+        (setq jit-lock-contextually `syntax-driven)
+        (jit-lock-unregister 'context-coloring-fontify-region))
+    (setq jit-lock-chunk-size 536870911)
+    (setq jit-lock-contextually nil)
+    (jit-lock-register 'context-coloring-fontify-region)))
 
 ;;;###autoload
 (defun context-coloring-mode-enable ()
