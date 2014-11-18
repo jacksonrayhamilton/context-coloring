@@ -64,7 +64,8 @@ process.stdin.on('end', function () {
 
         // Globality is not indicated by origin function.
         if (token.kind !== 'function' &&
-                data.global.indexOf(token.string) > -1) {
+                (token.identifier &&
+                 data.global.indexOf(token.string) > -1)) {
             level = 0;
         } else {
             level = origin.function.level;

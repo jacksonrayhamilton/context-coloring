@@ -111,15 +111,20 @@ Return the name of the temporary file."
 (define-minor-mode context-coloring-mode
   "Context-based code coloring for JavaScript, inspired by Douglas Crockford."
   nil " Context" nil
+  (make-local-variable 'jit-lock-stealth-time)
   (make-local-variable 'jit-lock-chunk-size)
   (make-local-variable 'jit-lock-contextually)
   (if (not context-coloring-mode)
       (progn
+        (setq jit-lock-stealth-time nil)
         (setq jit-lock-chunk-size 500)
         (setq jit-lock-contextually `syntax-driven)
-        (jit-lock-unregister 'context-coloring-fontify-region))
+        (jit-lock-unregister 'context-coloring-fontify-region)
+        (jit-lock-register 'font-lock-fontify-region))
+    (setq jit-lock-stealth-time 1)
     (setq jit-lock-chunk-size 536870911)
     (setq jit-lock-contextually nil)
+    (jit-lock-unregister 'font-lock-fontify-region)
     (jit-lock-register 'context-coloring-fontify-region)))
 
 ;;;###autoload
