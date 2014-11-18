@@ -20,6 +20,7 @@ var JSLINT = require('./jslint'),
             totals[i + 1] = total;
             i += 1;
         }
+        // Last line is a newline.
         totals[i + 1] = total + 1;
         return totals;
     };
@@ -34,7 +35,7 @@ process.stdin.on('readable', function () {
 });
 
 process.stdin.on('end', function () {
-    var data, totals, out, i, tokens, length, token, origin, level, total,
+    var data, totals, out, i, tokens, length, cap, token, origin, level, total,
         previous;
 
     // Generate a syntax tree for the input.
@@ -48,6 +49,7 @@ process.stdin.on('end', function () {
     i = 0;
     tokens = data.tokens;
     length = tokens.length;
+    cap = Math.min.bind(null, whole.length + 1);
 
     while (i < length) {
         token = tokens[i];
@@ -76,12 +78,12 @@ process.stdin.on('end', function () {
         previous = out[out.length - 1];
 
         if (previous && previous.l === level) {
-            previous.e = total + token.thru;
+            previous.e = cap(total + token.thru);
         } else {
             out.push({
                 l: level,
-                s: total + token.from,
-                e: total + token.thru
+                s: cap(total + token.from),
+                e: cap(total + token.thru)
             });
         }
 
