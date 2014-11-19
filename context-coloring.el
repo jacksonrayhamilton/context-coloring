@@ -1,4 +1,4 @@
-;; -*- lexical-binding: t -*-
+;; -*- lexical-binding: t; -*-
 
 (require 'json)
 
@@ -100,45 +100,63 @@ For example: \"context-coloring-depth-1-face\"."
             (face (context-coloring-level-face (cdr (assoc 'l token)))))
         (add-text-properties start end `(font-lock-face ,face rear-nonsticky t))))))
 
-(defun context-coloring-tokenize (function)
+(defun context-coloring-tokenizer-filter (process chunk)
+  "The process may produce output in multiple chunks. This filter
+accumulates the chunks into a message."
+  (setq context-coloring-tokenizer-output
+        (concat context-coloring-tokenizer-output chunk)))
+
+(defun context-coloring-tokenizer-sentinel (process event)
+  "When the process's message is complete, this sentinel parses
+it as JSON and applies the tokens to the buffer."
+  (when (equal "finished\n" event)
+    (let ((tokens (let ((json-array-type 'list))
+                    (json-read-from-string context-coloring-tokenizer-output))))
+      (context-coloring-apply-tokens tokens)
+      (message "%s (%f)" "Colorization complete." (float-time)))))
+
+(defun context-coloring-tokenize ()
   "Invokes the external tokenizer with the current buffer's
 contents, reading the tokenizer's response asynchronously and
 calling FUNCTION with the parsed list of tokens."
-  (let ((tokenizer-process (start-process-shell-command
-                            "tokenizer"
-                            nil
-                            context-coloring-tokenizer-path))
-        (output ""))
 
-    ;; The process may produce output in multiple chunks. The chunks
-    ;; collectively form a message.
-    (set-process-filter tokenizer-process
-                        (lambda (process chunk)
-                          (setq output (concat output chunk))))
+  ;; Cancel a running process because it is implicitly obsolete if we are
+  ;; calling this function.
+  (when (not (null context-coloring-tokenizer-process))
+    (delete-process context-coloring-tokenizer-process))
 
-    ;; When the message is complete, parse it as JSON and apply the tokens.
-    (set-process-sentinel tokenizer-process
-                          (lambda (process event)
-                            (when (equal "finished\n" event)
-                              (let ((tokens (let ((json-array-type 'list))
-                                              (json-read-from-string output))))
-                                (funcall function tokens)))))
+  ;; Start the process.
+  (setq context-coloring-tokenizer-process
+        (start-process-shell-command "tokenizer" nil context-coloring-tokenizer-path))
+  (setq context-coloring-tokenizer-output "")
 
-    ;; Give the process its input.
-    (process-send-region tokenizer-process (point-min) (point-max))
-    (process-send-eof tokenizer-process)))
+  ;; Listen to the process.
+  (set-process-filter context-coloring-tokenizer-process 'context-coloring-tokenizer-filter)
+  (set-process-sentinel context-coloring-tokenizer-process 'context-coloring-tokenizer-sentinel)
+
+  ;; Give the process its input.
+  (process-send-region context-coloring-tokenizer-process (point-min) (point-max))
+  (process-send-eof context-coloring-tokenizer-process))
 
 
 ;;; Colorization functions
 
 (defun context-coloring-colorize-buffer ()
   (interactive)
-  (context-coloring-tokenize 'context-coloring-apply-tokens))
+  (context-coloring-tokenize))
 
-(defun context-coloring-colorize-if-current ()
+(defun context-coloring-maybe-colorize ()
   (when (eq context-coloring-buffer (window-buffer (selected-window)))
     (context-coloring-colorize-buffer)))
 
+(defvar context-coloring-buffer)
+(make-variable-buffer-local 'context-coloring-buffer)
+
+(defvar context-coloring-tokenizer-process nil)
+(make-variable-buffer-local 'context-coloring-tokenizer-process)
+
+(defvar context-coloring-tokenizer-output nil)
+(make-variable-buffer-local 'context-coloring-tokenizer-output)
 
 ;;; Minor mode
 
@@ -151,15 +169,21 @@ calling FUNCTION with the parsed list of tokens."
         (when (boundp 'context-coloring-colorize-idle-timer)
          (cancel-timer context-coloring-colorize-idle-timer)))
 
-    ;; Colorize once initially. Why this doesn't work, I cannot say.
-    ;; (context-coloring-colorize-buffer)
-
     ;; Preserve a reference to this buffer.
-    (set (make-local-variable 'context-coloring-buffer) (current-buffer))
+    (setq context-coloring-buffer (current-buffer))
+
+    ;; Only allow a single tokenizer process to run at a time. Keep track of it
+    ;; with this reference.
+    ;; (set (make-local-variable 'context-coloring-tokenizer-process) nil)
+    ;; (set (make-local-variable 'context-coloring-tokenizer-output) nil)
+
+    ;; Colorize once initially.
+    (context-coloring-colorize-buffer)
 
     ;; Only recolor idly.
-    (set (make-local-variable 'context-coloring-colorize-idle-timer)
-         (run-with-idle-timer 1 t 'context-coloring-colorize-if-current))))
+    ;; (set (make-local-variable 'context-coloring-colorize-idle-timer)
+    ;;      (run-with-idle-timer 1 t 'context-coloring-maybe-colorize))
+    ))
 
 ;;;###autoload
 (defun context-coloring-mode-enable ()

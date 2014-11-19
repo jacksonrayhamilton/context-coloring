@@ -10,6 +10,9 @@
             monad.bind = function (func) {
                 return func(value);
             };
+            monad.go = function () {
+
+            };
             return monad;
         };
     }
