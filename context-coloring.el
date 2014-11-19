@@ -80,12 +80,10 @@ For example: \"context-coloring-depth-1-face\"."
 
 ;;; Path constants
 
-(defconst context-coloring-path
-  (file-name-directory (or load-file-name buffer-file-name))
+(defconst context-coloring-path (file-name-directory (or load-file-name buffer-file-name))
   "This file's directory.")
 
-(defconst context-coloring-tokenizer-path
-  (expand-file-name "./bin/tokenizer" context-coloring-path)
+(defconst context-coloring-tokenizer-path (expand-file-name "./bin/tokenizer" context-coloring-path)
   "Path to the external tokenizer executable.")
 
 
@@ -100,21 +98,6 @@ For example: \"context-coloring-depth-1-face\"."
             (face (context-coloring-level-face (cdr (assoc 'l token)))))
         (add-text-properties start end `(font-lock-face ,face rear-nonsticky t))))))
 
-(defun context-coloring-tokenizer-filter (process chunk)
-  "The process may produce output in multiple chunks. This filter
-accumulates the chunks into a message."
-  (setq context-coloring-tokenizer-output
-        (concat context-coloring-tokenizer-output chunk)))
-
-(defun context-coloring-tokenizer-sentinel (process event)
-  "When the process's message is complete, this sentinel parses
-it as JSON and applies the tokens to the buffer."
-  (when (equal "finished\n" event)
-    (let ((tokens (let ((json-array-type 'list))
-                    (json-read-from-string context-coloring-tokenizer-output))))
-      (context-coloring-apply-tokens tokens)
-      (message "%s (%f)" "Colorization complete." (float-time)))))
-
 (defun context-coloring-tokenize ()
   "Invokes the external tokenizer with the current buffer's
 contents, reading the tokenizer's response asynchronously and
@@ -128,11 +111,25 @@ calling FUNCTION with the parsed list of tokens."
   ;; Start the process.
   (setq context-coloring-tokenizer-process
         (start-process-shell-command "tokenizer" nil context-coloring-tokenizer-path))
-  (setq context-coloring-tokenizer-output "")
 
-  ;; Listen to the process.
-  (set-process-filter context-coloring-tokenizer-process 'context-coloring-tokenizer-filter)
-  (set-process-sentinel context-coloring-tokenizer-process 'context-coloring-tokenizer-sentinel)
+  (let ((output "")
+        (buffer context-coloring-buffer))
+
+    ;;The process may produce output in multiple chunks. This filter accumulates
+    ;;the chunks into a message.
+    (set-process-filter context-coloring-tokenizer-process
+                        (lambda (process chunk)
+                          (setq output (concat output chunk))))
+
+    ;; When the process's message is complete, this sentinel parses it as JSON
+    ;; and applies the tokens to the buffer.
+    (set-process-sentinel context-coloring-tokenizer-process
+                          (lambda (process event)
+                            (when (equal "finished\n" event)
+                              (let ((tokens (let ((json-array-type 'list))
+                                              (json-read-from-string output))))
+                                (context-coloring-apply-tokens tokens)
+                                (message "%s (%f)" "Colorization complete." (float-time)))))))
 
   ;; Give the process its input.
   (process-send-region context-coloring-tokenizer-process (point-min) (point-max))
@@ -149,14 +146,18 @@ calling FUNCTION with the parsed list of tokens."
   (when (eq context-coloring-buffer (window-buffer (selected-window)))
     (context-coloring-colorize-buffer)))
 
-(defvar context-coloring-buffer)
+
+;;; Local variables
+
+(defvar context-coloring-buffer nil
+  "Reference to this buffer for timers.")
 (make-variable-buffer-local 'context-coloring-buffer)
 
-(defvar context-coloring-tokenizer-process nil)
+(defvar context-coloring-tokenizer-process nil
+  "Only allow a single tokenizer process to run at a time. This
+is a reference to that one process.")
 (make-variable-buffer-local 'context-coloring-tokenizer-process)
 
-(defvar context-coloring-tokenizer-output nil)
-(make-variable-buffer-local 'context-coloring-tokenizer-output)
 
 ;;; Minor mode
 
@@ -169,13 +170,7 @@ calling FUNCTION with the parsed list of tokens."
         (when (boundp 'context-coloring-colorize-idle-timer)
          (cancel-timer context-coloring-colorize-idle-timer)))
 
-    ;; Preserve a reference to this buffer.
     (setq context-coloring-buffer (current-buffer))
-
-    ;; Only allow a single tokenizer process to run at a time. Keep track of it
-    ;; with this reference.
-    ;; (set (make-local-variable 'context-coloring-tokenizer-process) nil)
-    ;; (set (make-local-variable 'context-coloring-tokenizer-output) nil)
 
     ;; Colorize once initially.
     (context-coloring-colorize-buffer)
