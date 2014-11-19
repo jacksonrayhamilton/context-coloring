@@ -119,6 +119,9 @@ For example: 'context-coloring-depth-1-face'."
   (interactive)
   (context-coloring-tokenize))
 
+(defun context-coloring-fontify-region (start end)
+  (context-coloring-tokenize))
+
 
 ;;; Minor mode
 
@@ -128,8 +131,9 @@ For example: 'context-coloring-depth-1-face'."
   nil " Context" nil
   (if (not context-coloring-mode)
       (progn
-        )
-    (set (make-local-variable 'context-coloring-tokenizer-output) nil)))
+        (jit-lock-unregister 'context-coloring-fontify-region))
+    (set (make-local-variable 'context-coloring-tokenizer-output) nil)
+    (jit-lock-register 'context-coloring-fontify-region)))
 
 ;;;###autoload
 (defun context-coloring-mode-enable ()
