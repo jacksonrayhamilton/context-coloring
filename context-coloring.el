@@ -135,12 +135,9 @@ calling FUNCTION with the parsed list of tokens."
   (interactive)
   (context-coloring-tokenize 'context-coloring-apply-tokens))
 
-(defun context-coloring-idle-timer ()
+(defun context-coloring-colorize-if-current ()
   (when (eq context-coloring-buffer (window-buffer (selected-window)))
     (context-coloring-colorize-buffer)))
-
-(defun context-coloring-after-change (start end length)
-  (setq context-coloring-changed t))
 
 
 ;;; Minor mode
@@ -151,7 +148,8 @@ calling FUNCTION with the parsed list of tokens."
   nil " Context" nil
   (if (not context-coloring-mode)
       (progn
-        (cancel-timer context-coloring-colorize-buffer-timer))
+        (when (boundp 'context-coloring-colorize-idle-timer)
+         (cancel-timer context-coloring-colorize-idle-timer)))
 
     ;; Colorize once initially. Why this doesn't work, I cannot say.
     ;; (context-coloring-colorize-buffer)
@@ -160,8 +158,8 @@ calling FUNCTION with the parsed list of tokens."
     (set (make-local-variable 'context-coloring-buffer) (current-buffer))
 
     ;; Only recolor idly.
-    (set (make-local-variable 'context-coloring-colorize-buffer-timer)
-         (run-with-idle-timer 1 t 'context-coloring-idle-timer))))
+    (set (make-local-variable 'context-coloring-colorize-idle-timer)
+         (run-with-idle-timer 1 t 'context-coloring-colorize-if-current))))
 
 ;;;###autoload
 (defun context-coloring-mode-enable ()
