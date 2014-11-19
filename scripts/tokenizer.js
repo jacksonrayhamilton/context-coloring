@@ -35,8 +35,7 @@ process.stdin.on('readable', function () {
 });
 
 process.stdin.on('end', function () {
-    var data, totals, out, i, tokens, length, cap, token, origin, level, total,
-        previous;
+    var data, totals, out, i, tokens, length, cap, token, origin, level, total;
 
     // Generate a syntax tree for the input.
     JSLINT(whole);
@@ -75,17 +74,11 @@ process.stdin.on('end', function () {
         }
         total = totals[token.line - 1];
 
-        previous = out[out.length - 1];
-
-        if (previous && previous.l === level) {
-            previous.e = cap(total + token.thru);
-        } else {
-            out.push({
-                l: level,
-                s: cap(total + token.from),
-                e: cap(total + token.thru)
-            });
-        }
+        out.push({
+            l: level,
+            s: cap(total + token.from),
+            e: cap(total + token.thru)
+        });
 
         i += 1;
     }

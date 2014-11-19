@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 (require 'json)
 
 ;;; Faces
@@ -55,11 +57,12 @@
   "Number of faces defined for highlighting delimiter levels.
 Determines depth at which to cycle through faces again.")
 
+
 ;;; Face utility functions
 
 (defun context-coloring-level-face (depth)
-  "Return face-name for DEPTH as a string 'context-coloring-depth-DEPTH-face'.
-For example: 'context-coloring-depth-1-face'."
+  "Return face-name for DEPTH as a string \"context-coloring-depth-DEPTH-face\".
+For example: \"context-coloring-depth-1-face\"."
   (intern-soft
    (concat "context-coloring-depth-"
            (number-to-string
@@ -75,49 +78,69 @@ For example: 'context-coloring-depth-1-face'."
            "-face")))
 
 
-;;; The coloring
+;;; Path constants
 
 (defconst context-coloring-path
-  (file-name-directory (or load-file-name buffer-file-name)))
+  (file-name-directory (or load-file-name buffer-file-name))
+  "This file's directory.")
 
 (defconst context-coloring-tokenizer-path
-  (expand-file-name "./bin/tokenizer" context-coloring-path))
+  (expand-file-name "./bin/tokenizer" context-coloring-path)
+  "Path to the external tokenizer executable.")
+
+
+;;; Tokenization functions
 
 (defun context-coloring-apply-tokens (tokens)
+  "Processes TOKENS to apply context-based coloring to the current buffer."
   (with-silent-modifications
     (dolist (token tokens)
       (let ((start (cdr (assoc 's token)))
             (end (cdr (assoc 'e token)))
             (face (context-coloring-level-face (cdr (assoc 'l token)))))
-        (add-text-properties start end `(face ,face rear-nonsticky t))))))
+        (add-text-properties start end `(font-lock-face ,face rear-nonsticky t))))))
 
-(defun context-coloring-tokenizer-filter (process chunk)
-  (setq context-coloring-tokenizer-output
-        (concat context-coloring-tokenizer-output chunk)))
+(defun context-coloring-tokenize (function)
+  "Invokes the external tokenizer with the current buffer's
+contents, reading the tokenizer's response asynchronously and
+calling FUNCTION with the parsed list of tokens."
+  (let ((tokenizer-process (start-process-shell-command
+                            "tokenizer"
+                            nil
+                            context-coloring-tokenizer-path))
+        (output ""))
 
-(defun context-coloring-tokenizer-sentinel (process event)
-  (when (equal "finished\n" event)
-    (let ((tokens (let ((json-array-type 'list))
-                    (json-read-from-string context-coloring-tokenizer-output))))
-      (setq context-coloring-tokenizer-output nil)
-      (context-coloring-apply-tokens tokens))))
+    ;; The process may produce output in multiple chunks. The chunks
+    ;; collectively form a message.
+    (set-process-filter tokenizer-process
+                        (lambda (process chunk)
+                          (setq output (concat output chunk))))
 
-(defun context-coloring-tokenize ()
-  ;; Only continue if there is no concurrent tokenization going on.
-  (when (eq context-coloring-tokenizer-output nil)
-    (let ((tokenizer-process (start-process-shell-command
-                              "tokenizer"
-                              nil
-                              context-coloring-tokenizer-path)))
-      (setq context-coloring-tokenizer-output "")
-      (set-process-filter tokenizer-process 'context-coloring-tokenizer-filter)
-      (set-process-sentinel tokenizer-process 'context-coloring-tokenizer-sentinel)
-      (process-send-region tokenizer-process (point-min) (point-max))
-      (process-send-eof tokenizer-process))))
+    ;; When the message is complete, parse it as JSON and apply the tokens.
+    (set-process-sentinel tokenizer-process
+                          (lambda (process event)
+                            (when (equal "finished\n" event)
+                              (let ((tokens (let ((json-array-type 'list))
+                                              (json-read-from-string output))))
+                                (funcall function tokens)))))
+
+    ;; Give the process its input.
+    (process-send-region tokenizer-process (point-min) (point-max))
+    (process-send-eof tokenizer-process)))
+
+
+;;; Colorization functions
 
 (defun context-coloring-colorize-buffer ()
   (interactive)
-  (context-coloring-tokenize))
+  (context-coloring-tokenize 'context-coloring-apply-tokens))
+
+(defun context-coloring-idle-timer ()
+  (when (eq context-coloring-buffer (window-buffer (selected-window)))
+    (context-coloring-colorize-buffer)))
+
+(defun context-coloring-after-change (start end length)
+  (setq context-coloring-changed t))
 
 
 ;;; Minor mode
@@ -129,9 +152,16 @@ For example: 'context-coloring-depth-1-face'."
   (if (not context-coloring-mode)
       (progn
         (cancel-timer context-coloring-colorize-buffer-timer))
-    (set (make-local-variable 'context-coloring-tokenizer-output) nil)
+
+    ;; Colorize once initially. Why this doesn't work, I cannot say.
+    ;; (context-coloring-colorize-buffer)
+
+    ;; Preserve a reference to this buffer.
+    (set (make-local-variable 'context-coloring-buffer) (current-buffer))
+
+    ;; Only recolor idly.
     (set (make-local-variable 'context-coloring-colorize-buffer-timer)
-         (run-with-idle-timer 0.25 t 'context-coloring-colorize-buffer))))
+         (run-with-idle-timer 1 t 'context-coloring-idle-timer))))
 
 ;;;###autoload
 (defun context-coloring-mode-enable ()
