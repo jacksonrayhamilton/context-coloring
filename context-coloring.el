@@ -57,7 +57,7 @@ Determines depth at which to cycle through faces again.")
 
 ;;; Face utility functions
 
-(defsubst context-coloring-level-face (depth)
+(defun context-coloring-level-face (depth)
   "Return face-name for DEPTH as a string 'context-coloring-depth-DEPTH-face'.
 For example: 'context-coloring-depth-1-face'."
   (intern-soft
@@ -74,60 +74,62 @@ For example: 'context-coloring-depth-1-face'."
                      (- context-coloring-face-count 1)))))
            "-face")))
 
-(defun context-coloring-save-buffer-to-temp ()
-  "Save buffer to temp file.
-Return the name of the temporary file."
-  (let ((file-name (make-temp-file "context-coloring")))
-    ;; Do not flush short-lived temporary files onto disk.
-    (let ((write-region-inhibit-fsync t))
-      (write-region nil nil file-name nil 0))
-    file-name))
 
-;;; The coloring.
+;;; The coloring
 
 (defconst context-coloring-path
   (file-name-directory (or load-file-name buffer-file-name)))
 
-(defun context-coloring-fontify-region (start end)
-  (interactive)
-  (let* ((temp-file (context-coloring-save-buffer-to-temp))
-         (json (shell-command-to-string
-                (format "%s < %s"
-                        (expand-file-name "./bin/tokenizer" context-coloring-path)
-                        temp-file)))
-         (tokens (let ((json-array-type 'list))
-                   (json-read-from-string json))))
-    (with-silent-modifications
-      (dolist (token tokens)
-        (let ((s (cdr (assoc 's token)))
-              (e (cdr (assoc 'e token)))
-              (face (context-coloring-level-face (cdr (assoc 'l token)))))
-          (when (and (>= s start)
-                     (<= e end))
-            (add-text-properties s e `(font-lock-face ,face rear-nonsticky t))))))
-    (delete-file temp-file)))
+(defconst context-coloring-tokenizer-path
+  (expand-file-name "./bin/tokenizer" context-coloring-path))
 
-;;; Minor mode:
+(defun context-coloring-apply-tokens (tokens)
+  (with-silent-modifications
+    (dolist (token tokens)
+      (let ((start (cdr (assoc 's token)))
+            (end (cdr (assoc 'e token)))
+            (face (context-coloring-level-face (cdr (assoc 'l token)))))
+        (add-text-properties start end `(font-lock-face ,face rear-nonsticky t))))))
+
+(defun context-coloring-tokenizer-filter (process chunk)
+  (setq context-coloring-tokenizer-output
+        (concat context-coloring-tokenizer-output chunk)))
+
+(defun context-coloring-tokenizer-sentinel (process event)
+  (when (equal "finished\n" event)
+    (let ((tokens (let ((json-array-type 'list))
+                    (json-read-from-string context-coloring-tokenizer-output))))
+      (setq context-coloring-tokenizer-output nil)
+      (context-coloring-apply-tokens tokens))))
+
+(defun context-coloring-tokenize ()
+  ;; Only continue if there is no concurrent tokenization going on.
+  (when (eq context-coloring-tokenizer-output nil)
+    (let ((tokenizer-process (start-process-shell-command
+                              "tokenizer"
+                              nil
+                              context-coloring-tokenizer-path)))
+      (setq context-coloring-tokenizer-output "")
+      (set-process-filter tokenizer-process 'context-coloring-tokenizer-filter)
+      (set-process-sentinel tokenizer-process 'context-coloring-tokenizer-sentinel)
+      (process-send-region tokenizer-process (point-min) (point-max))
+      (process-send-eof tokenizer-process))))
+
+(defun context-coloring-colorize-buffer ()
+  (interactive)
+  (context-coloring-tokenize))
+
+
+;;; Minor mode
 
 ;;;###autoload
 (define-minor-mode context-coloring-mode
   "Context-based code coloring for JavaScript, inspired by Douglas Crockford."
   nil " Context" nil
-  (make-local-variable 'jit-lock-stealth-time)
-  (make-local-variable 'jit-lock-chunk-size)
-  (make-local-variable 'jit-lock-contextually)
   (if (not context-coloring-mode)
       (progn
-        (setq jit-lock-stealth-time nil)
-        (setq jit-lock-chunk-size 500)
-        ;;(setq jit-lock-contextually `syntax-driven)
-        (jit-lock-unregister 'context-coloring-fontify-region)
-        (jit-lock-register 'font-lock-fontify-region))
-    (setq jit-lock-stealth-time 1)
-    (setq jit-lock-chunk-size 536870911)
-    ;;(setq jit-lock-contextually nil)
-    (jit-lock-unregister 'font-lock-fontify-region)
-    (jit-lock-register 'context-coloring-fontify-region t)))
+        )
+    (set (make-local-variable 'context-coloring-tokenizer-output) nil)))
 
 ;;;###autoload
 (defun context-coloring-mode-enable ()
