@@ -89,7 +89,7 @@ For example: 'context-coloring-depth-1-face'."
       (let ((start (cdr (assoc 's token)))
             (end (cdr (assoc 'e token)))
             (face (context-coloring-level-face (cdr (assoc 'l token)))))
-        (add-text-properties start end `(font-lock-face ,face rear-nonsticky t))))))
+        (add-text-properties start end `(face ,face rear-nonsticky t))))))
 
 (defun context-coloring-tokenizer-filter (process chunk)
   (setq context-coloring-tokenizer-output
@@ -119,9 +119,6 @@ For example: 'context-coloring-depth-1-face'."
   (interactive)
   (context-coloring-tokenize))
 
-(defun context-coloring-fontify-region (start end)
-  (context-coloring-tokenize))
-
 
 ;;; Minor mode
 
@@ -131,9 +128,10 @@ For example: 'context-coloring-depth-1-face'."
   nil " Context" nil
   (if (not context-coloring-mode)
       (progn
-        (jit-lock-unregister 'context-coloring-fontify-region))
+        (cancel-timer context-coloring-colorize-buffer-timer))
     (set (make-local-variable 'context-coloring-tokenizer-output) nil)
-    (jit-lock-register 'context-coloring-fontify-region)))
+    (set (make-local-variable 'context-coloring-colorize-buffer-timer)
+         (run-with-idle-timer 0.25 t 'context-coloring-colorize-buffer))))
 
 ;;;###autoload
 (defun context-coloring-mode-enable ()
