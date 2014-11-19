@@ -80,10 +80,12 @@ For example: \"context-coloring-depth-1-face\"."
 
 ;;; Path constants
 
-(defconst context-coloring-path (file-name-directory (or load-file-name buffer-file-name))
+(defconst context-coloring-path
+  (file-name-directory (or load-file-name buffer-file-name))
   "This file's directory.")
 
-(defconst context-coloring-tokenizer-path (expand-file-name "./bin/tokenizer" context-coloring-path)
+(defconst context-coloring-tokenizer-path
+  (expand-file-name "./bin/tokenizer" context-coloring-path)
   "Path to the external tokenizer executable.")
 
 
@@ -128,7 +130,8 @@ calling FUNCTION with the parsed list of tokens."
                             (when (equal "finished\n" event)
                               (let ((tokens (let ((json-array-type 'list))
                                               (json-read-from-string output))))
-                                (context-coloring-apply-tokens tokens)
+                                (with-current-buffer buffer
+                                  (context-coloring-apply-tokens tokens))
                                 (message "%s (%f)" "Colorization complete." (float-time)))))))
 
   ;; Give the process its input.
