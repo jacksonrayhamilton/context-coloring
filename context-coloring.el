@@ -1,4 +1,41 @@
-;; -*- lexical-binding: t; -*-
+;;; context-coloring.el --- JavaScript syntax highlighting for grown-ups. -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2014 Jackson Ray Hamilton
+
+;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
+;; Keywords: context coloring highlighting js javascript
+;; Version: 1.0.0
+;; Package-Requires: ((emacs "24"))
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Highlights JavaScript code according to function context. Code in the global
+;; scope is white, code in functions within the global scope is yellow, code
+;; within such functions is green, etc.
+;;
+;; Usage:
+;;
+;; Install Node.js 0.10.
+;;
+;; Put context-coloring.el on your load path. Then, in your ~/.emacs:
+;;
+;; (require 'context-coloring)
+;; (add-hook 'js-mode-hook 'context-coloring-mode)
+
+;;; Code:
 
 (require 'json)
 
@@ -84,7 +121,7 @@ For example: \"context-coloring-depth-1-face\"."
   "This file's directory.")
 
 (defconst context-coloring-tokenizer-path
-  (expand-file-name "./bin/tokenizer" context-coloring-path)
+  (expand-file-name "./tokenizer.js" context-coloring-path)
   "Path to the external tokenizer executable.")
 
 
@@ -115,7 +152,8 @@ calling FUNCTION with the parsed list of tokens."
 
   ;; Start the process.
   (setq context-coloring-tokenizer-process
-        (start-process-shell-command "tokenizer" nil context-coloring-tokenizer-path))
+        (start-process-shell-command "tokenizer" nil
+                                     (concat "node " context-coloring-tokenizer-path)))
 
   (let ((output "")
         (buffer context-coloring-buffer)
@@ -231,3 +269,5 @@ imply that it should be colorized again.")
   context-coloring-mode context-coloring-mode-enable)
 
 (provide 'context-coloring)
+
+;;; context-coloring.el ends here
