@@ -172,7 +172,7 @@
 // For example:
 
 /*jslint
-    evil: true, nomen: true, regexp: true, todo: true
+    evil: true, node: true, nomen: true, regexp: true, todo: true
 */
 
 // The current option set is
