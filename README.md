@@ -10,9 +10,9 @@ such functions is green, etc.
 
 ## Usage
 
-- [Install Node.js 0.10 (or higher).][node]
+- Install [Node.js 0.10][node] (or higher).
 - Clone this repository and put it on your [load path][].
-- In your `~/.emacs`:
+- Add the following to your `~/.emacs`:
 
 ```lisp
 (require 'context-coloring)
