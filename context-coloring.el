@@ -133,6 +133,7 @@ For example: \"context-coloring-depth-1-face\"."
 (defun context-coloring-apply-tokens (tokens)
   "Processes TOKENS to apply context-based coloring to the current buffer."
   (with-silent-modifications
+    (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil))
     (dolist (token tokens)
       (let ((start (cdr (assoc 's token)))
             (end (cdr (assoc 'e token)))
