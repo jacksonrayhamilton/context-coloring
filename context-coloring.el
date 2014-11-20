@@ -114,7 +114,7 @@ For example: \"context-coloring-depth-1-face\"."
            "-face")))
 
 
-;;; Path constants
+;;; Constants
 
 (defconst context-coloring-path
   (file-name-directory (or load-file-name buffer-file-name))
@@ -123,6 +123,9 @@ For example: \"context-coloring-depth-1-face\"."
 (defconst context-coloring-tokenizer-path
   (expand-file-name "./tokenizer.js" context-coloring-path)
   "Path to the external tokenizer executable.")
+
+(defconst context-coloring-delay 0.25
+  "Time between colorization.")
 
 
 ;;; Tokenization functions
@@ -134,7 +137,7 @@ For example: \"context-coloring-depth-1-face\"."
       (let ((start (cdr (assoc 's token)))
             (end (cdr (assoc 'e token)))
             (face (context-coloring-level-face (cdr (assoc 'l token)))))
-        (add-text-properties start end `(font-lock-face ,face rear-nonsticky t))))))
+        (add-text-properties start end `(face ,face rear-nonsticky t))))))
 
 (defun context-coloring-kill-tokenizer ()
   (when (not (null context-coloring-tokenizer-process))
@@ -175,8 +178,8 @@ calling FUNCTION with the parsed list of tokens."
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
                                 (setq context-coloring-tokenizer-process nil)
-                                (message "Colorized (after %f seconds)."
-                                         (- (float-time) start-time)))))))
+                                ;; (message "Colorized (after %f seconds)." (- (float-time) start-time))
+                                )))))
 
   ;; Give the process its input.
   (process-send-region context-coloring-tokenizer-process (point-min) (point-max))
@@ -188,7 +191,7 @@ calling FUNCTION with the parsed list of tokens."
 (defun context-coloring-colorize ()
   (interactive)
   (setq context-coloring-colorize-start-time (float-time))
-  (message "%s" "Colorizing.")
+  ;;(message "%s" "Colorizing.")
   (context-coloring-tokenize))
 
 (defun context-coloring-change-function (start end length)
@@ -240,8 +243,12 @@ imply that it should be colorized again.")
   nil " Context" nil
   (if (not context-coloring-mode)
       (progn
+        (context-coloring-kill-tokenizer)
         (when (not (null 'context-coloring-colorize-idle-timer))
-         (cancel-timer context-coloring-colorize-idle-timer)))
+          (cancel-timer context-coloring-colorize-idle-timer))
+        (remove-hook 'after-change-functions 'context-coloring-change-function t)
+        (font-lock-mode)
+        (jit-lock-mode t))
 
     (setq context-coloring-buffer (current-buffer))
 
@@ -249,12 +256,13 @@ imply that it should be colorized again.")
     (context-coloring-colorize)
 
     ;; Only recolor on change. So watch for changes.
-    (set (make-local-variable 'after-change-functions)
-         '(context-coloring-change-function))
+    (font-lock-mode 0)
+    (jit-lock-mode nil)
+    (add-hook 'after-change-functions 'context-coloring-change-function nil t)
 
     ;; Only recolor idly.
     (setq context-coloring-colorize-idle-timer
-          (run-with-idle-timer 1 t 'context-coloring-maybe-colorize))))
+          (run-with-idle-timer context-coloring-delay t 'context-coloring-maybe-colorize))))
 
 ;;;###autoload
 (defun context-coloring-mode-enable ()

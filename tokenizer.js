@@ -121,6 +121,10 @@ process.stdin.on('end', function () {
                 previous.e === (total + token.from)) {
             previous.e = cap(total + token.thru);
         } else {
+            // IDK.
+            if (total === undefined) {
+                break;
+            }
             out.push({
                 l: level,
                 s: cap(total + token.from),
