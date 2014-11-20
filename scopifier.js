@@ -17,7 +17,6 @@ process.stdin.on('readable', function () {
 process.stdin.on('end', function () {
     var scopes = [],
         symbols = [],
-        toplevel = UglifyJS.parse(whole),
         walker = new UglifyJS.TreeWalker(function (node) {
             if (node instanceof UglifyJS.AST_Scope) {
                 if (node.level === undefined) {
@@ -35,8 +34,16 @@ process.stdin.on('end', function () {
                               node.start.pos + 1,
                               node.end.endpos + 1]);
             }
-        });
-    toplevel.figure_out_scope();
-    toplevel.walk(walker);
+        }),
+        toplevel;
+
+    try {
+        toplevel = UglifyJS.parse(whole);
+        toplevel.figure_out_scope();
+        toplevel.walk(walker);
+    } catch (error) {
+        process.exit(1);
+    }
+
     console.log(JSON.stringify(scopes.concat(symbols)));
 });
