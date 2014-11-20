@@ -1,7 +1,7 @@
 # Context Coloring
 
 <p align="center">
-  <img alt="Screenshot of JavaScript code highlighted by context." src="screenshots.png" title="Screenshot">
+  <img alt="Screenshot of JavaScript code highlighted by context." src="screenshot.png" title="Screenshot">
 </p>
 
 Highlights JavaScript code according to function context. Code in the global
