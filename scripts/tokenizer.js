@@ -6,7 +6,8 @@ var JSLINT = require('./jslint'),
     // Accumulated input.
     whole = '',
 
-    // Acquires the number of accumulated characters after the end of each line.
+    // Acquires the number of accumulated characters after the end of each line,
+    // for each line.
     getTotals = function (file) {
         var lines = file.split('\n'),
             total = 0,
@@ -35,12 +36,13 @@ process.stdin.on('readable', function () {
 });
 
 process.stdin.on('end', function () {
-    var data, totals, out, i, tokens, length, cap, token, origin, level, total;
+    var data, globals, totals, out, i, tokens, length, cap, token, origin, level, total;
 
     // Generate a syntax tree for the input.
     JSLINT(whole);
     data = JSLINT.data();
 
+    globals = data.global;
     totals = getTotals(whole);
 
     // Minimize an otherwise-circular structure.
@@ -67,7 +69,7 @@ process.stdin.on('end', function () {
         // Globality is not indicated by origin function.
         if (token.kind !== 'function' &&
                 (token.identifier &&
-                 data.global.indexOf(token.string) > -1)) {
+                 globals.indexOf(token.string) > -1)) {
             level = 0;
         } else {
             level = origin.function.level;
