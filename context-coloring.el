@@ -7,8 +7,7 @@
 (defface context-coloring-depth-0-face
   '((((background light)) (:foreground "#ffffff"))
     (((background dark)) (:foreground "#ffffff")))
-  "Nested blocks face, depth 0 - outermost set."
-  :tag "Rainbow Blocks Depth 0 Face -- OUTERMOST"
+  "Nested blocks face, depth 0; global scope."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-1-face
