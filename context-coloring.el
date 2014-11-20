@@ -100,15 +100,19 @@ For example: \"context-coloring-depth-1-face\"."
             (face (context-coloring-level-face (cdr (assoc 'l token)))))
         (add-text-properties start end `(font-lock-face ,face rear-nonsticky t))))))
 
+(defun context-coloring-kill-tokenizer ()
+  (when (not (null context-coloring-tokenizer-process))
+    (delete-process context-coloring-tokenizer-process)
+    (setq context-coloring-tokenizer-process nil)))
+
 (defun context-coloring-tokenize ()
   "Invokes the external tokenizer with the current buffer's
 contents, reading the tokenizer's response asynchronously and
 calling FUNCTION with the parsed list of tokens."
 
-  ;; Cancel a running process because it is implicitly obsolete if we are
-  ;; calling this function.
-  (when (not (null context-coloring-tokenizer-process))
-    (delete-process context-coloring-tokenizer-process))
+  ;; Prior running tokenization is implicitly obsolete if this function is
+  ;; called.
+  (context-coloring-kill-tokenizer)
 
   ;; Start the process.
   (setq context-coloring-tokenizer-process
@@ -133,6 +137,7 @@ calling FUNCTION with the parsed list of tokens."
                                               (json-read-from-string output))))
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
+                                (setq context-coloring-tokenizer-process nil)
                                 (message "Colorized (after %f seconds)."
                                          (- (float-time) start-time)))))))
 
@@ -150,6 +155,8 @@ calling FUNCTION with the parsed list of tokens."
   (context-coloring-tokenize))
 
 (defun context-coloring-change-function (start end length)
+  ;; Tokenization is obsolete if there was a change.
+  (context-coloring-kill-tokenizer)
   (setq context-coloring-changed t))
 
 (defun context-coloring-maybe-colorize ()
