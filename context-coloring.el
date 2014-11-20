@@ -120,9 +120,9 @@ For example: \"context-coloring-depth-1-face\"."
   (file-name-directory (or load-file-name buffer-file-name))
   "This file's directory.")
 
-(defconst context-coloring-tokenizer-path
-  (expand-file-name "./scopify.js" context-coloring-path)
-  "Path to the external tokenizer executable.")
+(defconst context-coloring-scopifier-path
+  (expand-file-name "./scopifier.js" context-coloring-path)
+  "Path to the external scopifier executable.")
 
 (defconst context-coloring-delay 0.25
   "Time between colorization.")
@@ -130,38 +130,43 @@ For example: \"context-coloring-depth-1-face\"."
 
 ;;; Tokenization functions
 
+;; Tokens are vectors with the following form:
+;; 0: Level
+;; 1: Start
+;; 2: End
 (defun context-coloring-apply-tokens (tokens)
   "Processes TOKENS to apply context-based coloring to the current buffer."
   (with-silent-modifications
+    ;; Reset in case there should be uncolored areas.
     (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil))
-    (dolist (token tokens)
-      ;; Tokens are a list with the following form:
-      ;; 0: Level
-      ;; 1: Start
-      ;; 2: End
-      (let ((face (context-coloring-level-face (nth 0 token)))
-            (start (nth 1 token))
-            (end (nth 2 token)))
-        (add-text-properties start end `(face ,face rear-nonsticky t))))))
+    (let ((i 0)
+          (len (length tokens)))
+      (while (< i len)
+        (let ((token (elt tokens i)))
+          (let ((face (context-coloring-level-face (elt token 0)))
+                (start (elt token 1))
+                (end (elt token 2)))
+            (add-text-properties start end `(face ,face rear-nonsticky t))))
+        (setq i (+ i 1))))))
 
-(defun context-coloring-kill-tokenizer ()
-  (when (not (null context-coloring-tokenizer-process))
-    (delete-process context-coloring-tokenizer-process)
-    (setq context-coloring-tokenizer-process nil)))
+(defun context-coloring-kill-scopifier ()
+  (when (not (null context-coloring-scopifier-process))
+    (delete-process context-coloring-scopifier-process)
+    (setq context-coloring-scopifier-process nil)))
 
-(defun context-coloring-tokenize ()
-  "Invokes the external tokenizer with the current buffer's
-contents, reading the tokenizer's response asynchronously and
+(defun context-coloring-scopify ()
+  "Invokes the external scopifier with the current buffer's
+contents, reading the scopifier's response asynchronously and
 calling FUNCTION with the parsed list of tokens."
 
   ;; Prior running tokenization is implicitly obsolete if this function is
   ;; called.
-  (context-coloring-kill-tokenizer)
+  (context-coloring-kill-scopifier)
 
   ;; Start the process.
-  (setq context-coloring-tokenizer-process
-        (start-process-shell-command "tokenizer" nil
-                                     (concat "node " context-coloring-tokenizer-path)))
+  (setq context-coloring-scopifier-process
+        (start-process-shell-command "scopifier" nil
+                                     (concat "node " context-coloring-scopifier-path)))
 
   (let ((output "")
         (buffer context-coloring-buffer)
@@ -169,26 +174,25 @@ calling FUNCTION with the parsed list of tokens."
 
     ;;The process may produce output in multiple chunks. This filter accumulates
     ;;the chunks into a message.
-    (set-process-filter context-coloring-tokenizer-process
+    (set-process-filter context-coloring-scopifier-process
                         (lambda (process chunk)
                           (setq output (concat output chunk))))
 
     ;; When the process's message is complete, this sentinel parses it as JSON
     ;; and applies the tokens to the buffer.
-    (set-process-sentinel context-coloring-tokenizer-process
+    (set-process-sentinel context-coloring-scopifier-process
                           (lambda (process event)
                             (when (equal "finished\n" event)
-                              (let ((tokens (let ((json-array-type 'list))
-                                              (json-read-from-string output))))
+                              (let ((tokens (json-read-from-string output)))
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
-                                (setq context-coloring-tokenizer-process nil)
-                                (message "Colorized (after %f seconds)." (- (float-time) start-time))
+                                (setq context-coloring-scopifier-process nil)
+                                ;; (message "Colorized (after %f seconds)." (- (float-time) start-time))
                                 )))))
 
   ;; Give the process its input.
-  (process-send-region context-coloring-tokenizer-process (point-min) (point-max))
-  (process-send-eof context-coloring-tokenizer-process))
+  (process-send-region context-coloring-scopifier-process (point-min) (point-max))
+  (process-send-eof context-coloring-scopifier-process))
 
 
 ;;; Colorization functions
@@ -196,12 +200,12 @@ calling FUNCTION with the parsed list of tokens."
 (defun context-coloring-colorize ()
   (interactive)
   (setq context-coloring-colorize-start-time (float-time))
-  (message "%s" "Colorizing.")
-  (context-coloring-tokenize))
+  ;; (message "%s" "Colorizing.")
+  (context-coloring-scopify))
 
 (defun context-coloring-change-function (start end length)
   ;; Tokenization is obsolete if there was a change.
-  (context-coloring-kill-tokenizer)
+  (context-coloring-kill-scopifier)
   (setq context-coloring-changed t))
 
 (defun context-coloring-maybe-colorize ()
@@ -221,10 +225,10 @@ colorizing would be redundant."
   "Reference to this buffer for timers.")
 (make-variable-buffer-local 'context-coloring-buffer)
 
-(defvar context-coloring-tokenizer-process nil
-  "Only allow a single tokenizer process to run at a time. This
+(defvar context-coloring-scopifier-process nil
+  "Only allow a single scopifier process to run at a time. This
 is a reference to that one process.")
-(make-variable-buffer-local 'context-coloring-tokenizer-process)
+(make-variable-buffer-local 'context-coloring-scopifier-process)
 
 (defvar context-coloring-colorize-idle-timer nil
   "Reference to currently-running idle timer.")
@@ -248,7 +252,7 @@ imply that it should be colorized again.")
   nil " Context" nil
   (if (not context-coloring-mode)
       (progn
-        (context-coloring-kill-tokenizer)
+        (context-coloring-kill-scopifier)
         (when (not (null 'context-coloring-colorize-idle-timer))
           (cancel-timer context-coloring-colorize-idle-timer))
         (remove-hook 'after-change-functions 'context-coloring-change-function t)
