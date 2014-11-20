@@ -11,7 +11,8 @@ such functions is green, etc.
 ## Usage
 
 - Install [Node.js 0.10][node] (or higher).
-- Clone this repository and put it on your [load path][].
+- Clone this repository, and run `npm install` in it.
+- Put this repository on your [load path][].
 - Add the following to your `~/.emacs`:
 
 ```lisp
