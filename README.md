@@ -19,5 +19,5 @@ such functions is green, etc.
 (add-hook 'js-mode-hook 'context-coloring-mode)
 ```
 
-[node]: http://nodejs.org/download/)
+[node]: http://nodejs.org/download/
 [load path]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Lisp-Libraries.html
