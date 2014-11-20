@@ -23,29 +23,20 @@ process.stdin.on('end', function () {
                 if (node.level === undefined) {
                     node.level = node.parent_scope ? node.parent_scope.level + 1 : 0;
                     scopes.push([node.level,
-                                 node.start.pos,
-                                 node.end.endpos]);
+                                 node.start.pos + 1,
+                                 node.end.endpos + 1]);
                 }
             } else if (node instanceof UglifyJS.AST_Symbol) {
+                // We don't care about symbols without definitions.
+                if (node.thedef === undefined) {
+                    return;
+                }
                 symbols.push([node.thedef.scope.level,
-                              node.start.pos,
-                              node.end.endpos]);
+                              node.start.pos + 1,
+                              node.end.endpos + 1]);
             }
         });
     toplevel.figure_out_scope();
     toplevel.walk(walker);
-    console.log('scopes', scopes);
-    console.log('symbols', symbols);
-    // TODO: Flatten a monad.
-    // scopes [ [ 0, 0, 206 ], [ 1, 0, 206 ], [ 2, 30, 203 ], [ 3, 115, 174 ] ]
-    // symbols [ [ 0, 9, 14 ],
-    //   [ 2, 39, 43 ],
-    //   [ 2, 44, 49 ],
-    //   [ 2, 65, 70 ],
-    //   [ 0, 73, 79 ],
-    //   [ 2, 102, 107 ],
-    //   [ 3, 125, 129 ],
-    //   [ 3, 152, 156 ],
-    //   [ 2, 157, 162 ],
-    //   [ 2, 191, 196 ] ]
+    console.log(JSON.stringify(scopes.concat(symbols)));
 });

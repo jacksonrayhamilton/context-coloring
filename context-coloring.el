@@ -121,7 +121,7 @@ For example: \"context-coloring-depth-1-face\"."
   "This file's directory.")
 
 (defconst context-coloring-tokenizer-path
-  (expand-file-name "./tokenizer.js" context-coloring-path)
+  (expand-file-name "./scopify.js" context-coloring-path)
   "Path to the external tokenizer executable.")
 
 (defconst context-coloring-delay 0.25
@@ -135,9 +135,13 @@ For example: \"context-coloring-depth-1-face\"."
   (with-silent-modifications
     (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil))
     (dolist (token tokens)
-      (let ((start (cdr (assoc 's token)))
-            (end (cdr (assoc 'e token)))
-            (face (context-coloring-level-face (cdr (assoc 'l token)))))
+      ;; Tokens are a list with the following form:
+      ;; 0: Level
+      ;; 1: Start
+      ;; 2: End
+      (let ((face (context-coloring-level-face (nth 0 token)))
+            (start (nth 1 token))
+            (end (nth 2 token)))
         (add-text-properties start end `(face ,face rear-nonsticky t))))))
 
 (defun context-coloring-kill-tokenizer ()
@@ -179,7 +183,7 @@ calling FUNCTION with the parsed list of tokens."
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
                                 (setq context-coloring-tokenizer-process nil)
-                                ;; (message "Colorized (after %f seconds)." (- (float-time) start-time))
+                                (message "Colorized (after %f seconds)." (- (float-time) start-time))
                                 )))))
 
   ;; Give the process its input.
@@ -192,7 +196,7 @@ calling FUNCTION with the parsed list of tokens."
 (defun context-coloring-colorize ()
   (interactive)
   (setq context-coloring-colorize-start-time (float-time))
-  ;;(message "%s" "Colorizing.")
+  (message "%s" "Colorizing.")
   (context-coloring-tokenize))
 
 (defun context-coloring-change-function (start end length)
