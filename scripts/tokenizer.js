@@ -3,6 +3,29 @@
 var JSLINT = require('./jslint'),
     util = require('util'),
 
+    // Use the most permissive set of options to increase the likelihood of a
+    // successful lint. Anything else should be a syntax error.
+    jslintOptions = {
+        ass: true,
+        bitwise: true,
+        continue: true,
+        eqeq: true,
+        evil: true,
+        forin: true,
+        maxerr: Infinity,
+        newcap: true,
+        nomen: true,
+        plusplus: true,
+        regexp: true,
+        unparam: true,
+        sloppy: true,
+        stupid: true,
+        sub: true,
+        todo: true,
+        vars: true,
+        white: true
+    },
+
     // Accumulated input.
     whole = '',
 
@@ -39,7 +62,7 @@ process.stdin.on('end', function () {
     var data, globals, totals, out, i, tokens, length, cap, token, origin, level, total;
 
     // Generate a syntax tree for the input.
-    JSLINT(whole);
+    JSLINT(whole, jslintOptions);
     data = JSLINT.data();
 
     globals = data.global;
@@ -69,7 +92,7 @@ process.stdin.on('end', function () {
         // Globality is not indicated by origin function.
         if (token.kind !== 'function' &&
                 (token.identifier &&
-                 globals.indexOf(token.string) > -1)) {
+                globals.indexOf(token.string) > -1)) {
             level = 0;
         } else {
             level = origin.function.level;
