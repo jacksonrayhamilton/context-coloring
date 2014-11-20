@@ -11,7 +11,7 @@ such functions is green, etc.
 ## Usage
 
 - [Install Node.js 0.10 (or higher).][node]
-- Put `context-coloring.el` on your [load path][].
+- Clone this repository and put it on your [load path][].
 - In your `~/.emacs`:
 
 ```lisp
