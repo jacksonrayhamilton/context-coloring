@@ -21,6 +21,7 @@ process.stdin.on('end', function () {
         scopes = [],
         symbols = [],
         comments = [],
+        continuous,
         emacsified;
 
     // Gracefully handle parse errors by doing nothing.
@@ -111,7 +112,21 @@ process.stdin.on('end', function () {
         ]);
     });
 
-    emacsified = scopes.concat(symbols.concat(comments));
+    continuous = symbols.concat(comments).sort(function (a, b) {
+        return a[1] - b[1];
+    });
+
+    continuous = continuous.slice(1).reduce(function (soFar, token) {
+        var previous = soFar[soFar.length - 1];
+        if (previous[0] === token[0]) {
+            previous[2] = token[2];
+            return soFar;
+        }
+        soFar.push(token);
+        return soFar;
+    }, continuous.slice(0, 1));
+
+    emacsified = scopes.concat(continuous);
 
     emacsified.forEach(function (instruction) {
         // Emacs starts counting from 1.
