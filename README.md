@@ -6,13 +6,15 @@
 
 Highlights JavaScript code according to function context. Code in the global
 scope is white, code in functions within the global scope is yellow, code within
-such functions is green, etc.
+such functions is green, etc. Comments are grey.
 
 ## Usage
 
-- Install [Node.js 0.10][node] (or higher).
-- Clone this repository, and run `npm install` in it.
-- Put this repository on your [load path][].
+Requires Emacs 24+ and [Node.js 0.10+][node].
+
+- Clone this repository.
+- Run `npm install --production` in it.
+- Add it to your [load path][].
 - Add the following to your `~/.emacs`:
 
 ```lisp
