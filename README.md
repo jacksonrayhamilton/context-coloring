@@ -12,7 +12,8 @@ in which they were defined. Comments are gray.
 This coloring scheme is probably more useful than conventional JavaScript
 *syntax* highlighting. Lexical scope information at-a-glance is probably more
 useful than detecting if you spelled "function" wrong, or determing that you
-forgot to close a string literal. (A [linter][] would serve you better.)
+forgot to close a string literal. (A [linter][] would serve you better in that
+regard.)
 
 ## Usage
 
