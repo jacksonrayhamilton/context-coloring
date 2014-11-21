@@ -1,0 +1,123 @@
+/*jslint node: true */
+
+'use strict';
+
+var escope = require('escope'),
+    esprima = require('esprima'),
+    whole = '';
+
+process.stdin.setEncoding('utf8');
+
+process.stdin.on('readable', function () {
+    var chunk = process.stdin.read();
+    if (chunk !== null) {
+        whole += chunk;
+    }
+});
+
+process.stdin.on('end', function () {
+    var ast,
+        analyzedScopes,
+        scopes = [],
+        symbols = [],
+        comments = [],
+        emacsified;
+
+    // Gracefully handle parse errors by doing nothing.
+    try {
+        ast = esprima.parse(whole, {
+            comment: true,
+            range: true
+        });
+        analyzedScopes = escope.analyze(ast).scopes;
+    } catch (error) {
+        process.exit(1);
+    }
+
+    analyzedScopes.forEach(function (scope) {
+        if (scope.level === undefined) {
+            if (scope.upper) {
+                if (scope.upper.functionExpressionScope) {
+                    // Pretend function expression scope doesn't exist.
+                    scope.level = scope.upper.level;
+                    scope.variables = scope.upper.variables.concat(scope.variables);
+                } else {
+                    scope.level = scope.upper.level + 1;
+                }
+            } else {
+                scope.level = 0;
+            }
+            if (scope.functionExpressionScope) {
+                // We've only given the scope a level for posterity's sake.
+                return;
+            }
+            scopes.push([
+                scope.level,
+                scope.block.range[0],
+                scope.block.range[1]
+            ]);
+            scope.variables.forEach(function (variable) {
+                var definitions = [],
+                    references = [];
+                variable.defs.forEach(function (definition) {
+                    var range = definition.name.range;
+                    definitions.push([
+                        scope.level,
+                        range[0],
+                        range[1]
+                    ]);
+                });
+                variable.references.forEach(function (reference) {
+                    var range = reference.identifier.range,
+                        isDefined = definitions.some(function (definition) {
+                            // Check for identical definitions.
+                            return definition[1] === range[0] &&
+                                definition[2] === range[1];
+                        });
+                    if (isDefined) {
+                        return;
+                    }
+                    references.push([
+                        scope.level,
+                        range[0],
+                        range[1]
+                    ]);
+                });
+                Array.prototype.push.apply(symbols, definitions);
+                Array.prototype.push.apply(symbols, references);
+            });
+            scope.references.forEach(function (reference) {
+                var range;
+                if (reference.resolved) {
+                    return;
+                }
+                // Handle global references.
+                range = reference.identifier.range;
+                symbols.push([
+                    0,
+                    range[0],
+                    range[1]
+                ]);
+            });
+        }
+    });
+
+    ast.comments.forEach(function (comment) {
+        var range = comment.range;
+        comments.push([
+            -1,
+            range[0],
+            range[1]
+        ]);
+    });
+
+    emacsified = scopes.concat(symbols.concat(comments));
+
+    emacsified.forEach(function (instruction) {
+        // Emacs starts counting from 1.
+        instruction[1] += 1;
+        instruction[2] += 1;
+    });
+
+    console.log(JSON.stringify(emacsified));
+});

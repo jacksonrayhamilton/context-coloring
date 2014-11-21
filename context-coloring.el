@@ -41,6 +41,12 @@
 
 ;;; Faces
 
+(defface context-coloring-depth--1-face
+  '((((background light)) (:foreground "#999999"))
+    (((background dark)) (:foreground "#999999")))
+  "Nested blocks face, depth -1; comments."
+  :group 'context-coloring-faces)
+
 (defface context-coloring-depth-0-face
   '((((background light)) (:foreground "#ffffff"))
     (((background dark)) (:foreground "#ffffff")))
@@ -121,7 +127,7 @@ For example: \"context-coloring-depth-1-face\"."
   "This file's directory.")
 
 (defconst context-coloring-scopifier-path
-  (expand-file-name "./scopifier.js" context-coloring-path)
+  (expand-file-name "./scopifier-esprima.js" context-coloring-path)
   "Path to the external scopifier executable.")
 
 (defconst context-coloring-delay 0.25
@@ -187,7 +193,7 @@ calling FUNCTION with the parsed list of tokens."
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
                                 (setq context-coloring-scopifier-process nil)
-                                ;; (message "Colorized (after %f seconds)." (- (float-time) start-time))
+                                (message "Colorized (after %f seconds)." (- (float-time) start-time))
                                 )))))
 
   ;; Give the process its input.
@@ -200,7 +206,7 @@ calling FUNCTION with the parsed list of tokens."
 (defun context-coloring-colorize ()
   (interactive)
   (setq context-coloring-colorize-start-time (float-time))
-  ;; (message "%s" "Colorizing.")
+  (message "%s" "Colorizing.")
   (context-coloring-scopify))
 
 (defun context-coloring-change-function (start end length)

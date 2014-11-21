@@ -24,6 +24,8 @@
     "mocha": "^2.0.1"
   },
   "dependencies": {
+    "escope": "^1.0.1",
+    "esprima": "^1.2.2",
     "uglify-js": "^2.4.15"
   }
 }
