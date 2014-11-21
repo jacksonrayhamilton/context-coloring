@@ -5,7 +5,7 @@
 
 var assert = require('assert');
 
-describe('scopify', function () {
+describe('scopifier', function () {
 
     it('should work', function () {
 
