@@ -2,7 +2,10 @@ all:
 	exit
 
 test:
-	mocha
+	node_modules/.bin/mocha
 	emacs -batch -l ert -l test/context-coloring-test.el -f ert-run-tests-batch-and-exit
 
-.PHONY: all test clean
+benchmark:
+	node_modules/.bin/matcha
+
+.PHONY: all test benchmark
