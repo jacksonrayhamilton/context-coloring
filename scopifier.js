@@ -67,15 +67,15 @@ module.exports = function (code) {
             scope.block.range[1]
         ]]);
         definitions = scope.variables.reduce(function (definitions, variable) {
-            return definitions.concat(variable.defs
-                .map(function (definition) {
-                    var range = definition.name.range;
-                    return [
-                        scope.level,
-                        range[0],
-                        range[1]
-                    ];
-                }));
+            var mappedDefinitions = variable.defs.map(function (definition) {
+                var range = definition.name.range;
+                return [
+                    scope.level,
+                    range[0],
+                    range[1]
+                ];
+            });
+            return definitions.concat(mappedDefinitions);
         }, []);
         references = scope.references.reduce(function (references, reference) {
             var range = reference.identifier.range;
