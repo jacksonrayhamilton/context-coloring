@@ -39,67 +39,68 @@ module.exports = function (code) {
 
     analyzedScopes.forEach(function (scope) {
         var scopeDefinitions;
-        if (scope.level === undefined) {
-            if (scope.upper) {
-                if (scope.upper.functionExpressionScope) {
-                    // Pretend function expression scope doesn't exist.
-                    scope.level = scope.upper.level;
-                    scope.variables = scope.upper.variables.concat(scope.variables);
-                } else {
-                    scope.level = scope.upper.level + 1;
-                }
+        if (scope.level !== undefined) {
+            return;
+        }
+        if (scope.upper) {
+            if (scope.upper.functionExpressionScope) {
+                // Pretend function expression scope doesn't exist.
+                scope.level = scope.upper.level;
+                scope.variables = scope.upper.variables.concat(scope.variables);
             } else {
-                scope.level = 0;
+                scope.level = scope.upper.level + 1;
             }
-            if (scope.functionExpressionScope) {
-                // We've only given the scope a level for posterity's sake.
-                return;
-            }
-            scopes.push([
-                scope.level,
-                scope.block.range[0],
-                scope.block.range[1]
-            ]);
-            scopeDefinitions = [];
-            scope.variables.forEach(function (variable) {
-                var definitions = [],
-                    references = [];
-                variable.defs.forEach(function (definition) {
-                    var range = definition.name.range;
-                    definitions.push([
-                        scope.level,
-                        range[0],
-                        range[1]
-                    ]);
-                });
-                variable.references.forEach(function (reference) {
-                    var range = reference.identifier.range;
-                    if (isDefined(definitions, range)) {
-                        return;
-                    }
-                    references.push([
-                        scope.level,
-                        range[0],
-                        range[1]
-                    ]);
-                });
-                Array.prototype.push.apply(scopeDefinitions, definitions);
-                Array.prototype.push.apply(symbols, definitions);
-                Array.prototype.push.apply(symbols, references);
-            });
-            scope.references.forEach(function (reference) {
-                var range = reference.identifier.range;
-                if (reference.resolved || isDefined(scopeDefinitions, range)) {
-                    return;
-                }
-                // Handle global references.
-                symbols.push([
-                    0,
+        } else {
+            scope.level = 0;
+        }
+        if (scope.functionExpressionScope) {
+            // We've only given the scope a level for posterity's sake.
+            return;
+        }
+        scopes.push([
+            scope.level,
+            scope.block.range[0],
+            scope.block.range[1]
+        ]);
+        scopeDefinitions = [];
+        scope.variables.forEach(function (variable) {
+            var definitions = [],
+                references = [];
+            variable.defs.forEach(function (definition) {
+                var range = definition.name.range;
+                definitions.push([
+                    scope.level,
                     range[0],
                     range[1]
                 ]);
             });
-        }
+            variable.references.forEach(function (reference) {
+                var range = reference.identifier.range;
+                if (isDefined(definitions, range)) {
+                    return;
+                }
+                references.push([
+                    scope.level,
+                    range[0],
+                    range[1]
+                ]);
+            });
+            Array.prototype.push.apply(scopeDefinitions, definitions);
+            Array.prototype.push.apply(symbols, definitions);
+            Array.prototype.push.apply(symbols, references);
+        });
+        scope.references.forEach(function (reference) {
+            var range = reference.identifier.range;
+            if (reference.resolved || isDefined(scopeDefinitions, range)) {
+                return;
+            }
+            // Handle global references.
+            symbols.push([
+                0,
+                range[0],
+                range[1]
+            ]);
+        });
     });
 
     comments = ast.comments
