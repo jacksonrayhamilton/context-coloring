@@ -38,9 +38,8 @@ module.exports = function (code) {
     }
 
     analyzedScopes.forEach(function (scope) {
-        var scopeDefinitions,
-            variables,
-            globalReferences;
+        var definitions,
+            references;
         if (scope.level !== undefined) {
             // Having its level set implies it was already annotated.
             return;
@@ -67,11 +66,8 @@ module.exports = function (code) {
             scope.block.range[0],
             scope.block.range[1]
         ]]);
-        scopeDefinitions = [];
-        variables = scope.variables.reduce(function (symbols, variable) {
-            var definitions,
-                references;
-            definitions = variable.defs
+        definitions = scope.variables.reduce(function (definitions, variable) {
+            return definitions.concat(variable.defs
                 .map(function (definition) {
                     var range = definition.name.range;
                     return [
@@ -79,36 +75,21 @@ module.exports = function (code) {
                         range[0],
                         range[1]
                     ];
-                });
-            references = variable.references
-                .reduce(function (references, reference) {
-                    var range = reference.identifier.range;
-                    if (isDefined(definitions, range)) {
-                        return references;
-                    }
-                    // Double array required to concat just the inner array.
-                    return references.concat([[
-                        scope.level,
-                        range[0],
-                        range[1]
-                    ]]);
-                }, []);
-            scopeDefinitions = scopeDefinitions.concat(definitions);
-            return symbols.concat(definitions).concat(references);
+                }));
         }, []);
-        globalReferences = scope.references.reduce(function (references, reference) {
+        references = scope.references.reduce(function (references, reference) {
             var range = reference.identifier.range;
-            if (reference.resolved || isDefined(scopeDefinitions, range)) {
+            if (isDefined(definitions, range)) {
                 return references;
             }
-            // Handle global references.
             return references.concat([[
-                0,
+                // Handle global references too.
+                reference.resolved ? reference.resolved.scope.level : 0,
                 range[0],
                 range[1]
             ]]);
         }, []);
-        symbols = symbols.concat(variables).concat(globalReferences);
+        symbols = symbols.concat(definitions).concat(references);
     });
 
     comments = ast.comments
