@@ -1,5 +1,3 @@
-/*jslint node: true */
-
 // Reads a JavaScript file from stdin.
 
 // Writes an array of `[level, start, end]' tokens to stdout.
