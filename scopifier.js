@@ -4,36 +4,31 @@
 
 var escope = require('escope'),
     esprima = require('esprima'),
+
+    // Given an array of definitions, determines if a definition already exists
+    // for a given range. (escope detects variables twice if they are declared
+    // and initialized simultaneously; this filters them.)
     isDefined = function (definitions, range) {
         return definitions.some(function (definition) {
             // Check for identical definitions.
             return definition[1] === range[0] &&
                 definition[2] === range[1];
         });
-    },
-    whole = '';
+    };
 
-process.stdin.setEncoding('utf8');
-
-process.stdin.on('readable', function () {
-    var chunk = process.stdin.read();
-    if (chunk !== null) {
-        whole += chunk;
-    }
-});
-
-process.stdin.on('end', function () {
+// Given code, returns an array of `[level, start, end]' tokens for
+// context-coloring.
+module.exports = function (code) {
     var ast,
         analyzedScopes,
         scopes = [],
         symbols = [],
-        comments = [],
-        continuous,
+        comments,
         emacsified;
 
     // Gracefully handle parse errors by doing nothing.
     try {
-        ast = esprima.parse(whole, {
+        ast = esprima.parse(code, {
             comment: true,
             range: true
         });
@@ -107,38 +102,27 @@ process.stdin.on('end', function () {
         }
     });
 
-    ast.comments.forEach(function (comment) {
-        var range = comment.range;
-        comments.push([
-            -1,
-            range[0],
-            range[1]
-        ]);
-    });
+    comments = ast.comments
+        .map(function (comment) {
+            var range = comment.range;
+            return [
+                -1,
+                range[0],
+                range[1]
+            ];
+        });
 
-    continuous = symbols.concat(comments).sort(function (a, b) {
-        return a[1] - b[1];
-    });
+    emacsified = scopes
+        .concat(symbols)
+        .concat(comments)
+        .map(function (token) {
+            // Emacs starts counting from 1.
+            return [
+                token[0],
+                token[1] + 1,
+                token[2] + 1
+            ];
+        });
 
-    continuous = continuous.slice(1).reduce(function (soFar, token) {
-        var previous = soFar[soFar.length - 1];
-        // Detect same-color exact tail ends (nothing else is safe to join).
-        if (previous[0] === token[0] &&
-                previous[2] === token[1] - 1) {
-            previous[2] = token[2];
-            return soFar;
-        }
-        soFar.push(token);
-        return soFar;
-    }, continuous.slice(0, 1));
-
-    emacsified = scopes.concat(continuous);
-
-    emacsified.forEach(function (instruction) {
-        // Emacs starts counting from 1.
-        instruction[1] += 1;
-        instruction[2] += 1;
-    });
-
-    console.log(JSON.stringify(emacsified));
-});
+    return emacsified;
+};

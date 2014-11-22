@@ -127,7 +127,7 @@ For example: \"context-coloring-depth-1-face\"."
   "This file's directory.")
 
 (defconst context-coloring-scopifier-path
-  (expand-file-name "./scopifier.js" context-coloring-path)
+  (expand-file-name "./bin/scopifier" context-coloring-path)
   "Path to the external scopifier executable.")
 
 (defconst context-coloring-delay 0.25
@@ -171,8 +171,7 @@ calling FUNCTION with the parsed list of tokens."
 
   ;; Start the process.
   (setq context-coloring-scopifier-process
-        (start-process-shell-command "scopifier" nil
-                                     (concat "node " context-coloring-scopifier-path)))
+        (start-process-shell-command "scopifier" nil context-coloring-scopifier-path))
 
   (let ((output "")
         (buffer context-coloring-buffer)
