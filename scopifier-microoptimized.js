@@ -9,20 +9,18 @@ module.exports = function (code) {
     var analyzedScopes,
         ast,
         comment,
-        comments,
         definition,
-        definitions,
+        definitionsCount,
+        definitionsIndex,
         i,
         isDefined,
         j,
         k,
-        mappedDefinitions,
         range,
         reference,
-        references,
         scope,
         scopes = [],
-        symbols = [],
+        tokens = [],
         variable;
 
     // Gracefully handle parse errors by doing nothing.
@@ -61,22 +59,21 @@ module.exports = function (code) {
                     range[0] + 1,
                     range[1] + 1
                 ]);
-                definitions = [];
+                definitionsIndex = tokens.length;
+                definitionsCount = 0;
                 for (j = 0; j < scope.variables.length; j += 1) {
                     variable = scope.variables[j];
-                    mappedDefinitions = [];
+                    definitionsCount += variable.defs.length;
                     for (k = 0; k < variable.defs.length; k += 1) {
                         definition = variable.defs[k];
                         range = definition.name.range;
-                        mappedDefinitions.push([
+                        tokens.push([
                             scope.level,
                             range[0] + 1,
                             range[1] + 1
                         ]);
                     }
-                    definitions = definitions.concat(mappedDefinitions);
                 }
-                references = [];
                 for (j = 0; j < scope.references.length; j += 1) {
                     reference = scope.references[j];
                     range = reference.identifier.range;
@@ -85,8 +82,8 @@ module.exports = function (code) {
                     // range. (escope detects variables twice if they are
                     // declared and initialized simultaneously; this filters
                     // them.)
-                    for (k = 0; k < definitions.length; k += 1) {
-                        definition = definitions[k];
+                    for (k = 0; k < definitionsCount; k += 1) {
+                        definition = tokens[definitionsIndex + k];
                         if (definition[1] === range[0] + 1 &&
                                 definition[2] === range[1] + 1) {
                             isDefined = true;
@@ -94,7 +91,7 @@ module.exports = function (code) {
                         }
                     }
                     if (!isDefined) {
-                        references.push([
+                        tokens.push([
                             // Handle global references too.
                             reference.resolved ? reference.resolved.scope.level : 0,
                             range[0] + 1,
@@ -102,21 +99,19 @@ module.exports = function (code) {
                         ]);
                     }
                 }
-                symbols = symbols.concat(definitions).concat(references);
             }
         }
     }
 
-    comments = [];
     for (i = 0; i < ast.comments.length; i += 1) {
         comment = ast.comments[i];
         range = comment.range;
-        comments.push([
+        tokens.push([
             -1,
             range[0] + 1,
             range[1] + 1
         ]);
     }
 
-    return scopes.concat(symbols).concat(comments);
+    return scopes.concat(tokens);
 };
