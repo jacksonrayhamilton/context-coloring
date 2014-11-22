@@ -38,8 +38,11 @@ module.exports = function (code) {
     }
 
     analyzedScopes.forEach(function (scope) {
-        var scopeDefinitions;
+        var scopeDefinitions,
+            variables,
+            globalReferences;
         if (scope.level !== undefined) {
+            // Having its level set implies it was already annotated.
             return;
         }
         if (scope.upper) {
@@ -51,56 +54,61 @@ module.exports = function (code) {
                 scope.level = scope.upper.level + 1;
             }
         } else {
+            // Base case.
             scope.level = 0;
         }
         if (scope.functionExpressionScope) {
-            // We've only given the scope a level for posterity's sake.
+            // We've only given the scope a level for posterity's sake. We're
+            // done now.
             return;
         }
-        scopes.push([
+        scopes = scopes.concat([[
             scope.level,
             scope.block.range[0],
             scope.block.range[1]
-        ]);
+        ]]);
         scopeDefinitions = [];
-        scope.variables.forEach(function (variable) {
-            var definitions = [],
-                references = [];
-            variable.defs.forEach(function (definition) {
-                var range = definition.name.range;
-                definitions.push([
-                    scope.level,
-                    range[0],
-                    range[1]
-                ]);
-            });
-            variable.references.forEach(function (reference) {
-                var range = reference.identifier.range;
-                if (isDefined(definitions, range)) {
-                    return;
-                }
-                references.push([
-                    scope.level,
-                    range[0],
-                    range[1]
-                ]);
-            });
-            Array.prototype.push.apply(scopeDefinitions, definitions);
-            Array.prototype.push.apply(symbols, definitions);
-            Array.prototype.push.apply(symbols, references);
-        });
-        scope.references.forEach(function (reference) {
+        variables = scope.variables.reduce(function (symbols, variable) {
+            var definitions,
+                references;
+            definitions = variable.defs
+                .map(function (definition) {
+                    var range = definition.name.range;
+                    return [
+                        scope.level,
+                        range[0],
+                        range[1]
+                    ];
+                });
+            references = variable.references
+                .reduce(function (references, reference) {
+                    var range = reference.identifier.range;
+                    if (isDefined(definitions, range)) {
+                        return references;
+                    }
+                    // Double array required to concat just the inner array.
+                    return references.concat([[
+                        scope.level,
+                        range[0],
+                        range[1]
+                    ]]);
+                }, []);
+            scopeDefinitions = scopeDefinitions.concat(definitions);
+            return symbols.concat(definitions).concat(references);
+        }, []);
+        globalReferences = scope.references.reduce(function (references, reference) {
             var range = reference.identifier.range;
             if (reference.resolved || isDefined(scopeDefinitions, range)) {
-                return;
+                return references;
             }
             // Handle global references.
-            symbols.push([
+            return references.concat([[
                 0,
                 range[0],
                 range[1]
-            ]);
-        });
+            ]]);
+        }, []);
+        symbols = symbols.concat(variables).concat(globalReferences);
     });
 
     comments = ast.comments
