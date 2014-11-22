@@ -42,8 +42,8 @@
 ;;; Faces
 
 (defface context-coloring-depth--1-face
-  '((((background light)) (:foreground "#7f7f7f"))
-    (((background dark)) (:foreground "#7f7f7f")))
+  '((((background light)) (:foreground "#7f7f7f" :slant italic))
+    (((background dark)) (:foreground "#7f7f7f" :slant italic)))
   "Nested blocks face, depth -1; comments."
   :group 'context-coloring-faces)
 
