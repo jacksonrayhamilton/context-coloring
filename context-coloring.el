@@ -42,60 +42,54 @@
 ;;; Faces
 
 (defface context-coloring-depth--1-face
-  '((((background light)) (:foreground "#999999"))
-    (((background dark)) (:foreground "#999999")))
+  '((((background light)) (:foreground "#7f7f7f"))
+    (((background dark)) (:foreground "#7f7f7f")))
   "Nested blocks face, depth -1; comments."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-0-face
-  '((((background light)) (:foreground "#ffffff"))
+  '((((background light)) (:foreground "#000000"))
     (((background dark)) (:foreground "#ffffff")))
   "Nested blocks face, depth 0; global scope."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-1-face
-  '((((background light)) (:foreground "#ffff80"))
+  '((((background light)) (:foreground "#2D6994"))
     (((background dark)) (:foreground "#ffff80")))
   "Nested blocks face, depth 1."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-2-face
-  '((((background light)) (:foreground "#cdfacd"))
+  '((((background light)) (:foreground "#592D94"))
     (((background dark)) (:foreground "#cdfacd")))
   "Nested blocks face, depth 2."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-3-face
-  '((((background light)) (:foreground "#d8d8ff"))
+  '((((background light)) (:foreground "#A13143"))
     (((background dark)) (:foreground "#d8d8ff")))
   "Nested blocks face, depth 3."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-4-face
-  '((((background light)) (:foreground "#e7c7ff"))
+  '((((background light)) (:foreground "#AC7135"))
     (((background dark)) (:foreground "#e7c7ff")))
   "Nested blocks face, depth 4."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-5-face
-  '((((background light)) (:foreground "#ffcdcd"))
+  '((((background light)) (:foreground "#ACA135"))
     (((background dark)) (:foreground "#ffcdcd")))
   "Nested blocks face, depth 5."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-6-face
-  '((((background light)) (:foreground "#ffe390"))
+  '((((background light)) (:foreground "#539A2F"))
     (((background dark)) (:foreground "#ffe390")))
   "Nested blocks face, depth 6."
   :group 'context-coloring-faces)
 
-(defface context-coloring-depth-7-face
-  '((((background light)) (:foreground "#cdcdcd"))
-    (((background dark)) (:foreground "#cdcdcd")))
-  "Nested blocks face, depth 7."
-  :group 'context-coloring-faces)
-
-(defconst context-coloring-face-count 8
+(defconst context-coloring-face-count 7
   "Number of faces defined for highlighting delimiter levels.
 Determines depth at which to cycle through faces again.")
 
