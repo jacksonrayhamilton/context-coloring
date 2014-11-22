@@ -7,41 +7,22 @@ var escope = require('escope'),
     // for a given range. (escope detects variables twice if they are declared
     // and initialized simultaneously; this filters them.)
     isDefined = function (definitions, range) {
-        var i, definition;
-        for (i = 0; i < definitions.length; i += 1) {
-            definition = definitions[i];
-            if (definition[1] === range[0] && definition[2] === range[1]) {
-                return true;
-            }
-        }
-        return false;
+        return definitions.some(function (definition) {
+            // Check for identical definitions.
+            return definition[1] === range[0] &&
+                definition[2] === range[1];
+        });
     };
 
 // Given code, returns an array of `[level, start, end]' tokens for
 // context-coloring.
 module.exports = function (code) {
     var ast,
-
         analyzedScopes,
-        i,
-        scope,
-        range,
-
-        j,
-        k,
-        variable,
-        mappedDefinitions,
-        definition,
-        reference,
-
-        definitions,
-        references,
-
         scopes = [],
         symbols = [],
-
         comments,
-        comment;
+        emacsified;
 
     // Gracefully handle parse errors by doing nothing.
     try {
@@ -54,75 +35,82 @@ module.exports = function (code) {
         process.exit(1);
     }
 
-    for (i = 0; i < analyzedScopes.length; i += 1) {
-        scope = analyzedScopes[i];
-        // Having its level set implies it was already annotated.
-        if (scope.level === undefined) {
-            if (scope.upper) {
-                if (scope.upper.functionExpressionScope) {
-                    // Pretend function expression scope doesn't exist.
-                    scope.level = scope.upper.level;
-                    scope.variables = scope.upper.variables.concat(scope.variables);
-                } else {
-                    scope.level = scope.upper.level + 1;
-                }
+    analyzedScopes.forEach(function (scope) {
+        var definitions,
+            references;
+        if (scope.level !== undefined) {
+            // Having its level set implies it was already annotated.
+            return;
+        }
+        if (scope.upper) {
+            if (scope.upper.functionExpressionScope) {
+                // Pretend function expression scope doesn't exist.
+                scope.level = scope.upper.level;
+                scope.variables = scope.upper.variables.concat(scope.variables);
             } else {
-                // Base case.
-                scope.level = 0;
+                scope.level = scope.upper.level + 1;
             }
+        } else {
+            // Base case.
+            scope.level = 0;
+        }
+        if (scope.functionExpressionScope) {
             // We've only given the scope a level for posterity's sake. We're
             // done now.
-            if (!scope.functionExpressionScope) {
-                range = scope.block.range;
-                scopes.push([
-                    scope.level,
-                    range[0] + 1,
-                    range[1] + 1
-                ]);
-                definitions = [];
-                for (j = 0; j < scope.variables.length; j += 1) {
-                    variable = scope.variables[j];
-                    mappedDefinitions = [];
-                    for (k = 0; k < variable.defs.length; k += 1) {
-                        definition = variable.defs[k];
-                        range = definition.name.range;
-                        mappedDefinitions.push([
-                            scope.level,
-                            range[0] + 1,
-                            range[1] + 1
-                        ]);
-                    }
-                    Array.prototype.push.apply(definitions, mappedDefinitions);
-                }
-                references = [];
-                for (j = 0; j < scope.references.length; j += 1) {
-                    reference = scope.references[j];
-                    range = reference.identifier.range;
-                    if (!isDefined(definitions, range)) {
-                        references.push([
-                            // Handle global references too.
-                            reference.resolved ? reference.resolved.scope.level : 0,
-                            range[0] + 1,
-                            range[1] + 1
-                        ]);
-                    }
-                }
-                Array.prototype.push.apply(symbols, definitions);
-                Array.prototype.push.apply(symbols, references);
-            }
+            return;
         }
-    }
+        scopes = scopes.concat([[
+            scope.level,
+            scope.block.range[0],
+            scope.block.range[1]
+        ]]);
+        definitions = scope.variables.reduce(function (definitions, variable) {
+            var mappedDefinitions = variable.defs.map(function (definition) {
+                var range = definition.name.range;
+                return [
+                    scope.level,
+                    range[0],
+                    range[1]
+                ];
+            });
+            return definitions.concat(mappedDefinitions);
+        }, []);
+        references = scope.references.reduce(function (references, reference) {
+            var range = reference.identifier.range;
+            if (isDefined(definitions, range)) {
+                return references;
+            }
+            return references.concat([[
+                // Handle global references too.
+                reference.resolved ? reference.resolved.scope.level : 0,
+                range[0],
+                range[1]
+            ]]);
+        }, []);
+        symbols = symbols.concat(definitions).concat(references);
+    });
 
-    comments = [];
-    for (i = 0; i < ast.comments.length; i += 1) {
-        comment = ast.comments[i];
-        range = comment.range;
-        comments.push([
-            -1,
-            range[0] + 1,
-            range[1] + 1
-        ]);
-    }
+    comments = ast.comments
+        .map(function (comment) {
+            var range = comment.range;
+            return [
+                -1,
+                range[0],
+                range[1]
+            ];
+        });
 
-    return scopes.concat(symbols).concat(comments);
+    emacsified = scopes
+        .concat(symbols)
+        .concat(comments)
+        .map(function (token) {
+            // Emacs starts counting from 1.
+            return [
+                token[0],
+                token[1] + 1,
+                token[2] + 1
+            ];
+        });
+
+    return emacsified;
 };
