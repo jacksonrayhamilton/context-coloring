@@ -74,7 +74,7 @@ module.exports = function (code) {
                             range[1] + 1
                         ]);
                     }
-                    Array.prototype.push.apply(definitions, mappedDefinitions);
+                    definitions = definitions.concat(mappedDefinitions);
                 }
                 references = [];
                 for (j = 0; j < scope.references.length; j += 1) {
@@ -102,8 +102,7 @@ module.exports = function (code) {
                         ]);
                     }
                 }
-                Array.prototype.push.apply(symbols, definitions);
-                Array.prototype.push.apply(symbols, references);
+                symbols = symbols.concat(definitions).concat(references);
             }
         }
     }

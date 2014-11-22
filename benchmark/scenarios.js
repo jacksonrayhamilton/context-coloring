@@ -41,6 +41,9 @@ suite('scopifier', function () {
 
     [scopifier, scopifierMicrooptimized].forEach(function (scopifier, index) {
         var message = '';
+        if (!scopifier) {
+            return;
+        }
         if (index === 1) {
             message = ' (microoptimized)';
         }
