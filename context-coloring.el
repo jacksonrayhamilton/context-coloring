@@ -193,7 +193,7 @@ calling FUNCTION with the parsed list of tokens."
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
                                 (setq context-coloring-scopifier-process nil)
-                                ;; (message "Colorized (after %f seconds)." (- (float-time) start-time))
+                                (message "Colorized (after %f seconds)." (- (float-time) start-time))
                                 )))))
 
   ;; Give the process its input.
@@ -206,7 +206,7 @@ calling FUNCTION with the parsed list of tokens."
 (defun context-coloring-colorize ()
   (interactive)
   (setq context-coloring-colorize-start-time (float-time))
-  ;; (message "%s" "Colorizing.")
+  (message "%s" "Colorizing.")
   (context-coloring-scopify))
 
 (defun context-coloring-change-function (start end length)

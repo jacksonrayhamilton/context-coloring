@@ -4,6 +4,13 @@
 
 var escope = require('escope'),
     esprima = require('esprima'),
+    isDefined = function (definitions, range) {
+        return definitions.some(function (definition) {
+            // Check for identical definitions.
+            return definition[1] === range[0] &&
+                definition[2] === range[1];
+        });
+    },
     whole = '';
 
 process.stdin.setEncoding('utf8');
@@ -36,6 +43,7 @@ process.stdin.on('end', function () {
     }
 
     analyzedScopes.forEach(function (scope) {
+        var scopeDefinitions;
         if (scope.level === undefined) {
             if (scope.upper) {
                 if (scope.upper.functionExpressionScope) {
@@ -57,6 +65,7 @@ process.stdin.on('end', function () {
                 scope.block.range[0],
                 scope.block.range[1]
             ]);
+            scopeDefinitions = [];
             scope.variables.forEach(function (variable) {
                 var definitions = [],
                     references = [];
@@ -69,13 +78,8 @@ process.stdin.on('end', function () {
                     ]);
                 });
                 variable.references.forEach(function (reference) {
-                    var range = reference.identifier.range,
-                        isDefined = definitions.some(function (definition) {
-                            // Check for identical definitions.
-                            return definition[1] === range[0] &&
-                                definition[2] === range[1];
-                        });
-                    if (isDefined) {
+                    var range = reference.identifier.range;
+                    if (isDefined(definitions, range)) {
                         return;
                     }
                     references.push([
@@ -84,16 +88,16 @@ process.stdin.on('end', function () {
                         range[1]
                     ]);
                 });
+                Array.prototype.push.apply(scopeDefinitions, definitions);
                 Array.prototype.push.apply(symbols, definitions);
                 Array.prototype.push.apply(symbols, references);
             });
             scope.references.forEach(function (reference) {
-                var range;
-                if (reference.resolved) {
+                var range = reference.identifier.range;
+                if (reference.resolved || isDefined(scopeDefinitions, range)) {
                     return;
                 }
                 // Handle global references.
-                range = reference.identifier.range;
                 symbols.push([
                     0,
                     range[0],
@@ -118,7 +122,9 @@ process.stdin.on('end', function () {
 
     continuous = continuous.slice(1).reduce(function (soFar, token) {
         var previous = soFar[soFar.length - 1];
-        if (previous[0] === token[0]) {
+        // Detect same-color exact tail ends (nothing else is safe to join).
+        if (previous[0] === token[0] &&
+                previous[2] === token[1] - 1) {
             previous[2] = token[2];
             return soFar;
         }
