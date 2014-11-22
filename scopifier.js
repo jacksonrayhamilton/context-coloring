@@ -41,10 +41,7 @@ module.exports = function (code) {
         symbols = [],
 
         comments,
-        comment,
-
-        emacsified,
-        token;
+        comment;
 
     // Gracefully handle parse errors by doing nothing.
     try {
@@ -79,8 +76,8 @@ module.exports = function (code) {
                 range = scope.block.range;
                 scopes.push([
                     scope.level,
-                    range[0],
-                    range[1]
+                    range[0] + 1,
+                    range[1] + 1
                 ]);
                 definitions = [];
                 for (j = 0; j < scope.variables.length; j += 1) {
@@ -91,8 +88,8 @@ module.exports = function (code) {
                         range = definition.name.range;
                         mappedDefinitions.push([
                             scope.level,
-                            range[0],
-                            range[1]
+                            range[0] + 1,
+                            range[1] + 1
                         ]);
                     }
                     Array.prototype.push.apply(definitions, mappedDefinitions);
@@ -105,8 +102,8 @@ module.exports = function (code) {
                         references.push([
                             // Handle global references too.
                             reference.resolved ? reference.resolved.scope.level : 0,
-                            range[0],
-                            range[1]
+                            range[0] + 1,
+                            range[1] + 1
                         ]);
                     }
                 }
@@ -122,18 +119,10 @@ module.exports = function (code) {
         range = comment.range;
         comments.push([
             -1,
-            range[0],
-            range[1]
+            range[0] + 1,
+            range[1] + 1
         ]);
     }
 
-    emacsified = scopes.concat(symbols).concat(comments);
-
-    for (i = 0; i < emacsified.length; i += 1) {
-        token = emacsified[i];
-        token[1] += 1;
-        token[2] += 1;
-    }
-
-    return emacsified;
+    return scopes.concat(symbols).concat(comments);
 };
