@@ -5,7 +5,6 @@ var assert = require('assert'),
     path = require('path'),
 
     scopifier = require('../scopifier'),
-    scopifierMicrooptimized = require('../scopifier-microoptimized'),
 
     inputPath = path.join(__dirname, 'fixtures', 'vow.js'),
     outputPath = path.join(__dirname, 'fixtures', 'vow.json');
@@ -40,17 +39,8 @@ describe('scopifier', function () {
         });
     });
 
-    [scopifier, scopifierMicrooptimized].forEach(function (scopifier, index) {
-        var message = '';
-        if (!scopifier) {
-            return;
-        }
-        if (index === 1) {
-            message = ' (microoptimized)';
-        }
-        it('should work' + message, function () {
-            assert.deepEqual(scopifier(input), output);
-        });
+    it('should work', function () {
+        assert.deepEqual(scopifier(input), output);
     });
 
 });

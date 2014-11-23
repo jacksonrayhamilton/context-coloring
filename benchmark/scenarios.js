@@ -3,7 +3,6 @@
 var fs = require('fs'),
     path = require('path'),
     scopifier = require('../scopifier'),
-    scopifierMicrooptimized = require('../scopifier-microoptimized'),
 
     jqueryPath = path.join(__dirname, 'fixtures', 'jquery-2.1.1.js'),
     lodashPath = path.join(__dirname, 'fixtures', 'lodash-2.4.1.js'),
@@ -39,26 +38,17 @@ suite('scopifier', function () {
         });
     });
 
-    [scopifier, scopifierMicrooptimized].forEach(function (scopifier, index) {
-        var message = '';
-        if (!scopifier) {
-            return;
-        }
-        if (index === 1) {
-            message = ' (microoptimized)';
-        }
-        bench('jquery' + message, function () {
-            scopifier(jquery);
-        });
-        bench('lodash' + message, function () {
-            scopifier(lodash);
-        });
-        bench('async' + message, function () {
-            scopifier(async);
-        });
-        bench('mkdirp' + message, function () {
-            scopifier(mkdirp);
-        });
+    bench('jquery', function () {
+        scopifier(jquery);
+    });
+    bench('lodash', function () {
+        scopifier(lodash);
+    });
+    bench('async', function () {
+        scopifier(async);
+    });
+    bench('mkdirp', function () {
+        scopifier(mkdirp);
     });
 
 });
