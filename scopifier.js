@@ -61,12 +61,12 @@ module.exports = function (code) {
             // done now.
             if (!scope.functionExpressionScope) {
                 range = scope.block.range;
-                scopes.push([
+                scopes.push(
                     range[0] + 1,
                     range[1] + 1,
                     scope.level,
                     normal
-                ]);
+                );
                 definitionsIndex = tokens.length;
                 definitionsCount = 0;
                 for (j = 0; j < scope.variables.length; j += 1) {
@@ -75,12 +75,12 @@ module.exports = function (code) {
                     for (k = 0; k < variable.defs.length; k += 1) {
                         definition = variable.defs[k];
                         range = definition.name.range;
-                        tokens.push([
+                        tokens.push(
                             range[0] + 1,
                             range[1] + 1,
                             scope.level,
                             bold
-                        ]);
+                        );
                     }
                 }
                 for (j = 0; j < scope.references.length; j += 1) {
@@ -100,13 +100,13 @@ module.exports = function (code) {
                         }
                     }
                     if (!isDefined) {
-                        tokens.push([
+                        tokens.push(
                             // Handle global references too.
                             range[0] + 1,
                             range[1] + 1,
                             reference.resolved ? reference.resolved.scope.level : 0,
                             reference.__maybeImplicitGlobal ? bold : normal
-                        ]);
+                        );
                     }
                 }
             }
@@ -116,12 +116,12 @@ module.exports = function (code) {
     for (i = 0; i < ast.comments.length; i += 1) {
         comment = ast.comments[i];
         range = comment.range;
-        tokens.push([
+        tokens.push(
             range[0] + 1,
             range[1] + 1,
             -1,
             italic
-        ]);
+        );
     }
 
     return scopes.concat(tokens);

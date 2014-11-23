@@ -210,12 +210,12 @@ start, end, level, and style."
     (let ((i 0)
           (len (length tokens)))
       (while (< i len)
-        (let ((token (elt tokens i)))
-          (let ((start (elt token 0))
-                (end (elt token 1))
-                (face (context-coloring-level-face (elt token 2) (elt token 3))))
-            (add-text-properties start end `(face ,face rear-nonsticky t))))
-        (setq i (+ i 1))))))
+        (let ((start (elt tokens i))
+              (end (elt tokens (+ i 1)))
+              (face (context-coloring-level-face (elt tokens (+ i 2))
+                                                 (elt tokens (+ i 3)))))
+          (add-text-properties start end `(face ,face rear-nonsticky t)))
+        (setq i (+ i 4))))))
 
 (defun context-coloring-kill-scopifier ()
   "Kills the currently-running scopifier process for this
@@ -257,7 +257,7 @@ applying a parsed list of tokens to
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
                                 (setq context-coloring-scopifier-process nil)
-                                ;; (message "Colorized (after %f seconds)." (- (float-time) start-time))
+                                (message "Colorized (after %f seconds)." (- (float-time) start-time))
                                 )))))
 
   ;; Give the process its input.
@@ -271,7 +271,7 @@ applying a parsed list of tokens to
   "Colors the current buffer by function context."
   (interactive)
   (setq context-coloring-colorize-start-time (float-time))
-  ;; (message "%s" "Colorizing.")
+  (message "%s" "Colorizing.")
   (context-coloring-scopify))
 
 (defun context-coloring-change-function (start end length)
