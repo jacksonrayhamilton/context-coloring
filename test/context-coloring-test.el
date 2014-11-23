@@ -1,8 +1,8 @@
-(defconst context-coloring-path
+(defconst context-coloring-test-path
   (file-name-directory (or load-file-name buffer-file-name)))
 
 (defun context-coloring-test-resolve-path (path)
-  (expand-file-name path context-coloring-path))
+  (expand-file-name path context-coloring-test-path))
 
 ;; Load expected output constants.
 (load-file (context-coloring-test-resolve-path "./fixtures/scopes.el"))

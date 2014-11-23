@@ -29,11 +29,11 @@ can also be integrated into your workflow via [flycheck][].
 ## Features
 
 - Light and dark color schemes.
-- Really fast async AST parsing. Some parse / recolor times:
-  - jQuery (9191 lines): 0.41 seconds
-  - lodash (6786 lines): 0.22 seconds
-  - Async (1124 lines): 28 milliseconds
-  - mkdirp (98 lines): instant
+- Fast async AST parsing. Some total parse + recolor times:
+  - jQuery (9191 lines): 0.72 seconds
+  - Lodash (6786 lines): 0.40 seconds
+  - Async (1124 lines): 0.20 seconds
+  - mkdirp (98 lines): 0.09 seconds
 
 ## Usage
 

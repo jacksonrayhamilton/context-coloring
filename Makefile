@@ -6,7 +6,8 @@ benchjs:
 benchel:
 	emacs -Q -L . \
 	-l context-coloring \
-	-l benchmark/scenarios.el
+	-l benchmark/context-coloring-benchmark \
+	-f context-coloring-benchmark-run
 
 compile:
 	emacs -Q -batch -f batch-byte-compile *.el
