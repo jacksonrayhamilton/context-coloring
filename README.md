@@ -13,11 +13,6 @@ Highlights JavaScript code according to function context.
 - Identifiers are bold when first declared.
 - Comments are gray and italic.
 
-This coloring scheme is probably more useful than conventional JavaScript
-*syntax* highlighting. Highlighting keywords can help detect spelling errors, or
-alert one to unclosed string literals; but so can a [linter][]. (If you haven't
-already, you should [integrate][emacs integration] one into your editor.)
-
 In JavaScript, we are constantly leveraging closures to bind nearby
 data. Lexical scope information at-a-glance can assist a programmer in
 understanding the overall structure of a program. It can also help curb nasty
@@ -31,6 +26,11 @@ escaped the boundaries of his function and produced side-effects.
 Context coloring also improves a programmer's ability to write functions that
 construct objects with implicit private state (which is a good way to avoid
 `this` too).
+
+This coloring scheme is probably more useful than conventional JavaScript
+*syntax* highlighting. Highlighting keywords can help detect spelling errors, or
+alert one to unclosed string literals; but so can a [linter][]. (If you haven't
+already, you should [integrate][emacs integration] one into your editor.)
 
 ## Usage
 
