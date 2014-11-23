@@ -12,7 +12,10 @@ var escope = require('escope'),
             return definition[1] === range[0] &&
                 definition[2] === range[1];
         });
-    };
+    },
+
+    normal = 0,
+    bold = 1;
 
 // Given code, returns an array of `[level, start, end]' tokens for
 // context-coloring.
@@ -62,7 +65,8 @@ module.exports = function (code) {
         scopes = scopes.concat([[
             scope.level,
             scope.block.range[0],
-            scope.block.range[1]
+            scope.block.range[1],
+            normal
         ]]);
         definitions = scope.variables.reduce(function (definitions, variable) {
             var mappedDefinitions = variable.defs.map(function (definition) {
@@ -70,7 +74,8 @@ module.exports = function (code) {
                 return [
                     scope.level,
                     range[0],
-                    range[1]
+                    range[1],
+                    bold
                 ];
             });
             return definitions.concat(mappedDefinitions);
@@ -84,7 +89,8 @@ module.exports = function (code) {
                 // Handle global references too.
                 reference.resolved ? reference.resolved.scope.level : 0,
                 range[0],
-                range[1]
+                range[1],
+                normal
             ]]);
         }, []);
         symbols = symbols.concat(definitions).concat(references);
@@ -96,7 +102,8 @@ module.exports = function (code) {
             return [
                 -1,
                 range[0],
-                range[1]
+                range[1],
+                normal
             ];
         });
 
@@ -108,7 +115,8 @@ module.exports = function (code) {
             return [
                 token[0],
                 token[1] + 1,
-                token[2] + 1
+                token[2] + 1,
+                token[3]
             ];
         });
 

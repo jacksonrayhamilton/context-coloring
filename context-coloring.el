@@ -42,8 +42,9 @@
 ;;; Faces
 
 (defface context-coloring-depth--1-face
-  '((((background light)) (:foreground "#7f7f7f" :slant italic))
-    (((background dark)) (:foreground "#7f7f7f" :slant italic)))
+  '((default (:slant italic))
+    (((background light)) (:foreground "#7f7f7f"))
+    (((background dark)) (:foreground "#7f7f7f")))
   "Nested blocks face, depth -1; comments."
   :group 'context-coloring-faces)
 
@@ -93,10 +94,45 @@
   "Number of faces defined for highlighting delimiter levels.
 Determines depth at which to cycle through faces again.")
 
+(defface context-coloring-depth-0-bold-face
+  '((default (:inherit context-coloring-depth-0-face :weight bold)))
+  "Nested blocks face, depth 0; bold; global scope."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-depth-1-bold-face
+  '((default (:inherit context-coloring-depth-1-face :weight bold)))
+  "Nested blocks face, depth 1; bold; global scope."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-depth-2-bold-face
+  '((default (:inherit context-coloring-depth-2-face :weight bold)))
+  "Nested blocks face, depth 2; bold; global scope."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-depth-3-bold-face
+  '((default (:inherit context-coloring-depth-3-face :weight bold)))
+  "Nested blocks face, depth 3; bold; global scope."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-depth-4-bold-face
+  '((default (:inherit context-coloring-depth-4-face :weight bold)))
+  "Nested blocks face, depth 4; bold; global scope."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-depth-5-bold-face
+  '((default (:inherit context-coloring-depth-5-face :weight bold)))
+  "Nested blocks face, depth 5; bold; global scope."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-depth-6-bold-face
+  '((default (:inherit context-coloring-depth-6-face :weight bold)))
+  "Nested blocks face, depth 6; bold; global scope."
+  :group 'context-coloring-faces)
+
 
 ;;; Face utility functions
 
-(defun context-coloring-level-face (depth)
+(defun context-coloring-level-face (depth style)
   "Return face-name for DEPTH as a string \"context-coloring-depth-DEPTH-face\".
 For example: \"context-coloring-depth-1-face\"."
   (intern-soft
@@ -111,6 +147,8 @@ For example: \"context-coloring-depth-1-face\"."
              (+ 1
                 (mod (- depth 1)
                      (- context-coloring-face-count 1)))))
+           (cond ((= 1 style) "-bold")
+                 (t ""))
            "-face")))
 
 
@@ -143,7 +181,7 @@ For example: \"context-coloring-depth-1-face\"."
           (len (length tokens)))
       (while (< i len)
         (let ((token (elt tokens i)))
-          (let ((face (context-coloring-level-face (elt token 0)))
+          (let ((face (context-coloring-level-face (elt token 0) (elt token 3)))
                 (start (elt token 1))
                 (end (elt token 2)))
             (add-text-properties start end `(face ,face rear-nonsticky t))))
