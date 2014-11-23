@@ -184,10 +184,6 @@ is a reference to that one process.")
 imply that it should be colorized again.")
 (make-variable-buffer-local 'context-coloring-changed)
 
-;; (defvar context-coloring-colorize-start-time nil
-;;   "Used for dirty benchmarking of async colorization time.")
-;; (make-variable-buffer-local 'context-coloring-colorize-start-time)
-
 
 ;;; Scopification
 
@@ -243,9 +239,7 @@ applying a parsed list of tokens to
         (start-process-shell-command "scopifier" nil context-coloring-scopifier-path))
 
   (let ((output "")
-        (buffer context-coloring-buffer)
-        ;; (start-time context-coloring-colorize-start-time)
-        )
+        (buffer context-coloring-buffer))
 
     ;; The process may produce output in multiple chunks. This filter
     ;; accumulates the chunks into a message.
@@ -261,9 +255,7 @@ applying a parsed list of tokens to
                               (let ((tokens (context-coloring-parse-array output)))
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
-                                (setq context-coloring-scopifier-process nil)
-                                ;; (message "Colorized (after %f seconds)." (- (float-time) start-time))
-                                )))))
+                                (setq context-coloring-scopifier-process nil))))))
 
   ;; Give the process its input.
   (process-send-region context-coloring-scopifier-process (point-min) (point-max))
@@ -275,8 +267,6 @@ applying a parsed list of tokens to
 (defun context-coloring-colorize ()
   "Colors the current buffer by function context."
   (interactive)
-  ;; (setq context-coloring-colorize-start-time (float-time))
-  ;; (message "%s" "Colorizing.")
   (context-coloring-scopify))
 
 (defun context-coloring-change-function (start end length)
