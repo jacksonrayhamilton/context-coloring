@@ -85,10 +85,6 @@
   "Context coloring face, depth 6."
   :group 'context-coloring-faces)
 
-(defconst context-coloring-face-count 7
-  "Number of faces defined for highlighting delimiter levels.
-Determines depth at which to cycle through faces again.")
-
 (defface context-coloring-depth--1-italic-face
   '((default (:inherit context-coloring-depth--1-face :slant italic)))
   "Context coloring face, depth -1; italic; comments."
@@ -129,6 +125,10 @@ Determines depth at which to cycle through faces again.")
   "Context coloring face, depth 6; bold."
   :group 'context-coloring-faces)
 
+(defconst context-coloring-face-count 7
+  "Number of faces defined for highlighting delimiter levels.
+Determines depth at which to cycle through faces again.")
+
 
 ;;; Face functions
 
@@ -156,9 +156,13 @@ For example: \"context-coloring-depth-1-face\"."
 ;;; Customizable variables
 
 (defcustom context-coloring-delay 0.25
-  "Delay between a buffer update and colorization.
+  "Delay between a buffer updates and colorization.
 
-If your performance is poor, you might want to increase this."
+Increase this if your machine is high-performing. Decrease it it if ain't."
+  :group 'context-coloring)
+
+(defcustom context-coloring-benchmark-colorization nil
+  "If non-nil, display how long each colorization took."
   :group 'context-coloring)
 
 
@@ -180,6 +184,10 @@ is a reference to that one process.")
 (defvar context-coloring-changed nil
   "Indication that the buffer has changed recently, which would
 imply that it should be colorized again.")
+(make-variable-buffer-local 'context-coloring-changed)
+
+(defvar context-coloring-start-time nil
+  "Used to benchmark colorization time.")
 (make-variable-buffer-local 'context-coloring-changed)
 
 
@@ -219,7 +227,7 @@ buffer."
     (setq context-coloring-scopifier-process nil)))
 
 (defun context-coloring-parse-array (input)
-  "Specialized alternative JSON parser."
+  "Specialized JSON parser for a flat array of numbers."
   (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
 
 (defun context-coloring-scopify ()
@@ -237,7 +245,8 @@ applying a parsed list of tokens to
         (start-process-shell-command "scopifier" nil context-coloring-scopifier-path))
 
   (let ((output "")
-        (buffer context-coloring-buffer))
+        (buffer context-coloring-buffer)
+        (start-time context-coloring-start-time))
 
     ;; The process may produce output in multiple chunks. This filter
     ;; accumulates the chunks into a message.
@@ -253,9 +262,11 @@ applying a parsed list of tokens to
                               (let ((tokens (context-coloring-parse-array output)))
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
-                                (setq context-coloring-scopifier-process nil))))))
+                                (setq context-coloring-scopifier-process nil)
+                                (when context-coloring-benchmark-colorization
+                                  (message "Colorized (after %f seconds)." (- (float-time) start-time))))))))
 
-  ;; Give the process its input.
+  ;; Give the process its input so it can begin.
   (process-send-region context-coloring-scopifier-process (point-min) (point-max))
   (process-send-eof context-coloring-scopifier-process))
 
@@ -265,6 +276,9 @@ applying a parsed list of tokens to
 (defun context-coloring-colorize ()
   "Colors the current buffer by function context."
   (interactive)
+  (when context-coloring-benchmark-colorization
+    (setq context-coloring-start-time (float-time))
+    (message "%s" "Colorizing..."))
   (context-coloring-scopify))
 
 (defun context-coloring-change-function (start end length)
@@ -300,12 +314,13 @@ colorizing would be redundant."
         (font-lock-mode)
         (jit-lock-mode t))
 
+    ;; Remember this buffer. This value should not be dynamically-bound.
     (setq context-coloring-buffer (current-buffer))
 
     ;; Colorize once initially.
     (context-coloring-colorize)
 
-    ;; Font lock is not compatible with this mode; the converse is also true.
+    ;; Font lock is incompatible with this mode; the converse is also true.
     (font-lock-mode 0)
     (jit-lock-mode nil)
 
@@ -315,18 +330,6 @@ colorizing would be redundant."
     ;; Only recolor idly.
     (setq context-coloring-colorize-idle-timer
           (run-with-idle-timer context-coloring-delay t 'context-coloring-maybe-colorize))))
-
-;;;###autoload
-(defun context-coloring-mode-enable ()
-  (context-coloring-mode 1))
-
-;;;###autoload
-(defun context-coloring-mode-disable ()
-  (context-coloring-mode 0))
-
-;;;###autoload
-(define-globalized-minor-mode global-context-coloring-mode
-  context-coloring-mode context-coloring-mode-enable)
 
 (provide 'context-coloring)
 

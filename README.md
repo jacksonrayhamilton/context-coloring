@@ -17,13 +17,14 @@ JavaScript programmers often leverage closures to bind nearby data to
 functions. Lexical scope information at-a-glance can assist a programmer in
 understanding the overall structure of a program. It can also help curb nasty
 bugs, like implicit globals and name shadowing. A rainbow can indicate excessive
-complexity. A spot of contrast following by an assignment expression could be a
-side-effect... or, a specially-constructed object's private state could be being
-manipulated.
+complexity. A spot of contrast followed by an assignment expression could be a
+side-effect... or, a specially-constructed object's private state could be
+undergoing change.
 
 This coloring scheme is probably more useful than conventional JavaScript
-*syntax* highlighting. Highlighting keywords can help detect spelling errors, or
-alert one to unclosed string literals; but so can a [linter][].
+*syntax* highlighting. Highlighting keywords can help one to detect spelling
+errors, or alert one to unclosed string literals; but so can a [linter][], which
+can also be integrated into your workflow via [flycheck][].
 
 ## Features
 
@@ -49,6 +50,6 @@ Requires Emacs 24+ and [Node.js 0.10+][node].
 ```
 
 [linter]: https://github.com/jacksonrayhamilton/jslinted
-[emacs integration]: https://github.com/jacksonrayhamilton/jslinted#emacs-integration
+[flycheck]: https://github.com/flycheck/flycheck
 [node]: http://nodejs.org/download/
 [load path]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Lisp-Libraries.html
