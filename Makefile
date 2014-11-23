@@ -9,6 +9,6 @@ benchjs:
 	node_modules/.bin/matcha
 
 benchel:
-	emacs -Q -l context-coloring.el -l benchmark/scenarios.el
+	emacs -Q -L . -l context-coloring -l benchmark/scenarios.el
 
 .PHONY: all test benchmark

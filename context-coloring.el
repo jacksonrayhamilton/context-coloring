@@ -134,7 +134,7 @@ Determines depth at which to cycle through faces again.")
 
 ;;; Face functions
 
-(defun context-coloring-level-face (depth style)
+(defsubst context-coloring-level-face (depth style)
   "Return face-name for DEPTH and STYLE as a string \"context-coloring-depth-DEPTH-face\".
 For example: \"context-coloring-depth-1-face\"."
   (intern-soft
@@ -160,7 +160,8 @@ For example: \"context-coloring-depth-1-face\"."
 (defcustom context-coloring-delay 0.25
   "Delay between a buffer update and colorization.
 
-If your performance is poor, you might want to increase this.")
+If your performance is poor, you might want to increase this."
+  :group 'context-coloring)
 
 
 ;;; Local variables
@@ -183,9 +184,9 @@ is a reference to that one process.")
 imply that it should be colorized again.")
 (make-variable-buffer-local 'context-coloring-changed)
 
-(defvar context-coloring-colorize-start-time nil
-  "Used for dirty benchmarking of async colorization time.")
-(make-variable-buffer-local 'context-coloring-colorize-start-time)
+;; (defvar context-coloring-colorize-start-time nil
+;;   "Used for dirty benchmarking of async colorization time.")
+;; (make-variable-buffer-local 'context-coloring-colorize-start-time)
 
 
 ;;; Scopification
@@ -198,7 +199,7 @@ imply that it should be colorized again.")
   (expand-file-name "./bin/scopifier" context-coloring-path)
   "Path to the external scopifier executable.")
 
-(defun context-coloring-apply-tokens (tokens)
+(defsubst context-coloring-apply-tokens (tokens)
   "Processes TOKENS to apply context-based coloring to the
 current buffer. Tokens are vectors consisting of 4 integers:
 start, end, level, and style."
@@ -216,18 +217,18 @@ start, end, level, and style."
                   (elt tokens (+ i 3))) rear-nonsticky t))
         (setq i (+ i 4))))))
 
-(defun context-coloring-kill-scopifier ()
+(defsubst context-coloring-kill-scopifier ()
   "Kills the currently-running scopifier process for this
 buffer."
   (when (not (null context-coloring-scopifier-process))
     (delete-process context-coloring-scopifier-process)
     (setq context-coloring-scopifier-process nil)))
 
-(defun context-coloring-parse-array (input)
+(defsubst context-coloring-parse-array (input)
   "Specialized alternative JSON parser."
   (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
 
-(defun context-coloring-scopify ()
+(defsubst context-coloring-scopify ()
   "Invokes the external scopifier with the current buffer's
 contents, reading the scopifier's response asynchronously and
 applying a parsed list of tokens to
@@ -243,7 +244,8 @@ applying a parsed list of tokens to
 
   (let ((output "")
         (buffer context-coloring-buffer)
-        (start-time context-coloring-colorize-start-time))
+        ;; (start-time context-coloring-colorize-start-time)
+        )
 
     ;; The process may produce output in multiple chunks. This filter
     ;; accumulates the chunks into a message.
@@ -260,7 +262,7 @@ applying a parsed list of tokens to
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
                                 (setq context-coloring-scopifier-process nil)
-                                (message "Colorized (after %f seconds)." (- (float-time) start-time))
+                                ;; (message "Colorized (after %f seconds)." (- (float-time) start-time))
                                 )))))
 
   ;; Give the process its input.
@@ -273,8 +275,8 @@ applying a parsed list of tokens to
 (defun context-coloring-colorize ()
   "Colors the current buffer by function context."
   (interactive)
-  (setq context-coloring-colorize-start-time (float-time))
-  (message "%s" "Colorizing.")
+  ;; (setq context-coloring-colorize-start-time (float-time))
+  ;; (message "%s" "Colorizing.")
   (context-coloring-scopify))
 
 (defun context-coloring-change-function (start end length)
