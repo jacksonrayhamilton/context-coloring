@@ -1,8 +1,8 @@
 {
   "name": "context-coloring",
   "version": "0.0.0",
-  "description": "JavaScript syntax highlighting for grown-ups.",
-  "main": "index.js",
+  "description": "JavaScript syntax highlighting, except not for syntax.",
+  "main": "scopifier.js",
   "directories": {
     "test": "test"
   },
@@ -19,12 +19,12 @@
     "url": "https://github.com/jacksonrayhamilton/context-coloring/issues"
   },
   "homepage": "https://github.com/jacksonrayhamilton/context-coloring",
-  "devDependencies": {
-    "matcha": "^0.6.0",
-    "mocha": "^2.0.1"
-  },
   "dependencies": {
     "escope": "^1.0.1",
     "esprima": "^1.2.2"
+  },
+  "devDependencies": {
+    "matcha": "^0.6.0",
+    "mocha": "^2.0.1"
   }
 }

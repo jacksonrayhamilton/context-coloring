@@ -1,4 +1,4 @@
-;;; context-coloring.el --- JavaScript syntax highlighting for grown-ups. -*- lexical-binding: t; -*-
+;;; context-coloring.el --- JavaScript syntax highlighting for grown-ups.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014 Jackson Ray Hamilton
 
@@ -22,15 +22,13 @@
 
 ;;; Commentary:
 
-;; Highlights JavaScript code according to function context. Code in the global
-;; scope is white, code in functions within the global scope is yellow, code
-;; within such functions is green, etc.
+;; Highlights JavaScript code according to function context.
 ;;
 ;; Usage:
 ;;
-;; Install Node.js 0.10.
-;;
-;; Put context-coloring.el on your load path. Then, in your ~/.emacs:
+;; Install Node.js 0.10+.
+;; Run `make` in this file's directory.
+;; In your ~/.emacs:
 ;;
 ;; (require 'context-coloring)
 ;; (add-hook 'js-mode-hook 'context-coloring-mode)
