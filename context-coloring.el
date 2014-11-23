@@ -208,11 +208,12 @@ start, end, level, and style."
     (let ((i 0)
           (len (length tokens)))
       (while (< i len)
-        (let ((start (elt tokens i))
-              (end (elt tokens (+ i 1)))
-              (face (context-coloring-level-face (elt tokens (+ i 2))
-                                                 (elt tokens (+ i 3)))))
-          (add-text-properties start end `(face ,face rear-nonsticky t)))
+        (add-text-properties
+         (elt tokens i)
+         (elt tokens (+ i 1))
+         `(face ,(context-coloring-level-face
+                  (elt tokens (+ i 2))
+                  (elt tokens (+ i 3))) rear-nonsticky t))
         (setq i (+ i 4))))))
 
 (defun context-coloring-kill-scopifier ()
@@ -224,7 +225,7 @@ buffer."
 
 (defun context-coloring-parse-array (input)
   "Specialized alternative JSON parser."
-  (apply 'vector (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
+  (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
 
 (defun context-coloring-scopify ()
   "Invokes the external scopifier with the current buffer's
