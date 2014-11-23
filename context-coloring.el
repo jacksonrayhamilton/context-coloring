@@ -37,8 +37,6 @@
 
 ;;; Code:
 
-(require 'json)
-
 ;;; Faces
 
 (defface context-coloring-depth--1-face
@@ -224,6 +222,10 @@ buffer."
     (delete-process context-coloring-scopifier-process)
     (setq context-coloring-scopifier-process nil)))
 
+(defun context-coloring-parse-array (input)
+  "Specialized alternative JSON parser."
+  (apply 'vector (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
+
 (defun context-coloring-scopify ()
   "Invokes the external scopifier with the current buffer's
 contents, reading the scopifier's response asynchronously and
@@ -253,7 +255,7 @@ applying a parsed list of tokens to
     (set-process-sentinel context-coloring-scopifier-process
                           (lambda (process event)
                             (when (equal "finished\n" event)
-                              (let ((tokens (json-read-from-string output)))
+                              (let ((tokens (context-coloring-parse-array output)))
                                 (with-current-buffer buffer
                                   (context-coloring-apply-tokens tokens))
                                 (setq context-coloring-scopifier-process nil)
