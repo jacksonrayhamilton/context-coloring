@@ -134,37 +134,25 @@ Determines depth at which to cycle through faces again.")
 
 ;;; Face functions
 
-(defconst context-coloring-faces
-  '((0 . ((0 . context-coloring-depth-0-face)
-           (1 . context-coloring-depth-1-face)
-           (2 . context-coloring-depth-2-face)
-           (3 . context-coloring-depth-3-face)
-           (4 . context-coloring-depth-4-face)
-           (5 . context-coloring-depth-5-face)
-           (6 . context-coloring-depth-6-face)))
-    (1 . ((0 . context-coloring-depth-0-bold-face)
-           (1 . context-coloring-depth-1-bold-face)
-           (2 . context-coloring-depth-2-bold-face)
-           (3 . context-coloring-depth-3-bold-face)
-           (4 . context-coloring-depth-4-bold-face)
-           (5 . context-coloring-depth-5-bold-face)
-           (6 . context-coloring-depth-6-bold-face)))
-    (2 . ((-1 . context-coloring-depth--1-italic-face))))
-  "Alist of faces for fast lookup.")
-
 (defun context-coloring-level-face (depth style)
   "Return face-name for DEPTH and STYLE as a string \"context-coloring-depth-DEPTH-face\".
 For example: \"context-coloring-depth-1-face\"."
-  (cdr (assq (or
-              ;; Has a face directly mapping to it.
-              (and (< depth context-coloring-face-count)
-                   depth)
-              ;; After the number of available faces are used up, pretend the 0th
-              ;; face doesn't exist.
-              (+ 1
-                 (mod (- depth 1)
-                      (- context-coloring-face-count 1))))
-             (cdr (assq style context-coloring-faces)))))
+  (intern-soft
+   (concat "context-coloring-depth-"
+           (number-to-string
+            (or
+             ;; Has a face directly mapping to it.
+             (and (< depth context-coloring-face-count)
+                  depth)
+             ;; After the number of available faces are used up, pretend the 0th
+             ;; face doesn't exist.
+             (+ 1
+                (mod (- depth 1)
+                     (- context-coloring-face-count 1)))))
+           (cond ((= 1 style) "-bold")
+                 ((= 2 style) "-italic")
+                 (t ""))
+           "-face")))
 
 
 ;;; Customizable variables
