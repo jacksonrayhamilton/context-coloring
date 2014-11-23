@@ -4,7 +4,7 @@
 
 'use strict';
 
-var scopifier = require('../scopifier'),
+var scopifier = require('../scopifier-microoptimized'),
     whole = '';
 
 process.stdin.setEncoding('utf8');

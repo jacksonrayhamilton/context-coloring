@@ -1,7 +1,11 @@
 'use strict';
 
 var escope = require('escope'),
-    esprima = require('esprima');
+    esprima = require('esprima'),
+
+    normal = 0,
+    bold = 1,
+    italic = 2;
 
 // Given code, returns an array of `[level, start, end]' tokens for
 // context-coloring.
@@ -55,9 +59,10 @@ module.exports = function (code) {
             if (!scope.functionExpressionScope) {
                 range = scope.block.range;
                 scopes.push([
-                    scope.level,
                     range[0] + 1,
-                    range[1] + 1
+                    range[1] + 1,
+                    scope.level,
+                    normal
                 ]);
                 definitionsIndex = tokens.length;
                 definitionsCount = 0;
@@ -68,9 +73,10 @@ module.exports = function (code) {
                         definition = variable.defs[k];
                         range = definition.name.range;
                         tokens.push([
-                            scope.level,
                             range[0] + 1,
-                            range[1] + 1
+                            range[1] + 1,
+                            scope.level,
+                            bold
                         ]);
                     }
                 }
@@ -84,8 +90,8 @@ module.exports = function (code) {
                     // them.)
                     for (k = 0; k < definitionsCount; k += 1) {
                         definition = tokens[definitionsIndex + k];
-                        if (definition[1] === range[0] + 1 &&
-                                definition[2] === range[1] + 1) {
+                        if (definition[0] === range[0] + 1 &&
+                                definition[1] === range[1] + 1) {
                             isDefined = true;
                             break;
                         }
@@ -93,9 +99,10 @@ module.exports = function (code) {
                     if (!isDefined) {
                         tokens.push([
                             // Handle global references too.
-                            reference.resolved ? reference.resolved.scope.level : 0,
                             range[0] + 1,
-                            range[1] + 1
+                            range[1] + 1,
+                            reference.resolved ? reference.resolved.scope.level : 0,
+                            reference.__maybeImplicitGlobal ? bold : normal
                         ]);
                     }
                 }
@@ -107,9 +114,10 @@ module.exports = function (code) {
         comment = ast.comments[i];
         range = comment.range;
         tokens.push([
-            -1,
             range[0] + 1,
-            range[1] + 1
+            range[1] + 1,
+            -1,
+            italic
         ]);
     }
 
