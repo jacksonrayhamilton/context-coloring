@@ -1,4 +1,4 @@
-;;; context-coloring.el --- JavaScript syntax highlighting for grown-ups.  -*- lexical-binding: t; -*-
+;;; context-coloring.el --- JavaScript syntax highlighting, except not for syntax.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014 Jackson Ray Hamilton
 
