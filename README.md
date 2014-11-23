@@ -30,9 +30,9 @@ can also be integrated into your workflow via [flycheck][].
 
 - Light and dark color schemes.
 - Fast async AST parsing. Some total parse + recolor times:
-  - jQuery (9191 lines): 0.72 seconds
-  - Lodash (6786 lines): 0.40 seconds
-  - Async (1124 lines): 0.20 seconds
+  - jQuery (9191 lines): 0.63 seconds
+  - Lodash (6786 lines): 0.37 seconds
+  - Async (1124 lines): 0.17 seconds
   - mkdirp (98 lines): 0.09 seconds
 
 ## Usage
