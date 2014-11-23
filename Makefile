@@ -1,5 +1,7 @@
 all: clean install compile test
 
+bench: benchjs benchel
+
 benchjs:
 	node_modules/.bin/matcha
 
@@ -13,8 +15,7 @@ compile:
 	emacs -Q -batch -f batch-byte-compile *.el
 
 clean:
-	rm -rf node_modules
-	rm *.elc
+	rm -f *.log benchmark/*.log *.elc
 
 install:
 	npm install
@@ -27,4 +28,4 @@ test:
 	-l test/context-coloring-test.el \
 	-f ert-run-tests-batch-and-exit
 
-.PHONY: all benchjs benchel compile clean install test
+.PHONY: all bench benchjs benchel compile clean install test

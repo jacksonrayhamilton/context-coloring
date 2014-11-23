@@ -15,7 +15,9 @@
 
 (defun context-coloring-benchmark-run ()
   (context-coloring-benchmark-setup)
-  (let ((result-file (context-coloring-benchmark-resolve-path (concat "./results.log"))))
+
+  (let ((result-file (context-coloring-benchmark-resolve-path
+                      (concat "./results-" (format-time-string "%s") ".log"))))
 
     (dolist (path '("./fixtures/jquery-2.1.1.js"
                     "./fixtures/lodash-2.4.1.js"
@@ -40,8 +42,7 @@
             (insert "\n")
             (append-to-buffer results-buffer (point-min) (point-max))))
 
-        (append-to-file nil nil result-file)))
+        (append-to-file nil nil result-file))))
 
-    (find-file result-file))
-
-  (context-coloring-benchmark-teardown))
+  (context-coloring-benchmark-teardown)
+  (kill-emacs))
