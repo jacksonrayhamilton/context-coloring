@@ -20,6 +20,7 @@ module.exports = function (code) {
         isDefined,
         j,
         k,
+        pointer,
         range,
         reference,
         scope,
@@ -92,9 +93,9 @@ module.exports = function (code) {
                     // declared and initialized simultaneously; this filters
                     // them.)
                     for (k = 0; k < definitionsCount; k += 1) {
-                        definition = tokens[definitionsIndex + k];
-                        if (definition[0] === range[0] + 1 &&
-                                definition[1] === range[1] + 1) {
+                        pointer = definitionsIndex + (k * 4);
+                        if (tokens[pointer] === range[0] + 1 &&
+                                tokens[pointer + 1] === range[1] + 1) {
                             isDefined = true;
                             break;
                         }
