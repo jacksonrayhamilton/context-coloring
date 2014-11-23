@@ -9,8 +9,8 @@ var escope = require('escope'),
     isDefined = function (definitions, range) {
         return definitions.some(function (definition) {
             // Check for identical definitions.
-            return definition[1] === range[0] &&
-                definition[2] === range[1];
+            return definition[0] === range[0] &&
+                definition[1] === range[1];
         });
     },
 
@@ -63,18 +63,18 @@ module.exports = function (code) {
             return;
         }
         scopes = scopes.concat([[
-            scope.level,
             scope.block.range[0],
             scope.block.range[1],
+            scope.level,
             normal
         ]]);
         definitions = scope.variables.reduce(function (definitions, variable) {
             var mappedDefinitions = variable.defs.map(function (definition) {
                 var range = definition.name.range;
                 return [
-                    scope.level,
                     range[0],
                     range[1],
+                    scope.level,
                     bold
                 ];
             });
@@ -87,9 +87,9 @@ module.exports = function (code) {
             }
             return references.concat([[
                 // Handle global references too.
-                reference.resolved ? reference.resolved.scope.level : 0,
                 range[0],
                 range[1],
+                reference.resolved ? reference.resolved.scope.level : 0,
                 normal
             ]]);
         }, []);
@@ -100,9 +100,9 @@ module.exports = function (code) {
         .map(function (comment) {
             var range = comment.range;
             return [
-                -1,
                 range[0],
                 range[1],
+                -1,
                 normal
             ];
         });
@@ -113,9 +113,9 @@ module.exports = function (code) {
         .map(function (token) {
             // Emacs starts counting from 1.
             return [
-                token[0],
+                token[0] + 1,
                 token[1] + 1,
-                token[2] + 1,
+                token[2],
                 token[3]
             ];
         });

@@ -169,9 +169,10 @@ For example: \"context-coloring-depth-1-face\"."
 ;;; Tokenization functions
 
 ;; Tokens are vectors with the following form:
-;; 0: Level
-;; 1: Start
-;; 2: End
+;; 0: Start
+;; 1: End
+;; 2: Level
+;; 3: Style
 (defun context-coloring-apply-tokens (tokens)
   "Processes TOKENS to apply context-based coloring to the current buffer."
   (with-silent-modifications
@@ -181,9 +182,9 @@ For example: \"context-coloring-depth-1-face\"."
           (len (length tokens)))
       (while (< i len)
         (let ((token (elt tokens i)))
-          (let ((face (context-coloring-level-face (elt token 0) (elt token 3)))
-                (start (elt token 1))
-                (end (elt token 2)))
+          (let ((start (elt token 0))
+                (end (elt token 1))
+                (face (context-coloring-level-face (elt token 2) (elt token 3))))
             (add-text-properties start end `(face ,face rear-nonsticky t))))
         (setq i (+ i 1))))))
 
