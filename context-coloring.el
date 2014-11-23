@@ -44,49 +44,49 @@
 (defface context-coloring-depth--1-face
   '((((background light)) (:foreground "#7f7f7f"))
     (((background dark)) (:foreground "#7f7f7f")))
-  "Nested blocks face, depth -1; comments."
+  "Context coloring face, depth -1; comments."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-0-face
   '((((background light)) (:foreground "#000000"))
     (((background dark)) (:foreground "#ffffff")))
-  "Nested blocks face, depth 0; global scope."
+  "Context coloring face, depth 0; global scope."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-1-face
   '((((background light)) (:foreground "#2D6994"))
     (((background dark)) (:foreground "#ffff80")))
-  "Nested blocks face, depth 1."
+  "Context coloring face, depth 1."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-2-face
   '((((background light)) (:foreground "#592D94"))
     (((background dark)) (:foreground "#cdfacd")))
-  "Nested blocks face, depth 2."
+  "Context coloring face, depth 2."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-3-face
   '((((background light)) (:foreground "#A13143"))
     (((background dark)) (:foreground "#d8d8ff")))
-  "Nested blocks face, depth 3."
+  "Context coloring face, depth 3."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-4-face
   '((((background light)) (:foreground "#AC7135"))
     (((background dark)) (:foreground "#e7c7ff")))
-  "Nested blocks face, depth 4."
+  "Context coloring face, depth 4."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-5-face
   '((((background light)) (:foreground "#ACA135"))
     (((background dark)) (:foreground "#ffcdcd")))
-  "Nested blocks face, depth 5."
+  "Context coloring face, depth 5."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-6-face
   '((((background light)) (:foreground "#539A2F"))
     (((background dark)) (:foreground "#ffe390")))
-  "Nested blocks face, depth 6."
+  "Context coloring face, depth 6."
   :group 'context-coloring-faces)
 
 (defconst context-coloring-face-count 7
@@ -95,49 +95,49 @@ Determines depth at which to cycle through faces again.")
 
 (defface context-coloring-depth--1-italic-face
   '((default (:inherit context-coloring-depth--1-face :slant italic)))
-  "Nested blocks face, depth -1; italic; comments."
+  "Context coloring face, depth -1; italic; comments."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-0-bold-face
   '((default (:inherit context-coloring-depth-0-face :weight bold)))
-  "Nested blocks face, depth 0; bold; global scope."
+  "Context coloring face, depth 0; bold; global scope."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-1-bold-face
   '((default (:inherit context-coloring-depth-1-face :weight bold)))
-  "Nested blocks face, depth 1; bold; global scope."
+  "Context coloring face, depth 1; bold."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-2-bold-face
   '((default (:inherit context-coloring-depth-2-face :weight bold)))
-  "Nested blocks face, depth 2; bold; global scope."
+  "Context coloring face, depth 2; bold."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-3-bold-face
   '((default (:inherit context-coloring-depth-3-face :weight bold)))
-  "Nested blocks face, depth 3; bold; global scope."
+  "Context coloring face, depth 3; bold."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-4-bold-face
   '((default (:inherit context-coloring-depth-4-face :weight bold)))
-  "Nested blocks face, depth 4; bold; global scope."
+  "Context coloring face, depth 4; bold."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-5-bold-face
   '((default (:inherit context-coloring-depth-5-face :weight bold)))
-  "Nested blocks face, depth 5; bold; global scope."
+  "Context coloring face, depth 5; bold."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-6-bold-face
   '((default (:inherit context-coloring-depth-6-face :weight bold)))
-  "Nested blocks face, depth 6; bold; global scope."
+  "Context coloring face, depth 6; bold."
   :group 'context-coloring-faces)
 
 
-;;; Face utility functions
+;;; Face functions
 
 (defun context-coloring-level-face (depth style)
-  "Return face-name for DEPTH as a string \"context-coloring-depth-DEPTH-face\".
+  "Return face-name for DEPTH and STYLE as a string \"context-coloring-depth-DEPTH-face\".
 For example: \"context-coloring-depth-1-face\"."
   (intern-soft
    (concat "context-coloring-depth-"
@@ -157,115 +157,18 @@ For example: \"context-coloring-depth-1-face\"."
            "-face")))
 
 
-;;; Constants
+;;; Customizable variables
 
-(defconst context-coloring-path
-  (file-name-directory (or load-file-name buffer-file-name))
-  "This file's directory.")
+(defcustom context-coloring-delay 0.25
+  "Delay between a buffer update and colorization.
 
-(defconst context-coloring-scopifier-path
-  (expand-file-name "./bin/scopifier" context-coloring-path)
-  "Path to the external scopifier executable.")
-
-(defconst context-coloring-delay 0.25
-  "Time between colorization.")
-
-
-;;; Tokenization functions
-
-;; Tokens are vectors with the following form:
-;; 0: Start
-;; 1: End
-;; 2: Level
-;; 3: Style
-(defun context-coloring-apply-tokens (tokens)
-  "Processes TOKENS to apply context-based coloring to the current buffer."
-  (with-silent-modifications
-    ;; Reset in case there should be uncolored areas.
-    (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil))
-    (let ((i 0)
-          (len (length tokens)))
-      (while (< i len)
-        (let ((token (elt tokens i)))
-          (let ((start (elt token 0))
-                (end (elt token 1))
-                (face (context-coloring-level-face (elt token 2) (elt token 3))))
-            (add-text-properties start end `(face ,face rear-nonsticky t))))
-        (setq i (+ i 1))))))
-
-(defun context-coloring-kill-scopifier ()
-  (when (not (null context-coloring-scopifier-process))
-    (delete-process context-coloring-scopifier-process)
-    (setq context-coloring-scopifier-process nil)))
-
-(defun context-coloring-scopify ()
-  "Invokes the external scopifier with the current buffer's
-contents, reading the scopifier's response asynchronously and
-calling FUNCTION with the parsed list of tokens."
-
-  ;; Prior running tokenization is implicitly obsolete if this function is
-  ;; called.
-  (context-coloring-kill-scopifier)
-
-  ;; Start the process.
-  (setq context-coloring-scopifier-process
-        (start-process-shell-command "scopifier" nil context-coloring-scopifier-path))
-
-  (let ((output "")
-        (buffer context-coloring-buffer)
-        (start-time context-coloring-colorize-start-time))
-
-    ;;The process may produce output in multiple chunks. This filter accumulates
-    ;;the chunks into a message.
-    (set-process-filter context-coloring-scopifier-process
-                        (lambda (process chunk)
-                          (setq output (concat output chunk))))
-
-    ;; When the process's message is complete, this sentinel parses it as JSON
-    ;; and applies the tokens to the buffer.
-    (set-process-sentinel context-coloring-scopifier-process
-                          (lambda (process event)
-                            (when (equal "finished\n" event)
-                              (let ((tokens (json-read-from-string output)))
-                                (with-current-buffer buffer
-                                  (context-coloring-apply-tokens tokens))
-                                (setq context-coloring-scopifier-process nil)
-                                (message "Colorized (after %f seconds)." (- (float-time) start-time))
-                                )))))
-
-  ;; Give the process its input.
-  (process-send-region context-coloring-scopifier-process (point-min) (point-max))
-  (process-send-eof context-coloring-scopifier-process))
-
-
-;;; Colorization functions
-
-(defun context-coloring-colorize ()
-  (interactive)
-  (setq context-coloring-colorize-start-time (float-time))
-  (message "%s" "Colorizing.")
-  (context-coloring-scopify))
-
-(defun context-coloring-change-function (start end length)
-  ;; Tokenization is obsolete if there was a change.
-  (context-coloring-kill-scopifier)
-  (setq context-coloring-changed t))
-
-(defun context-coloring-maybe-colorize ()
-  "Colorize under certain conditions. This will run as an idle
-timer, so firstly the buffer must not be some other
-buffer. Additionally, the buffer must have changed, otherwise
-colorizing would be redundant."
-  (when (and (eq context-coloring-buffer (window-buffer (selected-window)))
-             context-coloring-changed)
-    (setq context-coloring-changed nil)
-    (context-coloring-colorize)))
+If your performance is poor, you might want to increase this.")
 
 
 ;;; Local variables
 
 (defvar context-coloring-buffer nil
-  "Reference to this buffer for timers.")
+  "Reference to this buffer (for timers).")
 (make-variable-buffer-local 'context-coloring-buffer)
 
 (defvar context-coloring-scopifier-process nil
@@ -285,6 +188,108 @@ imply that it should be colorized again.")
 (defvar context-coloring-colorize-start-time nil
   "Used for dirty benchmarking of async colorization time.")
 (make-variable-buffer-local 'context-coloring-colorize-start-time)
+
+
+;;; Scopification
+
+(defconst context-coloring-path
+  (file-name-directory (or load-file-name buffer-file-name))
+  "This file's directory.")
+
+(defconst context-coloring-scopifier-path
+  (expand-file-name "./bin/scopifier" context-coloring-path)
+  "Path to the external scopifier executable.")
+
+(defun context-coloring-apply-tokens (tokens)
+  "Processes TOKENS to apply context-based coloring to the
+current buffer. Tokens are vectors consisting of 4 integers:
+start, end, level, and style."
+  (with-silent-modifications
+    ;; Reset in case there should be uncolored areas.
+    (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil))
+    (let ((i 0)
+          (len (length tokens)))
+      (while (< i len)
+        (let ((token (elt tokens i)))
+          (let ((start (elt token 0))
+                (end (elt token 1))
+                (face (context-coloring-level-face (elt token 2) (elt token 3))))
+            (add-text-properties start end `(face ,face rear-nonsticky t))))
+        (setq i (+ i 1))))))
+
+(defun context-coloring-kill-scopifier ()
+  "Kills the currently-running scopifier process for this
+buffer."
+  (when (not (null context-coloring-scopifier-process))
+    (delete-process context-coloring-scopifier-process)
+    (setq context-coloring-scopifier-process nil)))
+
+(defun context-coloring-scopify ()
+  "Invokes the external scopifier with the current buffer's
+contents, reading the scopifier's response asynchronously and
+applying a parsed list of tokens to
+`context-coloring-apply-tokens'."
+
+  ;; Prior running tokenization is implicitly obsolete if this function is
+  ;; called.
+  (context-coloring-kill-scopifier)
+
+  ;; Start the process.
+  (setq context-coloring-scopifier-process
+        (start-process-shell-command "scopifier" nil context-coloring-scopifier-path))
+
+  (let ((output "")
+        (buffer context-coloring-buffer)
+        (start-time context-coloring-colorize-start-time))
+
+    ;; The process may produce output in multiple chunks. This filter
+    ;; accumulates the chunks into a message.
+    (set-process-filter context-coloring-scopifier-process
+                        (lambda (process chunk)
+                          (setq output (concat output chunk))))
+
+    ;; When the process's message is complete, this sentinel parses it as JSON
+    ;; and applies the tokens to the buffer.
+    (set-process-sentinel context-coloring-scopifier-process
+                          (lambda (process event)
+                            (when (equal "finished\n" event)
+                              (let ((tokens (json-read-from-string output)))
+                                (with-current-buffer buffer
+                                  (context-coloring-apply-tokens tokens))
+                                (setq context-coloring-scopifier-process nil)
+                                ;; (message "Colorized (after %f seconds)." (- (float-time) start-time))
+                                )))))
+
+  ;; Give the process its input.
+  (process-send-region context-coloring-scopifier-process (point-min) (point-max))
+  (process-send-eof context-coloring-scopifier-process))
+
+
+;;; Colorization
+
+(defun context-coloring-colorize ()
+  "Colors the current buffer by function context."
+  (interactive)
+  (setq context-coloring-colorize-start-time (float-time))
+  ;; (message "%s" "Colorizing.")
+  (context-coloring-scopify))
+
+(defun context-coloring-change-function (start end length)
+  "Registers a change so that a context-colored buffer can be
+colorized soon."
+  ;; Tokenization is obsolete if there was a change.
+  (context-coloring-kill-scopifier)
+  (setq context-coloring-changed t))
+
+(defun context-coloring-maybe-colorize ()
+  "Colorize unders certain conditions. This will run as an idle
+timer, so firstly the buffer must not be some other
+buffer. Additionally, the buffer must have changed, otherwise
+colorizing would be redundant."
+  (when (and (eq context-coloring-buffer (window-buffer (selected-window)))
+             context-coloring-changed)
+    (setq context-coloring-changed nil)
+    (context-coloring-colorize)))
 
 
 ;;; Minor mode
@@ -307,9 +312,11 @@ imply that it should be colorized again.")
     ;; Colorize once initially.
     (context-coloring-colorize)
 
-    ;; Only recolor on change. So watch for changes.
+    ;; Font lock is not compatible with this mode; the converse is also true.
     (font-lock-mode 0)
     (jit-lock-mode nil)
+
+    ;; Only recolor on change.
     (add-hook 'after-change-functions 'context-coloring-change-function nil t)
 
     ;; Only recolor idly.

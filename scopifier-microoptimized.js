@@ -7,7 +7,7 @@ var escope = require('escope'),
     bold = 1,
     italic = 2;
 
-// Given code, returns an array of `[level, start, end]' tokens for
+// Given code, returns an array of `[start, end, level, style]' tokens for
 // context-coloring.
 module.exports = function (code) {
     var analyzedScopes,
