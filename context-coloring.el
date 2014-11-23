@@ -42,8 +42,7 @@
 ;;; Faces
 
 (defface context-coloring-depth--1-face
-  '((default (:slant italic))
-    (((background light)) (:foreground "#7f7f7f"))
+  '((((background light)) (:foreground "#7f7f7f"))
     (((background dark)) (:foreground "#7f7f7f")))
   "Nested blocks face, depth -1; comments."
   :group 'context-coloring-faces)
@@ -93,6 +92,11 @@
 (defconst context-coloring-face-count 7
   "Number of faces defined for highlighting delimiter levels.
 Determines depth at which to cycle through faces again.")
+
+(defface context-coloring-depth--1-italic-face
+  '((default (:inherit context-coloring-depth--1-face :slant italic)))
+  "Nested blocks face, depth -1; italic; comments."
+  :group 'context-coloring-faces)
 
 (defface context-coloring-depth-0-bold-face
   '((default (:inherit context-coloring-depth-0-face :weight bold)))
@@ -148,6 +152,7 @@ For example: \"context-coloring-depth-1-face\"."
                 (mod (- depth 1)
                      (- context-coloring-face-count 1)))))
            (cond ((= 1 style) "-bold")
+                 ((= 2 style) "-italic")
                  (t ""))
            "-face")))
 

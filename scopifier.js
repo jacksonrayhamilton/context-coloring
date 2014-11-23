@@ -15,7 +15,8 @@ var escope = require('escope'),
     },
 
     normal = 0,
-    bold = 1;
+    bold = 1,
+    italic = 2;
 
 // Given code, returns an array of `[level, start, end]' tokens for
 // context-coloring.
@@ -103,7 +104,7 @@ module.exports = function (code) {
                 range[0],
                 range[1],
                 -1,
-                normal
+                italic
             ];
         });
 
