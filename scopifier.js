@@ -91,7 +91,7 @@ module.exports = function (code) {
                 range[0],
                 range[1],
                 reference.resolved ? reference.resolved.scope.level : 0,
-                normal
+                reference.__maybeImplicitGlobal ? bold : normal
             ]]);
         }, []);
         symbols = symbols.concat(definitions).concat(references);
