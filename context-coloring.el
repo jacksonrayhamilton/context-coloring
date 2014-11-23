@@ -193,7 +193,7 @@ imply that it should be colorized again.")
   (expand-file-name "./bin/scopifier" context-coloring-path)
   "Path to the external scopifier executable.")
 
-(defsubst context-coloring-apply-tokens (tokens)
+(defun context-coloring-apply-tokens (tokens)
   "Processes TOKENS to apply context-based coloring to the
 current buffer. Tokens are vectors consisting of 4 integers:
 start, end, level, and style."
@@ -218,11 +218,11 @@ buffer."
     (delete-process context-coloring-scopifier-process)
     (setq context-coloring-scopifier-process nil)))
 
-(defsubst context-coloring-parse-array (input)
+(defun context-coloring-parse-array (input)
   "Specialized alternative JSON parser."
   (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
 
-(defsubst context-coloring-scopify ()
+(defun context-coloring-scopify ()
   "Invokes the external scopifier with the current buffer's
 contents, reading the scopifier's response asynchronously and
 applying a parsed list of tokens to

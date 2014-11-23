@@ -13,24 +13,26 @@ Highlights JavaScript code according to function context.
 - Identifiers are bold when first declared.
 - Comments are gray and italic.
 
-In JavaScript, we are constantly leveraging closures to bind nearby
-data. Lexical scope information at-a-glance can assist a programmer in
+JavaScript programmers often leverage closures to bind nearby data to
+functions. Lexical scope information at-a-glance can assist a programmer in
 understanding the overall structure of a program. It can also help curb nasty
-bugs like implicit globals and name shadowing, and act as an indicator of
-excessive complexity.
-
-There are some breakthrough advantages, too. Context coloring could enable a
-programmer to write in a functional style. It would be easy to tell when he had
-escaped the boundaries of his function and produced side-effects.
-
-Context coloring also improves a programmer's ability to write functions that
-construct objects with implicit private state (which is a good way to avoid
-`this` too).
+bugs, like implicit globals and name shadowing. A rainbow can indicate excessive
+complexity. A spot of contrast following by an assignment expression could be a
+side-effect... or, a specially-constructed object's private state could be being
+manipulated.
 
 This coloring scheme is probably more useful than conventional JavaScript
 *syntax* highlighting. Highlighting keywords can help detect spelling errors, or
-alert one to unclosed string literals; but so can a [linter][]. (If you haven't
-already, you should [integrate][emacs integration] one into your editor.)
+alert one to unclosed string literals; but so can a [linter][].
+
+## Features
+
+- Light and dark color schemes.
+- Really fast async AST parsing. Some parse / recolor times:
+  - jQuery (9191 lines): 0.41 seconds
+  - lodash (6786 lines): 0.22 seconds
+  - Async (1124 lines): 28 milliseconds
+  - mkdirp (98 lines): instant
 
 ## Usage
 
