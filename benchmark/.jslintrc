@@ -1,0 +1,8 @@
+{
+  "predef": [
+    "after",
+    "before",
+    "bench",
+    "suite"
+  ]
+}

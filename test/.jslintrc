@@ -1,0 +1,10 @@
+{
+  "predef": [
+    "after",
+    "afterEach",
+    "before",
+    "beforeEach",
+    "describe",
+    "it"
+  ]
+}
