@@ -275,10 +275,11 @@ applying a parsed list of tokens to
 (defun context-coloring-colorize ()
   "Colors the current buffer by function context."
   (interactive)
-  (when context-coloring-benchmark-colorization
-    (setq context-coloring-start-time (float-time))
-    (message "%s" "Colorizing..."))
-  (context-coloring-scopify))
+  (when (executable-find "node")
+    (when context-coloring-benchmark-colorization
+      (setq context-coloring-start-time (float-time))
+      (message "%s" "Colorizing..."))
+    (context-coloring-scopify)))
 
 (defun context-coloring-change-function (start end length)
   "Registers a change so that a context-colored buffer can be
@@ -315,6 +316,9 @@ colorizing would be redundant."
 
     ;; Remember this buffer. This value should not be dynamically-bound.
     (setq context-coloring-buffer (current-buffer))
+
+    (if (null (executable-find "node"))
+        (message "context-coloring-mode requires Node.js 0.10+ to be installed"))
 
     ;; Colorize once initially.
     (context-coloring-colorize)
