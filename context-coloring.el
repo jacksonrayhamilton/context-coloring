@@ -38,8 +38,7 @@
 
 (defface context-coloring-level--1-face
   '((((type tty)) (:foreground "white"))
-    (((background light)) (:foreground "#7f7f7f"))
-    (((background dark)) (:foreground "#7f7f7f")))
+    (t (:foreground "#7f7f7f")))
   "Context coloring face, level -1; comments."
   :group 'context-coloring-faces)
 
@@ -52,42 +51,42 @@
 
 (defface context-coloring-level-1-face
   '((((type tty)) (:foreground "yellow"))
-    (((background light)) (:foreground "#2D6994"))
+    (((background light)) (:foreground "#92892d"))
     (((background dark)) (:foreground "#ffff80")))
   "Context coloring face, level 1."
   :group 'context-coloring-faces)
 
 (defface context-coloring-level-2-face
   '((((type tty)) (:foreground "green"))
-    (((background light)) (:foreground "#592D94"))
+    (((background light)) (:foreground "#458027"))
     (((background dark)) (:foreground "#cdfacd")))
   "Context coloring face, level 2."
   :group 'context-coloring-faces)
 
 (defface context-coloring-level-3-face
   '((((type tty)) (:foreground "cyan"))
-    (((background light)) (:foreground "#A13143"))
+    (((background light)) (:foreground "#25577a"))
     (((background dark)) (:foreground "#d8d8ff")))
   "Context coloring face, level 3."
   :group 'context-coloring-faces)
 
 (defface context-coloring-level-4-face
   '((((type tty)) (:foreground "blue"))
-    (((background light)) (:foreground "#AC7135"))
+    (((background light)) (:foreground "#49257a"))
     (((background dark)) (:foreground "#e7c7ff")))
   "Context coloring face, level 4."
   :group 'context-coloring-faces)
 
 (defface context-coloring-level-5-face
   '((((type tty)) (:foreground "magenta"))
-    (((background light)) (:foreground "#ACA135"))
+    (((background light)) (:foreground "#872938"))
     (((background dark)) (:foreground "#ffcdcd")))
   "Context coloring face, level 5."
   :group 'context-coloring-faces)
 
 (defface context-coloring-level-6-face
   '((((type tty)) (:foreground "red"))
-    (((background light)) (:foreground "#539A2F"))
+    (((background light)) (:foreground "#92602d"))
     (((background dark)) (:foreground "#ffe390")))
   "Context coloring face, level 6."
   :group 'context-coloring-faces)
