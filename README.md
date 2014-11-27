@@ -25,7 +25,7 @@ This coloring scheme is probably more useful than conventional JavaScript
 *syntax* highlighting. Highlighting keywords can help one to detect spelling
 errors, and highlighting the content between quotation marks can alert one to
 unclosed string literals. But a [linter][] can also spot these errors, along
-with many others, and can be [seamlessly integrated via flycheck][].
+with many others, and can be [seamlessly integrated via flycheck][integration].
 
 ## Features
 
@@ -59,6 +59,6 @@ In your `~/.emacs` file:
 ```
 
 [linter]: https://github.com/jacksonrayhamilton/jslinted
-[seemlessly integrated]: https://github.com/jacksonrayhamilton/jslinted#emacs-integration
+[integration]: https://github.com/jacksonrayhamilton/jslinted#emacs-integration
 [node]: http://nodejs.org/download/
 [load path]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Lisp-Libraries.html
