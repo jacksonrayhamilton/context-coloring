@@ -1,24 +1,8 @@
 {
-  "name": "context-coloring",
-  "version": "0.0.0",
-  "description": "JavaScript syntax highlighting, except not for syntax.",
-  "main": "scopifier.js",
-  "directories": {
-    "test": "test"
-  },
-  "scripts": {
-    "test": "make test"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/jacksonrayhamilton/context-coloring.git"
   },
-  "author": "Jackson Ray Hamilton",
-  "license": "GPL-3.0+",
-  "bugs": {
-    "url": "https://github.com/jacksonrayhamilton/context-coloring/issues"
-  },
-  "homepage": "https://github.com/jacksonrayhamilton/context-coloring",
   "devDependencies": {
     "matcha": "^0.6.0",
     "mocha": "^2.0.1"
