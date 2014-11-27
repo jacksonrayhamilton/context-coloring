@@ -1,7 +1,7 @@
 'use strict';
 
-var escope = require('escope'),
-    esprima = require('esprima'),
+var escope = require('./lib/escope'),
+    esprima = require('./lib/esprima'),
 
     normal = 0,
     bold = 1,

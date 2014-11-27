@@ -40,11 +40,19 @@ can also be integrated into your workflow via [flycheck][].
 Requires Emacs 24+ and [Node.js 0.10+][node].
 
 - Clone this repository.
-- Run `make` in it.
+
+```bash
+cd ~/.emacs.d/
+git clone https://github.com/jacksonrayhamilton/context-coloring.git
+```
+
 - Add it to your [load path][].
-- Add the following to your `~/.emacs`:
+- Add a mode hook for `context-coloring-mode`.
+
+In your `~/.emacs` file:
 
 ```lisp
+(add-to-list 'load-path "~/.emacs.d/context-coloring")
 (require 'context-coloring)
 (add-hook 'js-mode-hook 'context-coloring-mode)
 ```

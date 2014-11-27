@@ -19,10 +19,6 @@
     "url": "https://github.com/jacksonrayhamilton/context-coloring/issues"
   },
   "homepage": "https://github.com/jacksonrayhamilton/context-coloring",
-  "dependencies": {
-    "escope": "^1.0.1",
-    "esprima": "^1.2.2"
-  },
   "devDependencies": {
     "matcha": "^0.6.0",
     "mocha": "^2.0.1"
