@@ -36,83 +36,83 @@
 
 ;;; Faces
 
-(defface context-coloring-depth--1-face
+(defface context-coloring-level--1-face
   '((((type tty)) (:foreground "white"))
     (((background light)) (:foreground "#7f7f7f"))
     (((background dark)) (:foreground "#7f7f7f")))
-  "Context coloring face, depth -1; comments."
+  "Context coloring face, level -1; comments."
   :group 'context-coloring-faces)
 
-(defface context-coloring-depth-0-face
+(defface context-coloring-level-0-face
   '((((type tty)) (:foreground "white"))
     (((background light)) (:foreground "#000000"))
     (((background dark)) (:foreground "#ffffff")))
-  "Context coloring face, depth 0; global scope."
+  "Context coloring face, level 0; global scope."
   :group 'context-coloring-faces)
 
-(defface context-coloring-depth-1-face
+(defface context-coloring-level-1-face
   '((((type tty)) (:foreground "yellow"))
     (((background light)) (:foreground "#2D6994"))
     (((background dark)) (:foreground "#ffff80")))
-  "Context coloring face, depth 1."
+  "Context coloring face, level 1."
   :group 'context-coloring-faces)
 
-(defface context-coloring-depth-2-face
+(defface context-coloring-level-2-face
   '((((type tty)) (:foreground "green"))
     (((background light)) (:foreground "#592D94"))
     (((background dark)) (:foreground "#cdfacd")))
-  "Context coloring face, depth 2."
+  "Context coloring face, level 2."
   :group 'context-coloring-faces)
 
-(defface context-coloring-depth-3-face
+(defface context-coloring-level-3-face
   '((((type tty)) (:foreground "cyan"))
     (((background light)) (:foreground "#A13143"))
     (((background dark)) (:foreground "#d8d8ff")))
-  "Context coloring face, depth 3."
+  "Context coloring face, level 3."
   :group 'context-coloring-faces)
 
-(defface context-coloring-depth-4-face
+(defface context-coloring-level-4-face
   '((((type tty)) (:foreground "blue"))
     (((background light)) (:foreground "#AC7135"))
     (((background dark)) (:foreground "#e7c7ff")))
-  "Context coloring face, depth 4."
+  "Context coloring face, level 4."
   :group 'context-coloring-faces)
 
-(defface context-coloring-depth-5-face
+(defface context-coloring-level-5-face
   '((((type tty)) (:foreground "magenta"))
     (((background light)) (:foreground "#ACA135"))
     (((background dark)) (:foreground "#ffcdcd")))
-  "Context coloring face, depth 5."
+  "Context coloring face, level 5."
   :group 'context-coloring-faces)
 
-(defface context-coloring-depth-6-face
+(defface context-coloring-level-6-face
   '((((type tty)) (:foreground "red"))
     (((background light)) (:foreground "#539A2F"))
     (((background dark)) (:foreground "#ffe390")))
-  "Context coloring face, depth 6."
+  "Context coloring face, level 6."
   :group 'context-coloring-faces)
 
 (defconst context-coloring-face-count 7
   "Number of faces defined for highlighting delimiter levels.
-Determines depth at which to cycle through faces again.")
+Determines level at which to cycle through faces again.")
 
 
 ;;; Face functions
 
-(defsubst context-coloring-level-face (depth)
-  "Return face-name for DEPTH as a string \"context-coloring-depth-DEPTH-face\".
-For example: \"context-coloring-depth-1-face\"."
+(defsubst context-coloring-level-face (level)
+  "Return face-name for LEVEL as a string \"context-coloring-level-LEVEL-face\".
+For example: \"context-coloring-level-1-face\"."
   (intern-soft
-   (concat "context-coloring-depth-"
+   (concat "context-coloring-level-"
            (number-to-string
             (or
              ;; Has a face directly mapping to it.
-             (and (< depth context-coloring-face-count)
-                  depth)
+             (and (< level context-coloring-face-count)
+                  level)
              ;; After the number of available faces are used up, pretend the 0th
              ;; face doesn't exist.
              (+ 1
-                (mod (- depth 1)
+                (mod (- level 1)
                      (- context-coloring-face-count 1)))))
            "-face")))
 
