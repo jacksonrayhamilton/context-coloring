@@ -25,7 +25,7 @@ This coloring scheme is probably more useful than conventional JavaScript
 *syntax* highlighting. Highlighting keywords can help one to detect spelling
 errors, and highlighting the content between quotation marks can alert one to
 unclosed string literals. But a [linter][] can also spot these errors, along
-with many others, and can be [seemlessly integrated][] via flycheck.
+with many others, and can be [seamlessly integrated via flycheck][].
 
 ## Features
 
