@@ -10,8 +10,7 @@ Highlights JavaScript code according to function context.
   scope is a different color, and code within such functions is another color,
   and so on.
 - Identifiers retain the color of the scope in which they were declared.
-- Identifiers are bold when first declared.
-- Comments are gray and italic.
+- Comments are gray.
 
 JavaScript programmers often leverage closures to bind nearby data to
 functions. Lexical scope information at-a-glance can assist a programmer in

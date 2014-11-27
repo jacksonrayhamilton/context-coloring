@@ -92,46 +92,6 @@
   "Context coloring face, depth 6."
   :group 'context-coloring-faces)
 
-(defface context-coloring-depth--1-italic-face
-  '((default (:inherit context-coloring-depth--1-face :slant italic)))
-  "Context coloring face, depth -1; italic; comments."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-depth-0-bold-face
-  '((default (:inherit context-coloring-depth-0-face :weight bold)))
-  "Context coloring face, depth 0; bold; global scope."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-depth-1-bold-face
-  '((default (:inherit context-coloring-depth-1-face :weight bold)))
-  "Context coloring face, depth 1; bold."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-depth-2-bold-face
-  '((default (:inherit context-coloring-depth-2-face :weight bold)))
-  "Context coloring face, depth 2; bold."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-depth-3-bold-face
-  '((default (:inherit context-coloring-depth-3-face :weight bold)))
-  "Context coloring face, depth 3; bold."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-depth-4-bold-face
-  '((default (:inherit context-coloring-depth-4-face :weight bold)))
-  "Context coloring face, depth 4; bold."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-depth-5-bold-face
-  '((default (:inherit context-coloring-depth-5-face :weight bold)))
-  "Context coloring face, depth 5; bold."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-depth-6-bold-face
-  '((default (:inherit context-coloring-depth-6-face :weight bold)))
-  "Context coloring face, depth 6; bold."
-  :group 'context-coloring-faces)
-
 (defconst context-coloring-face-count 7
   "Number of faces defined for highlighting delimiter levels.
 Determines depth at which to cycle through faces again.")
@@ -139,8 +99,8 @@ Determines depth at which to cycle through faces again.")
 
 ;;; Face functions
 
-(defsubst context-coloring-level-face (depth style)
-  "Return face-name for DEPTH and STYLE as a string \"context-coloring-depth-DEPTH-face\".
+(defsubst context-coloring-level-face (depth)
+  "Return face-name for DEPTH as a string \"context-coloring-depth-DEPTH-face\".
 For example: \"context-coloring-depth-1-face\"."
   (intern-soft
    (concat "context-coloring-depth-"
@@ -154,9 +114,6 @@ For example: \"context-coloring-depth-1-face\"."
              (+ 1
                 (mod (- depth 1)
                      (- context-coloring-face-count 1)))))
-           (cond ((= 1 style) "-bold")
-                 ((= 2 style) "-italic")
-                 (t ""))
            "-face")))
 
 
@@ -210,9 +167,9 @@ imply that it should be colorized again.")
 
 (defun context-coloring-apply-tokens (tokens)
   "Processes TOKENS to apply context-based coloring to the
-current buffer. Tokens are 4 integers: start, end, level, and
-style. The array is flat, with a new token occurring after every
-4th number."
+current buffer. Tokens are 3 integers: start, end, level. The
+array is flat, with a new token occurring after every 3rd
+number."
   (with-silent-modifications
     ;; Reset in case there should be uncolored areas.
     (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil))
@@ -222,10 +179,8 @@ style. The array is flat, with a new token occurring after every
         (add-text-properties
          (elt tokens i)
          (elt tokens (+ i 1))
-         `(face ,(context-coloring-level-face
-                  (elt tokens (+ i 2))
-                  (elt tokens (+ i 3))) rear-nonsticky t))
-        (setq i (+ i 4))))))
+         `(face ,(context-coloring-level-face (elt tokens (+ i 2))) rear-nonsticky t))
+        (setq i (+ i 3))))))
 
 (defsubst context-coloring-kill-scopifier ()
   "Kills the currently-running scopifier process for this

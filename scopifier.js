@@ -1,14 +1,9 @@
 'use strict';
 
 var escope = require('./lib/escope'),
-    esprima = require('./lib/esprima'),
+    esprima = require('./lib/esprima');
 
-    normal = 0,
-    bold = 1,
-    italic = 2;
-
-// Given code, returns an array of `[start, end, level, style]' tokens for
-// context-coloring.
+// Given code, returns an array of tokens for context-coloring.
 module.exports = function (code) {
     var analyzedScopes,
         ast,
@@ -65,8 +60,7 @@ module.exports = function (code) {
                 scopes.push(
                     range[0] + 1,
                     range[1] + 1,
-                    scope.level,
-                    normal
+                    scope.level
                 );
                 definitionsIndex = tokens.length;
                 definitionsCount = 0;
@@ -79,8 +73,7 @@ module.exports = function (code) {
                         tokens.push(
                             range[0] + 1,
                             range[1] + 1,
-                            scope.level,
-                            bold
+                            scope.level
                         );
                     }
                 }
@@ -93,7 +86,7 @@ module.exports = function (code) {
                     // declared and initialized simultaneously; this filters
                     // them.)
                     for (k = 0; k < definitionsCount; k += 1) {
-                        pointer = definitionsIndex + (k * 4);
+                        pointer = definitionsIndex + (k * 3);
                         if (tokens[pointer] === range[0] + 1 &&
                                 tokens[pointer + 1] === range[1] + 1) {
                             isDefined = true;
@@ -105,8 +98,7 @@ module.exports = function (code) {
                             // Handle global references too.
                             range[0] + 1,
                             range[1] + 1,
-                            reference.resolved ? reference.resolved.scope.level : 0,
-                            reference.__maybeImplicitGlobal ? bold : normal
+                            reference.resolved ? reference.resolved.scope.level : 0
                         );
                     }
                 }
@@ -120,8 +112,7 @@ module.exports = function (code) {
         tokens.push(
             range[0] + 1,
             range[1] + 1,
-            -1,
-            italic
+            -1
         );
     }
 
