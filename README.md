@@ -16,15 +16,16 @@ Highlights JavaScript code according to function context.
 JavaScript programmers often leverage closures to bind nearby data to
 functions. Lexical scope information at-a-glance can assist a programmer in
 understanding the overall structure of a program. It can also help curb nasty
-bugs, like implicit globals and name shadowing. A rainbow can indicate excessive
+bugs like implicit globals and name shadowing. A rainbow can indicate excessive
 complexity. A spot of contrast followed by an assignment expression could be a
 side-effect... or, a specially-constructed object's private state could be
 undergoing change.
 
 This coloring scheme is probably more useful than conventional JavaScript
 *syntax* highlighting. Highlighting keywords can help one to detect spelling
-errors, or alert one to unclosed string literals; but so can a [linter][], which
-can also be integrated into your workflow via [flycheck][].
+errors, and highlighting the content between quotation marks can alert one to
+unclosed string literals. But a [linter][] can also spot these errors, along
+with many others, and can be [seemlessly integrated][] via flycheck.
 
 ## Features
 
@@ -58,6 +59,6 @@ In your `~/.emacs` file:
 ```
 
 [linter]: https://github.com/jacksonrayhamilton/jslinted
-[flycheck]: https://github.com/flycheck/flycheck
+[seemlessly integrated]: https://github.com/jacksonrayhamilton/jslinted#emacs-integration
 [node]: http://nodejs.org/download/
 [load path]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Lisp-Libraries.html
