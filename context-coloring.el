@@ -37,49 +37,57 @@
 ;;; Faces
 
 (defface context-coloring-depth--1-face
-  '((((background light)) (:foreground "#7f7f7f"))
+  '((((type tty)) (:foreground "white"))
+    (((background light)) (:foreground "#7f7f7f"))
     (((background dark)) (:foreground "#7f7f7f")))
   "Context coloring face, depth -1; comments."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-0-face
-  '((((background light)) (:foreground "#000000"))
+  '((((type tty)) (:foreground "white"))
+    (((background light)) (:foreground "#000000"))
     (((background dark)) (:foreground "#ffffff")))
   "Context coloring face, depth 0; global scope."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-1-face
-  '((((background light)) (:foreground "#2D6994"))
+  '((((type tty)) (:foreground "yellow"))
+    (((background light)) (:foreground "#2D6994"))
     (((background dark)) (:foreground "#ffff80")))
   "Context coloring face, depth 1."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-2-face
-  '((((background light)) (:foreground "#592D94"))
+  '((((type tty)) (:foreground "green"))
+    (((background light)) (:foreground "#592D94"))
     (((background dark)) (:foreground "#cdfacd")))
   "Context coloring face, depth 2."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-3-face
-  '((((background light)) (:foreground "#A13143"))
+  '((((type tty)) (:foreground "cyan"))
+    (((background light)) (:foreground "#A13143"))
     (((background dark)) (:foreground "#d8d8ff")))
   "Context coloring face, depth 3."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-4-face
-  '((((background light)) (:foreground "#AC7135"))
+  '((((type tty)) (:foreground "blue"))
+    (((background light)) (:foreground "#AC7135"))
     (((background dark)) (:foreground "#e7c7ff")))
   "Context coloring face, depth 4."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-5-face
-  '((((background light)) (:foreground "#ACA135"))
+  '((((type tty)) (:foreground "magenta"))
+    (((background light)) (:foreground "#ACA135"))
     (((background dark)) (:foreground "#ffcdcd")))
   "Context coloring face, depth 5."
   :group 'context-coloring-faces)
 
 (defface context-coloring-depth-6-face
-  '((((background light)) (:foreground "#539A2F"))
+  '((((type tty)) (:foreground "red"))
+    (((background light)) (:foreground "#539A2F"))
     (((background dark)) (:foreground "#ffe390")))
   "Context coloring face, depth 6."
   :group 'context-coloring-faces)
