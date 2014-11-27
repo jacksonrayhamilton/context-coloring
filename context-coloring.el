@@ -27,7 +27,6 @@
 ;; Usage:
 ;;
 ;; Install Node.js 0.10+.
-;; Run `make` in this file's directory.
 ;; In your ~/.emacs:
 ;;
 ;; (require 'context-coloring)
