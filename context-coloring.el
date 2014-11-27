@@ -155,9 +155,9 @@ For example: \"context-coloring-depth-1-face\"."
 ;;; Customizable variables
 
 (defcustom context-coloring-delay 0.25
-  "Delay between a buffer updates and colorization.
+  "Delay between a buffer update and colorization.
 
-Increase this if your machine is high-performing. Decrease it it if ain't."
+Increase this if your machine is high-performing. Decrease it if it ain't."
   :group 'context-coloring)
 
 (defcustom context-coloring-benchmark-colorization nil
@@ -187,7 +187,7 @@ imply that it should be colorized again.")
 
 (defvar context-coloring-start-time nil
   "Used to benchmark colorization time.")
-(make-variable-buffer-local 'context-coloring-changed)
+(make-variable-buffer-local 'context-coloring-start-time)
 
 
 ;;; Scopification
@@ -202,8 +202,9 @@ imply that it should be colorized again.")
 
 (defun context-coloring-apply-tokens (tokens)
   "Processes TOKENS to apply context-based coloring to the
-current buffer. Tokens are vectors consisting of 4 integers:
-start, end, level, and style."
+current buffer. Tokens are 4 integers: start, end, level, and
+style. The array is flat, with a new token occurring after every
+4th number."
   (with-silent-modifications
     ;; Reset in case there should be uncolored areas.
     (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil))
@@ -317,6 +318,7 @@ colorizing would be redundant."
     ;; Remember this buffer. This value should not be dynamically-bound.
     (setq context-coloring-buffer (current-buffer))
 
+    ;; Alert the user that the mode is not going to work.
     (if (null (executable-find "node"))
         (message "context-coloring-mode requires Node.js 0.10+ to be installed"))
 
