@@ -77,7 +77,7 @@
                     template: [
                         '<div class="cs-cell">',
                         '    <div class="cs-cell-color"></div>',
-                        '    <pre class="cs-cell-code">{{distance}}</pre>',
+                        '    <pre class="cs-cell-code">{{distance}}&deg;</pre>',
                         '    <pre class="cs-cell-code">{{hexCss}}</pre>',
                         '</div>'
                     ].join('\n'),
