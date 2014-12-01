@@ -131,27 +131,22 @@ Increase this if your machine is high-performing. Decrease it if it ain't."
 
 ;;; Local variables
 
-(defvar context-coloring-buffer nil
+(defvar-local context-coloring-buffer nil
   "Reference to this buffer (for timers).")
-(make-variable-buffer-local 'context-coloring-buffer)
 
-(defvar context-coloring-scopifier-process nil
+(defvar-local context-coloring-scopifier-process nil
   "Only allow a single scopifier process to run at a time. This
 is a reference to that one process.")
-(make-variable-buffer-local 'context-coloring-scopifier-process)
 
-(defvar context-coloring-colorize-idle-timer nil
+(defvar-local context-coloring-colorize-idle-timer nil
   "Reference to currently-running idle timer.")
-(make-variable-buffer-local 'context-coloring-colorize-idle-timer)
 
-(defvar context-coloring-changed nil
+(defvar-local context-coloring-changed nil
   "Indication that the buffer has changed recently, which would
 imply that it should be colorized again.")
-(make-variable-buffer-local 'context-coloring-changed)
 
-(defvar context-coloring-start-time nil
+(defvar-local context-coloring-start-time nil
   "Used to benchmark colorization time.")
-(make-variable-buffer-local 'context-coloring-start-time)
 
 
 ;;; Scopification
