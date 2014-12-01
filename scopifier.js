@@ -23,6 +23,9 @@ module.exports = function (code) {
         tokens,
         variable;
 
+    // Strip BOM.
+    code = code.replace(/^\ufeff/g, '');
+
     // Gracefully handle parse errors by doing nothing.
     try {
         ast = esprima.parse(code, {
