@@ -12,7 +12,7 @@
     }
 
     function boundHue(hue) {
-        return (360 + hue) % 360;
+        return (360 + (hue % 360)) % 360;
     }
 
     function hue2rgb(p, q, t) {
@@ -79,8 +79,10 @@
                         '    <div class="cs-cell-color"></div>',
                         '    <pre class="cs-cell-code">{{distance}}&deg;</pre>',
                         '    <pre class="cs-cell-code">{{hexCss}}</pre>',
-                        '    <pre class="cs-cell-code cs-cell-code-light" data-ng-style="{color: hexCss}">var a = 0;</pre>',
-                        '    <pre class="cs-cell-code cs-cell-code-dark" data-ng-style="{color: hexCss}">var a = 0;</pre>',
+                        '    <pre class="cs-cell-code cs-cell-code-light"',
+                        '         data-ng-style="{color: hexCss}">var a = 0;</pre>',
+                        '    <pre class="cs-cell-code cs-cell-code-dark"',
+                        '         data-ng-style="{color: hexCss}">var a = 0;</pre>',
                         '</div>'
                     ].join('\n'),
                     link: function (scope, element, attributes) {
