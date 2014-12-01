@@ -43,3 +43,11 @@
 .cs-cell-code {
     text-align: center;
 }
+
+.cs-cell-code-light {
+    background-color: #eee;
+}
+
+.cs-cell-code-dark {
+    background-color: #111;
+}
