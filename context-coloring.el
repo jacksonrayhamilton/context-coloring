@@ -91,7 +91,37 @@
   "Context coloring face, level 6."
   :group 'context-coloring-faces)
 
-(defconst context-coloring-face-count 7
+(defface context-coloring-level-7-face
+  '((t (:inherit context-coloring-level-1-face)))
+  "Context coloring face, level 7."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-level-8-face
+  '((t (:inherit context-coloring-level-2-face)))
+  "Context coloring face, level 8."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-level-9-face
+  '((t (:inherit context-coloring-level-3-face)))
+  "Context coloring face, level 9."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-level-10-face
+  '((t (:inherit context-coloring-level-4-face)))
+  "Context coloring face, level 10."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-level-11-face
+  '((t (:inherit context-coloring-level-5-face)))
+  "Context coloring face, level 11."
+  :group 'context-coloring-faces)
+
+(defface context-coloring-level-12-face
+  '((t (:inherit context-coloring-level-6-face)))
+  "Context coloring face, level 12."
+  :group 'context-coloring-faces)
+
+(defcustom context-coloring-face-count 7
   "Number of faces defined for highlighting delimiter levels.
 Determines level at which to cycle through faces again.")
 
