@@ -1,30 +1,16 @@
 'use strict';
 
-var escope = require('./lib/escope'),
-    esprima = require('./lib/esprima');
+var escope = require('./lib/escope');
+var esprima = require('./lib/esprima');
 
 // Given code, returns an array of tokens for context-coloring.
 module.exports = function (code) {
-    var analyzedScopes,
-        ast,
-        comment,
-        definition,
-        definitionsCount,
-        definitionsIndex,
-        i,
-        isDefined,
-        j,
-        k,
-        pointer,
-        range,
-        reference,
-        scope,
-        scopes,
-        tokens,
-        variable;
 
     // Strip BOM.
     code = code.replace(/^\ufeff/g, '');
+
+    var ast;
+    var analyzedScopes;
 
     // Gracefully handle parse errors by doing nothing.
     try {
@@ -37,9 +23,21 @@ module.exports = function (code) {
         process.exit(1);
     }
 
-    scopes = [];
-    tokens = [];
+    var scopes = [];
+    var tokens = [];
 
+    var definition;
+    var definitionsCount;
+    var definitionsIndex;
+    var i;
+    var isDefined;
+    var j;
+    var k;
+    var pointer;
+    var range;
+    var reference;
+    var scope;
+    var variable;
     for (i = 0; i < analyzedScopes.length; i += 1) {
         scope = analyzedScopes[i];
         // Having its level set implies it was already annotated.
@@ -109,6 +107,7 @@ module.exports = function (code) {
         }
     }
 
+    var comment;
     for (i = 0; i < ast.comments.length; i += 1) {
         comment = ast.comments[i];
         range = comment.range;
