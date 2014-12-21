@@ -44,26 +44,36 @@ FIXTURE."
    (context-coloring-test-message-should-be
     "Context coloring is not available for this major mode")))
 
-(ert-deftest context-coloring-test-function-scopes ()
+(defun context-coloring-test-function-scopes ()
+  (context-coloring-test-region-level-p 1 9 0)
+  (context-coloring-test-region-level-p 9 23 1)
+  (context-coloring-test-region-level-p 23 25 0)
+  (context-coloring-test-region-level-p 25 34 1)
+  (context-coloring-test-region-level-p 34 35 0)
+  (context-coloring-test-region-level-p 35 52 1)
+  (context-coloring-test-region-level-p 52 66 2)
+  (context-coloring-test-region-level-p 66 72 1)
+  (context-coloring-test-region-level-p 72 81 2)
+  (context-coloring-test-region-level-p 81 82 1)
+  (context-coloring-test-region-level-p 82 87 2)
+  (context-coloring-test-region-level-p 87 89 1))
+
+(ert-deftest context-coloring-test-js-mode-function-scopes ()
   (context-coloring-test-with-fixture
    "./fixtures/function-scopes.js"
-
    (js-mode)
    (context-coloring-mode)
+   (sleep-for .25) ; Wait for asynchronous coloring.
+   (context-coloring-test-function-scopes)))
 
-   (sleep-for .25) ; Wait for asynchronous coloring to complete.
-
-   (context-coloring-test-region-level-p 1 9 0)
-   (context-coloring-test-region-level-p 9 23 1)
-   (context-coloring-test-region-level-p 23 25 0)
-   (context-coloring-test-region-level-p 25 34 1)
-   (context-coloring-test-region-level-p 34 35 0)
-   (context-coloring-test-region-level-p 35 52 1)
-   (context-coloring-test-region-level-p 52 66 2)
-   (context-coloring-test-region-level-p 66 72 1)
-   (context-coloring-test-region-level-p 72 81 2)
-   (context-coloring-test-region-level-p 81 82 1)
-   (context-coloring-test-region-level-p 82 87 2)
-   (context-coloring-test-region-level-p 87 89 1)))
+(ert-deftest context-coloring-test-js2-mode-function-scopes ()
+  (context-coloring-test-with-fixture
+   "./fixtures/function-scopes.js"
+   (add-to-list 'load-path (context-coloring-test-resolve-path "./fixtures/js2-mode"))
+   (require 'js2-mode)
+   (js2-mode)
+   (context-coloring-mode)
+   (sleep-for .25) ; Wait for asynchronous coloring.
+   (context-coloring-test-function-scopes)))
 
 (provide 'context-coloring-test)
