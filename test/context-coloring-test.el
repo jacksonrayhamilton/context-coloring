@@ -20,8 +20,34 @@ FIXTURE."
      (context-coloring-mode)
      ,@body))
 
-(ert-deftest context-coloring-test-nested ()
-  (context-coloring-test-with-fixture "./fixtures/nested.js"
-   ))
+(defun context-coloring-test-region-level-p (start end level)
+  (let ((i 0)
+        (length (- end start)))
+    (while (< i length)
+      (let ((point (+ i start)))
+        (should (equal (get-text-property point 'face)
+                       (intern-soft (concat "context-coloring-level-"
+                                            (number-to-string level)
+                                            "-face")))))
+      (setq i (+ i 1)))))
+
+(ert-deftest context-coloring-test-function-scopes ()
+  (context-coloring-test-with-fixture
+   "./fixtures/function-scopes.js"
+
+   (sleep-for .25) ; Wait for asynchronous coloring to complete.
+
+   (context-coloring-test-region-level-p 1 9 0)
+   (context-coloring-test-region-level-p 9 23 1)
+   (context-coloring-test-region-level-p 23 25 0)
+   (context-coloring-test-region-level-p 25 34 1)
+   (context-coloring-test-region-level-p 34 35 0)
+   (context-coloring-test-region-level-p 35 52 1)
+   (context-coloring-test-region-level-p 52 66 2)
+   (context-coloring-test-region-level-p 66 72 1)
+   (context-coloring-test-region-level-p 72 81 2)
+   (context-coloring-test-region-level-p 81 82 1)
+   (context-coloring-test-region-level-p 82 87 2)
+   (context-coloring-test-region-level-p 87 89 1)))
 
 (provide 'context-coloring-test)
