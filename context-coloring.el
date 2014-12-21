@@ -159,26 +159,6 @@ For example: \"context-coloring-level-1-face\"."
   "This file's directory.")
 
 
-;;; Customizable variables
-
-(let ((javascript-scopifier `(:type shell-command
-                              :executable "node"
-                              :command ,(expand-file-name
-                                         "./languages/javascript/bin/scopifier"
-                                         context-coloring-path))))
-  (defcustom context-coloring-scopifier-plist
-    `(js-mode ,javascript-scopifier
-      js2-mode ,javascript-scopifier
-      js3-mode ,javascript-scopifier)
-    "Property list mapping major modes to scopification programs."))
-
-(defcustom context-coloring-delay 0.25
-  "Delay between a buffer update and colorization.
-
-Increase this if your machine is high-performing. Decrease it if it ain't."
-  :group 'context-coloring)
-
-
 ;;; Local variables
 
 (defvar-local context-coloring-buffer nil
@@ -196,7 +176,29 @@ is a reference to that one process.")
 imply that it should be colorized again.")
 
 
+;;; js2-mode Scopification
+
+;; Potentially useful functions: js2-visit-ast js2-node-get-enclosing-scope
+;; js2-get-defining-scope js2-visit-ast-root
+
+(defun context-coloring-js2-mode-scopifier ()
+  (vector))
+
+
 ;;; Scopification
+
+(let ((javascript-scopifier `(:type shell-command
+                              :executable "node"
+                              :command ,(expand-file-name
+                                         "./languages/javascript/bin/scopifier"
+                                         context-coloring-path)))
+      (js2-mode-scopifier `(:type elisp
+                            :scopifier context-coloring-js2-mode-scopifier)))
+  (defcustom context-coloring-scopifier-plist
+    `(js-mode ,javascript-scopifier
+      js2-mode ,js2-mode-scopifier
+      js3-mode ,javascript-scopifier)
+    "Property list mapping major modes to scopification programs."))
 
 (defun context-coloring-apply-tokens (tokens)
   "Processes TOKENS to apply context-based coloring to the
@@ -268,16 +270,28 @@ parsed list of tokens to `context-coloring-apply-tokens'."
   "Determines the optimal track for scopification of the current
 buffer, then scopifies the current buffer."
   (let ((scopifier (plist-get context-coloring-scopifier-plist major-mode)))
-    (cond ((null scopifier)
-           (message "%s" "Context coloring is not available for this major mode"))
-          ((eq (plist-get scopifier :type) 'shell-command)
-           (let ((executable (plist-get scopifier :executable)))
-             (if (null (executable-find executable))
-                 (message "Context coloring executable \"%s\" not found" executable)
-               (context-coloring-scopify-shell-command (plist-get scopifier :command))))))))
+    (cond
+     ((null scopifier)
+      (message "%s" "Context coloring is not available for this major mode"))
+     (t
+      (let ((type (plist-get scopifier :type)))
+        (cond
+         ((eq type 'elisp)
+          (context-coloring-apply-tokens (funcall (plist-get scopifier :scopifier))))
+         ((eq type 'shell-command)
+          (let ((executable (plist-get scopifier :executable)))
+            (if (null (executable-find executable))
+                (message "Context coloring executable \"%s\" not found" executable)
+              (context-coloring-scopify-shell-command (plist-get scopifier :command)))))))))))
 
 
 ;;; Colorization
+
+(defcustom context-coloring-delay 0.25
+  "Delay between a buffer update and colorization.
+
+Increase this if your machine is high-performing. Decrease it if it ain't."
+  :group 'context-coloring)
 
 (defun context-coloring-colorize ()
   "Colors the current buffer by function context."
