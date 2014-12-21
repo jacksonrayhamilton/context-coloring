@@ -6,8 +6,7 @@ var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
 var scopifier = require('../languages/javascript/scopifier');
-var createEmacsBuffer = require('./createEmacsBuffer');
-var threes = require('./threes');
+var createEmacsBuffer = require('./utilities/createEmacsBuffer');
 
 describe('emacsBuffer', function () {
 
