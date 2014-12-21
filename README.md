@@ -30,18 +30,17 @@ code*.
 
 ## Features
 
-Currently, only JavaScript language support has been implemented.
-
-Extension is as simple as writing a "scopifier" for the language of your choice
-and adding an entry to `context-coloring-scopifier-plist`. See
-`languages/javascript/scopifier.js` for an example.
-
+- Supported languages: JavaScript
 - Light and dark color schemes.
 - Fast async AST parsing. Some total parse + recolor times:
   - jQuery (9191 lines): 0.63 seconds
   - Lodash (6786 lines): 0.37 seconds
   - Async (1124 lines): 0.17 seconds
   - mkdirp (98 lines): 0.09 seconds
+- Extensible. Just write a scopifier for the language of your choice and add an
+  entry to `context-coloring-scopifier-plist`.
+- Customizable. If you don't like the color schemes, or you want them to match
+  your favorite theme, just `M-x customize` and search for "context-coloring".
 
 ## Usage
 
