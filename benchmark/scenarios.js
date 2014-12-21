@@ -2,7 +2,7 @@
 
 var fs = require('fs'),
     path = require('path'),
-    scopifier = require('../scopifier'),
+    scopifier = require('../languages/javascript/scopifier'),
 
     jqueryPath = path.join(__dirname, 'fixtures', 'jquery-2.1.1.js'),
     lodashPath = path.join(__dirname, 'fixtures', 'lodash-2.4.1.js'),

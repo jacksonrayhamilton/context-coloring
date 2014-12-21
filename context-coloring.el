@@ -158,7 +158,7 @@ For example: \"context-coloring-level-1-face\"."
 (let ((javascript-scopifier `(:type shell-command
                               :executable "node"
                               :command ,(expand-file-name
-                                         "./bin/scopifier"
+                                         "./languages/javascript/bin/scopifier"
                                          context-coloring-path))))
   (defcustom context-coloring-scopifier-plist
     `(js-mode ,javascript-scopifier

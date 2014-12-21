@@ -5,7 +5,7 @@
 var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
-var scopifier = require('../scopifier');
+var scopifier = require('../languages/javascript/scopifier');
 var createEmacsBuffer = require('./createEmacsBuffer');
 var threes = require('./threes');
 
