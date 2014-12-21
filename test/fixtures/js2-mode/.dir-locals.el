@@ -1,1 +1,2 @@
-((nil . ((sentence-end-double-space . t))))
+((nil . ((sentence-end-double-space . t)
+         (buffer-read-only . t))))
