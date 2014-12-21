@@ -1,9 +1,9 @@
-;;; context-coloring.el --- JavaScript syntax highlighting, except not for syntax.  -*- lexical-binding: t; -*-
+;;; context-coloring.el --- Syntax highlighting, except not for syntax. -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014 Jackson Ray Hamilton
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
-;; Keywords: context coloring highlighting js javascript
+;; Keywords: context coloring syntax highlighting
 ;; Version: 1.0.0
 ;; Package-Requires: ((emacs "24"))
 
@@ -22,15 +22,19 @@
 
 ;;; Commentary:
 
-;; Highlights JavaScript code according to function context.
-;;
-;; Usage:
-;;
-;; Install Node.js 0.10+.
-;; In your ~/.emacs:
-;;
+;; Colors code by scope, rather than by syntax.
+
+;; A range of characters encompassing a scope is colored according to its level;
+;; the global scope is white, scopes within the global scope are yellow, scopes
+;; within scopes within the global scope are green, etc.  Variables defined in a
+;; parent scope which are referenced from child scopes retain the same color as
+;; the scope in which they are defined; a variable defined in the global scope
+;; will be the same color when referenced from nested scopes.
+
+;; To use, add the following to your ~/.emacs:
+
 ;; (require 'context-coloring)
-;; (add-hook 'js-mode-hook 'context-coloring-mode)
+;; (add-hook 'js-mode-hook 'context-coloring-mode) ; Requires Node.js 0.10+.
 
 ;;; Code:
 
@@ -91,6 +95,8 @@
   "Context coloring face, level 6."
   :group 'context-coloring-faces)
 
+;;; Additional 6 faces as placeholders for potential (insane) levels of nesting.
+
 (defface context-coloring-level-7-face
   '((t (:inherit context-coloring-level-1-face)))
   "Context coloring face, level 7."
@@ -146,16 +152,30 @@ For example: \"context-coloring-level-1-face\"."
            "-face")))
 
 
+;;; Constants
+
+(defconst context-coloring-path
+  (file-name-directory (or load-file-name buffer-file-name))
+  "This file's directory.")
+
+
 ;;; Customizable variables
+
+(let ((javascript-scopifier `(:type shell-command
+                              :executable "node"
+                              :command ,(expand-file-name
+                                         "./languages/javascript/bin/scopifier"
+                                         context-coloring-path))))
+  (defcustom context-coloring-scopifier-plist
+    `(js-mode ,javascript-scopifier
+      js2-mode ,javascript-scopifier
+      js3-mode ,javascript-scopifier)
+    "Property list mapping major modes to scopification programs."))
 
 (defcustom context-coloring-delay 0.25
   "Delay between a buffer update and colorization.
 
 Increase this if your machine is high-performing. Decrease it if it ain't."
-  :group 'context-coloring)
-
-(defcustom context-coloring-benchmark-colorization nil
-  "If non-nil, display how long each colorization took."
   :group 'context-coloring)
 
 
@@ -175,19 +195,8 @@ is a reference to that one process.")
   "Indication that the buffer has changed recently, which would
 imply that it should be colorized again.")
 
-(defvar-local context-coloring-start-time nil
-  "Used to benchmark colorization time.")
-
 
 ;;; Scopification
-
-(defconst context-coloring-path
-  (file-name-directory (or load-file-name buffer-file-name))
-  "This file's directory.")
-
-(defconst context-coloring-scopifier-path
-  (expand-file-name "./bin/scopifier" context-coloring-path)
-  "Path to the external scopifier executable.")
 
 (defun context-coloring-apply-tokens (tokens)
   "Processes TOKENS to apply context-based coloring to the
@@ -217,11 +226,10 @@ buffer."
   "Specialized JSON parser for a flat array of numbers."
   (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
 
-(defun context-coloring-scopify ()
-  "Invokes the external scopifier with the current buffer's
-contents, reading the scopifier's response asynchronously and
-applying a parsed list of tokens to
-`context-coloring-apply-tokens'."
+(defun context-coloring-scopify-shell-command (command)
+  "Invokes a scopifier with the current buffer's contents,
+reading the scopifier's response asynchronously and applying a
+parsed list of tokens to `context-coloring-apply-tokens'."
 
   ;; Prior running tokenization is implicitly obsolete if this function is
   ;; called.
@@ -229,33 +237,44 @@ applying a parsed list of tokens to
 
   ;; Start the process.
   (setq context-coloring-scopifier-process
-        (start-process-shell-command "scopifier" nil context-coloring-scopifier-path))
+        (start-process-shell-command "scopifier" nil command))
 
   (let ((output "")
-        (buffer context-coloring-buffer)
-        (start-time context-coloring-start-time))
+        (buffer context-coloring-buffer))
 
     ;; The process may produce output in multiple chunks. This filter
     ;; accumulates the chunks into a message.
-    (set-process-filter context-coloring-scopifier-process
-                        (lambda (process chunk)
-                          (setq output (concat output chunk))))
+    (set-process-filter
+     context-coloring-scopifier-process
+     (lambda (process chunk)
+       (setq output (concat output chunk))))
 
     ;; When the process's message is complete, this sentinel parses it as JSON
     ;; and applies the tokens to the buffer.
-    (set-process-sentinel context-coloring-scopifier-process
-                          (lambda (process event)
-                            (when (equal "finished\n" event)
-                              (let ((tokens (context-coloring-parse-array output)))
-                                (with-current-buffer buffer
-                                  (context-coloring-apply-tokens tokens))
-                                (setq context-coloring-scopifier-process nil)
-                                (when context-coloring-benchmark-colorization
-                                  (message "Colorized (after %f seconds)." (- (float-time) start-time))))))))
+    (set-process-sentinel
+     context-coloring-scopifier-process
+     (lambda (process event)
+       (when (equal "finished\n" event)
+         (let ((tokens (context-coloring-parse-array output)))
+           (with-current-buffer buffer
+             (context-coloring-apply-tokens tokens))
+           (setq context-coloring-scopifier-process nil))))))
 
   ;; Give the process its input so it can begin.
   (process-send-region context-coloring-scopifier-process (point-min) (point-max))
   (process-send-eof context-coloring-scopifier-process))
+
+(defun context-coloring-scopify ()
+  "Determines the optimal track for scopification of the current
+buffer, then scopifies the current buffer."
+  (let ((scopifier (plist-get context-coloring-scopifier-plist major-mode)))
+    (cond ((null scopifier)
+           (message "%s" "Context coloring is not available for this major mode"))
+          ((eq (plist-get scopifier :type) 'shell-command)
+           (let ((executable (plist-get scopifier :executable)))
+             (if (null (executable-find executable))
+                 (message "Context coloring executable \"%s\" not found" executable)
+               (context-coloring-scopify-shell-command (plist-get scopifier :command))))))))
 
 
 ;;; Colorization
@@ -263,11 +282,7 @@ applying a parsed list of tokens to
 (defun context-coloring-colorize ()
   "Colors the current buffer by function context."
   (interactive)
-  (when (executable-find "node")
-    (when context-coloring-benchmark-colorization
-      (setq context-coloring-start-time (float-time))
-      (message "%s" "Colorizing..."))
-    (context-coloring-scopify)))
+  (context-coloring-scopify))
 
 (defun context-coloring-change-function (start end length)
   "Registers a change so that a context-colored buffer can be
@@ -291,7 +306,7 @@ colorizing would be redundant."
 
 ;;;###autoload
 (define-minor-mode context-coloring-mode
-  "Context-based code coloring for JavaScript, inspired by Douglas Crockford."
+  "Context-based code coloring, inspired by Douglas Crockford."
   nil " Context" nil
   (if (not context-coloring-mode)
       (progn
@@ -304,10 +319,6 @@ colorizing would be redundant."
 
     ;; Remember this buffer. This value should not be dynamically-bound.
     (setq context-coloring-buffer (current-buffer))
-
-    ;; Alert the user that the mode is not going to work.
-    (if (null (executable-find "node"))
-        (message "context-coloring-mode requires Node.js 0.10+ to be installed"))
 
     ;; Colorize once initially.
     (context-coloring-colorize)

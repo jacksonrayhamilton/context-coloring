@@ -17,7 +17,6 @@
 FIXTURE."
   `(with-temp-buffer
      (insert (context-coloring-test-read-file ,fixture))
-     (context-coloring-mode)
      ,@body))
 
 (defun context-coloring-test-region-level-p (start end level)
@@ -31,9 +30,26 @@ FIXTURE."
                                             "-face")))))
       (setq i (+ i 1)))))
 
+(defun context-coloring-test-message-should-be (expected)
+  (with-current-buffer "*Messages*"
+    (let ((messages (split-string (buffer-substring-no-properties (point-min) (point-max)) "\n")))
+      (let ((message (car (nthcdr (- (length messages) 2) messages))))
+        (should (equal message expected))))))
+
+(ert-deftest context-coloring-test-unsupported-mode ()
+  (context-coloring-test-with-fixture
+   "./fixtures/function-scopes.js"
+
+   (context-coloring-mode)
+   (context-coloring-test-message-should-be
+    "Context coloring is not available for this major mode")))
+
 (ert-deftest context-coloring-test-function-scopes ()
   (context-coloring-test-with-fixture
    "./fixtures/function-scopes.js"
+
+   (js-mode)
+   (context-coloring-mode)
 
    (sleep-for .25) ; Wait for asynchronous coloring to complete.
 
