@@ -4,7 +4,7 @@ var escope = require('./lib/escope');
 var esprima = require('./lib/esprima');
 
 // Given code, returns an array of tokens for context-coloring.
-module.exports = function (code) {
+function scopifier(code) {
 
     // Strip BOM.
     code = code.replace(/^\ufeff/g, '');
@@ -119,4 +119,6 @@ module.exports = function (code) {
     }
 
     return scopes.concat(tokens);
-};
+}
+
+module.exports = scopifier;
