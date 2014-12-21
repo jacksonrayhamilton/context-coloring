@@ -1,9 +1,9 @@
-;;; context-coloring.el --- JavaScript syntax highlighting, except not for syntax.  -*- lexical-binding: t; -*-
+;;; context-coloring.el --- Syntax highlighting, except not for syntax. -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014 Jackson Ray Hamilton
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
-;; Keywords: context coloring highlighting js javascript
+;; Keywords: context coloring syntax highlighting
 ;; Version: 1.0.0
 ;; Package-Requires: ((emacs "24"))
 
@@ -22,15 +22,19 @@
 
 ;;; Commentary:
 
-;; Highlights JavaScript code according to function context.
-;;
-;; Usage:
-;;
-;; Install Node.js 0.10+.
-;; In your ~/.emacs:
-;;
+;; Colors code by scope, rather than by syntax.
+
+;; A range of characters encompassing a scope is colored according to its level;
+;; the global scope is white, scopes within the global scope are yellow, scopes
+;; within scopes within the global scope are green, etc.  Variables defined in a
+;; parent scope which are referenced from child scopes retain the same color as
+;; the scope in which they are defined; a variable defined in the global scope
+;; will be the same color when referenced from nested scopes.
+
+;; To use, add the following to your ~/.emacs:
+
 ;; (require 'context-coloring)
-;; (add-hook 'js-mode-hook 'context-coloring-mode)
+;; (add-hook 'js-mode-hook 'context-coloring-mode) ; Requires Node.js 0.10+.
 
 ;;; Code:
 
@@ -90,6 +94,8 @@
     (((background dark)) (:foreground "#ffe390")))
   "Context coloring face, level 6."
   :group 'context-coloring-faces)
+
+;;; Additional 6 faces as placeholders for potential (insane) levels of nesting.
 
 (defface context-coloring-level-7-face
   '((t (:inherit context-coloring-level-1-face)))
@@ -300,7 +306,7 @@ colorizing would be redundant."
 
 ;;;###autoload
 (define-minor-mode context-coloring-mode
-  "Context-based code coloring for JavaScript, inspired by Douglas Crockford."
+  "Context-based code coloring, inspired by Douglas Crockford."
   nil " Context" nil
   (if (not context-coloring-mode)
       (progn

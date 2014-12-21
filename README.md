@@ -4,7 +4,7 @@
   <img alt="Screenshot of JavaScript code highlighted by context." src="screenshot.png" title="Screenshot">
 </p>
 
-Highlights JavaScript code according to function context.
+Highlights code according to function context.
 
 - Code in the global scope is one color. Code in functions within the global
   scope is a different color, and code within such functions is another color,
@@ -12,19 +12,21 @@ Highlights JavaScript code according to function context.
 - Identifiers retain the color of the scope in which they were declared.
 - Comments are gray.
 
-JavaScript programmers often leverage closures to bind nearby data to
-functions. Lexical scope information at-a-glance can assist a programmer in
-understanding the overall structure of a program. It can also help curb nasty
-bugs like implicit globals and name shadowing. A rainbow can indicate excessive
+Lexical scope information at-a-glance can assist a programmer in understanding
+the overall structure of a program. It can also help curb nasty bugs like name
+shadowing or unexpected assignment. A rainbow can indicate excessive
 complexity. A spot of contrast followed by an assignment expression could be a
-side-effect... or, a specially-constructed object's private state could be
-undergoing change.
+side-effect... or, the state of a closure could be undergoing change.
 
-This coloring scheme is probably more useful than conventional JavaScript
-*syntax* highlighting. Highlighting keywords can help one to detect spelling
-errors, and highlighting the content between quotation marks can alert one to
-unclosed string literals. But a [linter][] can also spot these errors, along
-with many others, and can be [seamlessly integrated via flycheck][integration].
+This coloring strategy is probably more useful than conventional *syntax*
+highlighting. Highlighting keywords can help one to detect spelling errors, and
+highlighting the content between quotation marks can alert one to unclosed
+string literals. But a [linter][] could also spot those errors, and if
+[integrated via flycheck][integration], an extra spot opens up in your editing
+toolbelt.
+
+Give context coloring a try; you may find that it *changes the way you write
+code*.
 
 ## Features
 
@@ -37,7 +39,9 @@ with many others, and can be [seamlessly integrated via flycheck][integration].
 
 ## Usage
 
-Requires Emacs 24+ and [Node.js 0.10+][node].
+Requires Emacs 24+.
+
+JavaScript language support requires [Node.js 0.10+][node].
 
 - Clone this repository.
 
