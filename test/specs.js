@@ -1,3 +1,5 @@
+/*jslint stupid: true */
+
 'use strict';
 
 var assert = require('assert');
@@ -39,13 +41,8 @@ describe('emacsBuffer', function () {
 describe('scopifier', function () {
 
     it('should recognize scope levels', function () {
-        var input = [
-            'var a = function () {};',
-            'function b() {',
-            '    var c = function () {};',
-            '    function d() {}',
-            '}'
-        ].join('\n');
+        var fixturePath = path.join(__dirname, 'fixtures/function-scopes.js');
+        var input = fs.readFileSync(fixturePath, 'utf8');
         var output = scopifier(input);
         var emacsBuffer = createEmacsBuffer();
 
