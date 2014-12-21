@@ -1,4 +1,5 @@
 {
   "node": true,
-  "nomen": true
+  "nomen": true,
+  "vars": true
 }

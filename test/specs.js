@@ -1,46 +1,68 @@
 'use strict';
 
-var assert = require('assert'),
-    fs = require('fs'),
-    path = require('path'),
+var assert = require('assert');
+var fs = require('fs');
+var path = require('path');
+var scopifier = require('../scopifier');
+var createEmacsBuffer = require('./createEmacsBuffer');
+var threes = require('./threes');
 
-    scopifier = require('../scopifier'),
+describe('emacsBuffer', function () {
 
-    inputPath = path.join(__dirname, 'fixtures', 'vow.js'),
-    outputPath = path.join(__dirname, 'fixtures', 'vow.json');
+    it('should set levels', function () {
+        var emacsBuffer = createEmacsBuffer(3);
+
+        emacsBuffer.setLevelForRegion(1, 4, 0);
+        assert(emacsBuffer.isLevelForRegion(1, 4, 0));
+
+        emacsBuffer.setLevelForRegion(2, 3, 1);
+        assert.strictEqual(emacsBuffer.isLevelForRegion(1, 4, 0), false);
+        assert(emacsBuffer.isLevelAtPoint(1, 0));
+        assert(emacsBuffer.isLevelAtPoint(2, 1));
+        assert(emacsBuffer.isLevelAtPoint(3, 0));
+    });
+
+    it('should apply tokens', function () {
+        var emacsBuffer = createEmacsBuffer(3);
+
+        emacsBuffer.applyTokens([
+            1, 4, 0,
+            2, 3, 1
+        ]);
+        assert(emacsBuffer.isLevelAtPoint(1, 0));
+        assert(emacsBuffer.isLevelAtPoint(2, 1));
+        assert(emacsBuffer.isLevelAtPoint(3, 0));
+    });
+
+});
 
 describe('scopifier', function () {
 
-    var input, output;
+    it('should recognize scope levels', function () {
+        var input = [
+            'var a = function () {};',
+            'function b() {',
+            '    var c = function () {};',
+            '    function d() {}',
+            '}'
+        ].join('\n');
+        var output = scopifier(input);
+        var emacsBuffer = createEmacsBuffer();
 
-    before(function (done) {
-        fs.readFile(inputPath, 'utf8', function (error, contents) {
-            if (error) {
-                done(error);
-                return;
-            }
-            input = contents;
-            done();
-        });
-    });
+        emacsBuffer.applyTokens(output);
 
-    before(function (done) {
-        fs.readFile(outputPath, 'utf8', function (readError, contents) {
-            if (readError) {
-                done(readError);
-                return;
-            }
-            try {
-                output = JSON.parse(contents);
-            } catch (parseError) {
-                done(parseError);
-            }
-            done();
-        });
-    });
-
-    it('should work', function () {
-        assert.deepEqual(scopifier(input), output);
+        assert(emacsBuffer.isLevelForRegion(1, 9, 0));
+        assert(emacsBuffer.isLevelForRegion(9, 23, 1));
+        assert(emacsBuffer.isLevelForRegion(23, 25, 0));
+        assert(emacsBuffer.isLevelForRegion(25, 34, 1));
+        assert(emacsBuffer.isLevelForRegion(34, 35, 0));
+        assert(emacsBuffer.isLevelForRegion(35, 52, 1));
+        assert(emacsBuffer.isLevelForRegion(52, 66, 2));
+        assert(emacsBuffer.isLevelForRegion(66, 72, 1));
+        assert(emacsBuffer.isLevelForRegion(72, 81, 2));
+        assert(emacsBuffer.isLevelForRegion(81, 82, 1));
+        assert(emacsBuffer.isLevelForRegion(82, 87, 2));
+        assert(emacsBuffer.isLevelForRegion(87, 89, 1));
     });
 
 });
