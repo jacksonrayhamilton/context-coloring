@@ -4,11 +4,6 @@
 (defun context-coloring-test-resolve-path (path)
   (expand-file-name path context-coloring-test-path))
 
-;; Load expected output constants.
-(load-file (context-coloring-test-resolve-path "./fixtures/scopes.el"))
-(load-file (context-coloring-test-resolve-path "./fixtures/nested.el"))
-(load-file (context-coloring-test-resolve-path "./fixtures/vow.el"))
-
 (defun get-string-from-file (path)
   (with-temp-buffer
     (insert-file-contents path)
@@ -25,19 +20,34 @@ FIXTURE."
      (context-coloring-mode)
      ,@body))
 
-(ert-deftest context-coloring-test-scopes ()
-  (context-coloring-test-with-fixture "./fixtures/scopes.js"
-   (should (equal (buffer-substring (point-min) (point-max))
-                   context-coloring-test-expected-scopes))))
+(defun context-coloring-test-region-level-p (start end level)
+  (let ((i 0)
+        (length (- end start)))
+    (while (< i length)
+      (let ((point (+ i start)))
+        (should (equal (get-text-property point 'face)
+                       (intern-soft (concat "context-coloring-level-"
+                                            (number-to-string level)
+                                            "-face")))))
+      (setq i (+ i 1)))))
 
-(ert-deftest context-coloring-test-nested ()
-  (context-coloring-test-with-fixture "./fixtures/nested.js"
-   (should (equal (buffer-substring (point-min) (point-max))
-                  context-coloring-test-expected-nested))))
+(ert-deftest context-coloring-test-function-scopes ()
+  (context-coloring-test-with-fixture
+   "./fixtures/function-scopes.js"
 
-(ert-deftest context-coloring-test-vow ()
-  (context-coloring-test-with-fixture "./fixtures/vow.js"
-    (should (equal (buffer-substring (point-min) (point-max))
-                   context-coloring-test-expected-vow))))
+   (sleep-for .25) ; Wait for asynchronous coloring to complete.
+
+   (context-coloring-test-region-level-p 1 9 0)
+   (context-coloring-test-region-level-p 9 23 1)
+   (context-coloring-test-region-level-p 23 25 0)
+   (context-coloring-test-region-level-p 25 34 1)
+   (context-coloring-test-region-level-p 34 35 0)
+   (context-coloring-test-region-level-p 35 52 1)
+   (context-coloring-test-region-level-p 52 66 2)
+   (context-coloring-test-region-level-p 66 72 1)
+   (context-coloring-test-region-level-p 72 81 2)
+   (context-coloring-test-region-level-p 81 82 1)
+   (context-coloring-test-region-level-p 82 87 2)
+   (context-coloring-test-region-level-p 87 89 1)))
 
 (provide 'context-coloring-test)
