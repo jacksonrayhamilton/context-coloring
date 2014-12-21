@@ -20,16 +20,8 @@ FIXTURE."
      (context-coloring-mode)
      ,@body))
 
-(ert-deftest context-coloring-test-scopes ()
-  (context-coloring-test-with-fixture "./fixtures/scopes.js"
-   ))
-
 (ert-deftest context-coloring-test-nested ()
   (context-coloring-test-with-fixture "./fixtures/nested.js"
    ))
-
-(ert-deftest context-coloring-test-vow ()
-  (context-coloring-test-with-fixture "./fixtures/vow.js"
-    ))
 
 (provide 'context-coloring-test)
