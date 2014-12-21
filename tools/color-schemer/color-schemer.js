@@ -18,7 +18,7 @@
     }
 
     // Converts parts of a hue to rgb parts.
-    function hue2rgb(p, q, t) {
+    function hueToRgb(p, q, t) {
         if (t < 0) {
             t += 1;
         }
@@ -48,9 +48,9 @@
         } else {
             q = l < 0.5 ? l * (1 + s) : l + s - l * s;
             p = 2 * l - q;
-            r = hue2rgb(p, q, h + 1 / 3);
-            g = hue2rgb(p, q, h);
-            b = hue2rgb(p, q, h - 1 / 3);
+            r = hueToRgb(p, q, h + 1 / 3);
+            g = hueToRgb(p, q, h);
+            b = hueToRgb(p, q, h - 1 / 3);
         }
 
         return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
@@ -107,14 +107,13 @@
             $scope.reload = function () {
                 var colors = [];
                 times($scope.numberOfColors, function (index) {
-                    var offset,
-                        hue;
+                    var offset;
                     if ($scope.numberOfColors % 2 === 0) {
                         offset = 1;
                     } else {
                         offset = 0;
                     }
-                    hue = $scope.center + (
+                    var hue = $scope.center + (
                         (
                             // For evens, never touch center.
                             Math.floor((index + 1 + offset) / 2) *
