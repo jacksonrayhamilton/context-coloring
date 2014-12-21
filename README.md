@@ -47,8 +47,8 @@ Extension is relatively straightforward. Write a "scopifier" for the language of
 your choice, add an entry to `context-coloring-scopifier-plist`, and the plugin
 should handle the rest.
 
-A "scopifier" is a CLI program that reads a buffer's contents from stdin, and
-then writes a JSON array of integers to stdout. Every three numbers in the array
+A "scopifier" is a CLI program that reads a buffer's contents from stdin and
+writes a JSON array of numbers to stdout. Every three numbers in the array
 represent a range of color. For instance, if I fed the following string of
 JavaScript code to a scopifier,
 
@@ -59,10 +59,7 @@ var a = function () {};
 then the scopifier would produce the following array:
 
 ```js
-[
-  1, 24, 0,
-  9, 23, 1
-]
+[1,24,0,9,23,1]
 ```
 
 Where, for every three numbers, the first number is a 1-indexed start [point][],
