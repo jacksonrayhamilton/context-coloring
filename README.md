@@ -30,6 +30,12 @@ code*.
 
 ## Features
 
+Currently, only JavaScript language support has been implemented.
+
+Extension is as simple as writing a "scopifier" for the language of your choice
+and adding an entry to `context-coloring-scopifier-plist`. See
+`languages/javascript/scopifier.js` for an example.
+
 - Light and dark color schemes.
 - Fast async AST parsing. Some total parse + recolor times:
   - jQuery (9191 lines): 0.63 seconds
