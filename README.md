@@ -31,16 +31,48 @@ code*.
 ## Features
 
 - Supported languages: JavaScript
-- Light and dark color schemes.
+- Light and dark (customizable) color schemes.
 - Fast async AST parsing. Some total parse + recolor times:
   - jQuery (9191 lines): 0.63 seconds
   - Lodash (6786 lines): 0.37 seconds
   - Async (1124 lines): 0.17 seconds
   - mkdirp (98 lines): 0.09 seconds
-- Extensible. Just write a scopifier for the language of your choice and add an
-  entry to `context-coloring-scopifier-plist`.
-- Customizable. If you don't like the color schemes, or you want them to match
-  your favorite theme, just `M-x customize` and search for "context-coloring".
+
+## Extending
+
+It would be great if this package supported more languages. I welcome any pull
+request that adds new language support.
+
+Extension is relatively straightforward. Write a "scopifier" for the language of
+your choice, add an entry to `context-coloring-scopifier-plist`, and the plugin
+should handle the rest.
+
+A "scopifier" is a CLI program that reads a buffer's contents from stdin, and
+then writes a JSON array of integers to stdout. Every three numbers in the array
+represent a range of color. For instance, if I fed the following string of
+JavaScript code to a scopifier,
+
+```js
+var a = function () {};
+```
+
+then the scopifier would produce the following array:
+
+```js
+[
+  1, 24, 0,
+  9, 23, 1
+]
+```
+
+Where, for every three numbers, the first number is a 1-indexed start [point][],
+the second number is an exclusive end point, and the third number is a scope
+level. The result of applying level 0 coloring to the range
+\[1, 24) and then applying level 1 coloring to the range \[9, 23) would result in the following coloring:
+
+<p align="center">
+  <img alt="Screenshot of ranges [1, 24) and [9, 23)." src="scopifier-example.png" title="Screenshot">
+</p>
 
 ## Usage
 
@@ -55,10 +87,7 @@ cd ~/.emacs.d/
 git clone https://github.com/jacksonrayhamilton/context-coloring.git
 ```
 
-- Add it to your [load path][].
-- Add a mode hook for `context-coloring-mode`.
-
-In your `~/.emacs` file:
+- Add the following to your `~/.emacs` file:
 
 ```lisp
 (add-to-list 'load-path "~/.emacs.d/context-coloring")
@@ -68,5 +97,6 @@ In your `~/.emacs` file:
 
 [linter]: https://github.com/jacksonrayhamilton/jslinted
 [integration]: https://github.com/jacksonrayhamilton/jslinted#emacs-integration
+[point]: http://www.gnu.org/software/emacs/manual/html_node/elisp/Point.html
 [node]: http://nodejs.org/download/
 [load path]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Lisp-Libraries.html
