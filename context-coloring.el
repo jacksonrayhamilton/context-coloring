@@ -38,6 +38,31 @@
 
 ;;; Code:
 
+
+;;; Constants
+
+(defconst context-coloring-path
+  (file-name-directory (or load-file-name buffer-file-name))
+  "This file's directory.")
+
+
+;;; Local variables
+
+(defvar-local context-coloring-buffer nil
+  "Reference to this buffer (for timers).")
+
+(defvar-local context-coloring-scopifier-process nil
+  "Only allow a single scopifier process to run at a time. This
+is a reference to that one process.")
+
+(defvar-local context-coloring-colorize-idle-timer nil
+  "Reference to currently-running idle timer.")
+
+(defvar-local context-coloring-changed nil
+  "Indication that the buffer has changed recently, which would
+imply that it should be colorized again.")
+
+
 ;;; Faces
 
 (defface context-coloring-level--1-face
@@ -95,7 +120,7 @@
   "Context coloring face, level 6."
   :group 'context-coloring-faces)
 
-;;; Additional 6 faces as placeholders for potential (insane) levels of nesting.
+;;; Additional 6 faces for insane levels of nesting
 
 (defface context-coloring-level-7-face
   '((t (:inherit context-coloring-level-1-face)))
@@ -152,95 +177,57 @@ For example: \"context-coloring-level-1-face\"."
            "-face")))
 
 
-;;; Constants
+;;; Colorization utilities
 
-(defconst context-coloring-path
-  (file-name-directory (or load-file-name buffer-file-name))
-  "This file's directory.")
+(defsubst context-coloring-uncolorize-buffer ()
+  "Clears all coloring in the current buffer."
+  (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil)))
 
-
-;;; Local variables
-
-(defvar-local context-coloring-buffer nil
-  "Reference to this buffer (for timers).")
-
-(defvar-local context-coloring-scopifier-process nil
-  "Only allow a single scopifier process to run at a time. This
-is a reference to that one process.")
-
-(defvar-local context-coloring-colorize-idle-timer nil
-  "Reference to currently-running idle timer.")
-
-(defvar-local context-coloring-changed nil
-  "Indication that the buffer has changed recently, which would
-imply that it should be colorized again.")
+(defsubst context-coloring-colorize-region (start end level)
+  "Colorizes characters from 1-indexed START (inclusive) to END
+\(exclusive) with the face corresponding to LEVEL."
+  (add-text-properties
+   start
+   end
+   `(face ,(context-coloring-level-face level) rear-nonsticky t)))
 
 
-;;; js2-mode Scopification
-
-;; Potentially useful functions: js2-visit-ast js2-node-get-enclosing-scope
-;; js2-get-defining-scope js2-visit-ast-root js2-node-root
+;;; js2-mode colorization
 
 (defsubst context-coloring-js2-scope-level (scope)
+  "Gets the level of SCOPE."
   (let ((level 0))
     (while (and (not (null (js2-node-parent scope)))
                 (not (null (setq scope (js2-node-get-enclosing-scope scope)))))
       (setq level (+ level 1)))
     level))
 
-(defsubst context-coloring-js2-scope-to-token (scope)
-  (let ((level (context-coloring-js2-scope-level scope))
-        (start (js2-node-abs-pos scope)))
-    (let ((end (+ start (js2-scope-len scope))))
-      `(,start ,end ,level))))
-
-(defsubst context-coloring-js2-name-get-defining-scope (name)
-  (js2-get-defining-scope
-   (js2-node-get-enclosing-scope name)
-   (js2-name-node-name name)))
-
-(defsubst context-coloring-js2-name-to-token (name)
-  (let ((level (context-coloring-js2-scope-level
-                (context-coloring-js2-name-get-defining-scope name)))
-        (start (js2-node-abs-pos name)))
-    (let ((end (+ start (js2-name-node-len name))))
-      `(,start ,end ,level))))
-
-(defun context-coloring-js2-scopifier ()
-  (let ((tokens '()))
-    (js2-visit-ast
-     js2-mode-ast
-     (lambda (node end-p)
-       (when (null end-p)
-         (when (js2-scope-p node)
-           (setq tokens (nconc tokens (context-coloring-js2-scope-to-token node))))
-         (when (js2-name-node-p node)
-           (let ((scope (js2-node-get-enclosing-scope node))
-                 (name (js2-name-node-name node)))
-             (setq tokens (nconc tokens (context-coloring-js2-name-to-token node)))))
-         t) ; Always search children.
-       ))
-    (vconcat tokens)))
+(defun context-coloring-js2-colorize ()
+  (js2-visit-ast
+   js2-mode-ast
+   (lambda (node end-p)
+     (when (null end-p)
+       (when (js2-scope-p node)
+         (let ((start (js2-node-abs-pos node)))
+           (context-coloring-colorize-region
+            start
+            (+ start (js2-scope-len node))          ; End
+            (context-coloring-js2-scope-level node) ; Level
+            )))
+       (when (js2-name-node-p node)
+         (let ((start (js2-node-abs-pos node)))
+           (context-coloring-colorize-region
+            start
+            (+ start (js2-name-node-len node)) ; End
+            (context-coloring-js2-scope-level  ; Level
+             (js2-get-defining-scope
+              (js2-node-get-enclosing-scope node)
+              (js2-name-node-name node))))))
+       ;; The `t' indicates to search children.
+       t))))
 
 
-;;; Scopification
-
-(defvar context-coloring-javascript-scopifier
-  `(:type shell-command
-          :executable "node"
-          :command ,(expand-file-name
-                     "./languages/javascript/bin/scopifier"
-                     context-coloring-path)))
-
-(defvar context-coloring-js2-scopifier
-  `(:type elisp
-          :scopifier context-coloring-js2-scopifier))
-
-(defcustom context-coloring-scopifier-plist
-  `(js-mode ,context-coloring-javascript-scopifier
-            js2-mode ,context-coloring-js2-scopifier
-            js3-mode ,context-coloring-javascript-scopifier)
-  "Property list mapping major modes to scopification programs.")
+;;; Shell command copification / colorization
 
 (defun context-coloring-apply-tokens (tokens)
   "Processes a vector of TOKENS to apply context-based coloring
@@ -248,16 +235,19 @@ to the current buffer. Tokens are 3 integers: start, end,
 level. The vector is flat, with a new token occurring after every
 3rd element."
   (with-silent-modifications
-    ;; Reset in case there should be uncolored areas.
-    (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil))
+    (context-coloring-uncolorize-buffer)
     (let ((i 0)
           (len (length tokens)))
       (while (< i len)
-        (add-text-properties
+        (context-coloring-colorize-region
          (elt tokens i)
          (elt tokens (+ i 1))
-         `(face ,(context-coloring-level-face (elt tokens (+ i 2))) rear-nonsticky t))
+         (elt tokens (+ i 2)))
         (setq i (+ i 3))))))
+
+(defun context-coloring-parse-array (input)
+  "Specialized JSON parser for a flat array of numbers."
+  (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
 
 (defsubst context-coloring-kill-scopifier ()
   "Kills the currently-running scopifier process for this
@@ -265,10 +255,6 @@ buffer."
   (when (not (null context-coloring-scopifier-process))
     (delete-process context-coloring-scopifier-process)
     (setq context-coloring-scopifier-process nil)))
-
-(defun context-coloring-parse-array (input)
-  "Specialized JSON parser for a flat array of numbers."
-  (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
 
 (defun context-coloring-scopify-shell-command (command)
   "Invokes a scopifier with the current buffer's contents,
@@ -308,23 +294,54 @@ parsed list of tokens to `context-coloring-apply-tokens'."
   (process-send-region context-coloring-scopifier-process (point-min) (point-max))
   (process-send-eof context-coloring-scopifier-process))
 
-(defun context-coloring-scopify ()
-  "Determines the optimal track for scopification of the current
-buffer, then scopifies the current buffer."
-  (let ((scopifier (plist-get context-coloring-scopifier-plist major-mode)))
-    (cond
-     ((null scopifier)
-      (message "%s" "Context coloring is not available for this major mode"))
-     (t
-      (let ((type (plist-get scopifier :type)))
-        (cond
-         ((eq type 'elisp)
-          (context-coloring-apply-tokens (funcall (plist-get scopifier :scopifier))))
-         ((eq type 'shell-command)
-          (let ((executable (plist-get scopifier :executable)))
-            (if (null (executable-find executable))
-                (message "Context coloring executable \"%s\" not found" executable)
-              (context-coloring-scopify-shell-command (plist-get scopifier :command)))))))))))
+
+;;; Dispatch
+
+(defvar context-coloring-javascript-scopifier
+  `(:type shell-command
+          :executable "node"
+          :command ,(expand-file-name
+                     "./languages/javascript/bin/scopifier"
+                     context-coloring-path)))
+
+(defvar context-coloring-js2-colorizer
+  `(:type elisp
+          :colorizer context-coloring-js2-colorize))
+
+(defcustom context-coloring-dispatch-plist
+  `(js-mode ,context-coloring-javascript-scopifier
+            js2-mode ,context-coloring-js2-colorizer
+            js3-mode ,context-coloring-javascript-scopifier)
+  "Property list mapping major modes to scopification programs."
+  :group 'context-coloring)
+
+(defun context-coloring-dispatch ()
+  "Determines the optimal track for scopification / colorization
+of the current buffer, then does it."
+  (let ((dispatch (plist-get context-coloring-dispatch-plist major-mode)))
+    (if (null dispatch)
+        (message "%s" "Context coloring is not available for this major mode"))
+    (let ((type (plist-get dispatch :type)))
+      (cond
+       ((eq type 'elisp)
+        (let ((colorizer (plist-get dispatch :colorizer))
+              (scopifier (plist-get dispatch :scopifier)))
+          (cond
+           ((not (null colorizer))
+            (funcall colorizer))
+           ((not (null scopifier))
+            (context-coloring-apply-tokens (funcall scopifier)))
+           (t
+            (error "No `:colorizer' nor `:scopifier' specified for dispatch of `:type' elisp")))))
+       ((eq type 'shell-command)
+        (let ((executable (plist-get dispatch :executable))
+              (command (plist-get dispatch :command)))
+          (if (null command)
+              (error "No `:command' specified for dispatch of `:type' shell-command"))
+          (if (and (not (null executable))
+                   (null (executable-find executable)))
+              (message "Executable \"%s\" not found" executable))
+          (context-coloring-scopify-shell-command command)))))))
 
 
 ;;; Colorization
@@ -338,7 +355,7 @@ Increase this if your machine is high-performing. Decrease it if it ain't."
 (defun context-coloring-colorize ()
   "Colors the current buffer by function context."
   (interactive)
-  (context-coloring-scopify))
+  (context-coloring-dispatch))
 
 (defun context-coloring-change-function (start end length)
   "Registers a change so that a context-colored buffer can be
