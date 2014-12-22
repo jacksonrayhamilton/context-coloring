@@ -44,7 +44,7 @@ It would be great if this package supported more languages. I welcome any pull
 request that adds new language support.
 
 Extension is relatively straightforward. Write a "scopifier" for the language of
-your choice, add an entry to `context-coloring-scopifier-plist`, and the plugin
+your choice, add an entry to `context-coloring-dispatch-plist`, and the plugin
 should handle the rest.
 
 A "scopifier" is a CLI program that reads a buffer's contents from stdin and
