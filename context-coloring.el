@@ -458,16 +458,18 @@ colorizing would be redundant."
     (context-coloring-colorize)
     ;;  (message "Elapsed time: %f" (- (float-time) start-time)))
 
-    ;; Only recolor on change.
     (cond
      ((equal major-mode 'js2-mode)
-      (add-hook 'js2-post-parse-callbacks 'context-coloring-change-function nil t))
+      ;; Only recolor on reparse.
+      (add-hook 'js2-post-parse-callbacks 'context-coloring-colorize nil t))
      (t
+      ;; Only recolor on change.
       (add-hook 'after-change-functions 'context-coloring-change-function nil t)))
 
-    ;; Only recolor idly.
-    (setq context-coloring-colorize-idle-timer
-          (run-with-idle-timer context-coloring-delay t 'context-coloring-maybe-colorize))))
+    (when (not (equal major-mode 'js2-mode))
+      ;; Only recolor idly.
+      (setq context-coloring-colorize-idle-timer
+            (run-with-idle-timer context-coloring-delay t 'context-coloring-maybe-colorize)))))
 
 (provide 'context-coloring)
 
