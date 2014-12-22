@@ -39,7 +39,6 @@ FIXTURE."
 (ert-deftest context-coloring-test-unsupported-mode ()
   (context-coloring-test-with-fixture
    "./fixtures/function-scopes.js"
-
    (context-coloring-mode)
    (context-coloring-test-message-should-be
     "Context coloring is not available for this major mode")))
@@ -63,7 +62,7 @@ FIXTURE."
    "./fixtures/function-scopes.js"
    (js-mode)
    (context-coloring-mode)
-   (sleep-for .25) ; Wait for asynchronous coloring.
+   (sleep-for .1) ; Wait for asynchronous coloring.
    (context-coloring-test-function-scopes)))
 
 (ert-deftest context-coloring-test-js2-mode-function-scopes ()
@@ -73,7 +72,6 @@ FIXTURE."
    (require 'js2-mode)
    (js2-mode)
    (context-coloring-mode)
-   (sleep-for .25) ; Wait for asynchronous coloring.
    (context-coloring-test-function-scopes)))
 
 (provide 'context-coloring-test)

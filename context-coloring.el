@@ -225,18 +225,22 @@ imply that it should be colorized again.")
 
 ;;; Scopification
 
-(let ((javascript-scopifier `(:type shell-command
-                              :executable "node"
-                              :command ,(expand-file-name
-                                         "./languages/javascript/bin/scopifier"
-                                         context-coloring-path)))
-      (js2-scopifier `(:type elisp
-                       :scopifier context-coloring-js2-scopifier)))
-  (defcustom context-coloring-scopifier-plist
-    `(js-mode ,javascript-scopifier
-      js2-mode ,js2-scopifier
-      js3-mode ,javascript-scopifier)
-    "Property list mapping major modes to scopification programs."))
+(defvar context-coloring-javascript-scopifier
+  `(:type shell-command
+          :executable "node"
+          :command ,(expand-file-name
+                     "./languages/javascript/bin/scopifier"
+                     context-coloring-path)))
+
+(defvar context-coloring-js2-scopifier
+  `(:type elisp
+          :scopifier context-coloring-js2-scopifier))
+
+(defcustom context-coloring-scopifier-plist
+  `(js-mode ,context-coloring-javascript-scopifier
+            js2-mode ,context-coloring-js2-scopifier
+            js3-mode ,context-coloring-javascript-scopifier)
+  "Property list mapping major modes to scopification programs.")
 
 (defun context-coloring-apply-tokens (tokens)
   "Processes a vector of TOKENS to apply context-based coloring
@@ -372,12 +376,12 @@ colorizing would be redundant."
     ;; Remember this buffer. This value should not be dynamically-bound.
     (setq context-coloring-buffer (current-buffer))
 
-    ;; Colorize once initially.
-    (context-coloring-colorize)
-
     ;; Font lock is incompatible with this mode; the converse is also true.
     (font-lock-mode 0)
     (jit-lock-mode nil)
+
+    ;; Colorize once initially.
+    (context-coloring-colorize)
 
     ;; Only recolor on change.
     (add-hook 'after-change-functions 'context-coloring-change-function nil t)
