@@ -46,6 +46,23 @@
   "This file's directory.")
 
 
+;;; Customizable options
+
+(defcustom context-coloring-delay 0.25
+  "Delay between a buffer update and colorization.
+
+Increase this if your machine is high-performing. Decrease it if it ain't."
+  :group 'context-coloring)
+
+(defcustom context-coloring-block-scopes nil
+  "If non-nil, add block scopes to the scope hierarchy.
+
+The block-scope-inducing `let' and `const' are introduced in
+ES6. If you are writing ES6 code, then turn this on; otherwise,
+confusion will ensue."
+  :group 'context-coloring)
+
+
 ;;; Local variables
 
 (defvar-local context-coloring-buffer nil
@@ -196,11 +213,19 @@ For example: \"context-coloring-level-1-face\"."
 
 (defsubst context-coloring-js2-scope-level (scope)
   "Gets the level of SCOPE."
-  (let ((level 0))
+  (let ((level 0)
+        enclosing-scope)
     (while (and (not (null scope))
                 (not (null (js2-node-parent scope)))
-                (not (null (setq scope (js2-node-get-enclosing-scope scope)))))
-      (setq level (+ level 1)))
+                (not (null (setq enclosing-scope (js2-node-get-enclosing-scope scope)))))
+      (when (or context-coloring-block-scopes
+                (let ((type (js2-scope-type scope)))
+                  (or (= type js2-SCRIPT)
+                      (= type js2-FUNCTION)
+                      (= type js2-CATCH)
+                      (= type js2-WITH))))
+        (setq level (+ level 1)))
+      (setq scope enclosing-scope))
     level))
 
 ;; Obtained from js2-refactor.el/js2r-vars.el
@@ -359,12 +384,6 @@ of the current buffer, then does it."
 
 
 ;;; Colorization
-
-(defcustom context-coloring-delay 0.25
-  "Delay between a buffer update and colorization.
-
-Increase this if your machine is high-performing. Decrease it if it ain't."
-  :group 'context-coloring)
 
 (defun context-coloring-colorize ()
   "Colors the current buffer by function context."
