@@ -179,10 +179,48 @@ imply that it should be colorized again.")
 ;;; js2-mode Scopification
 
 ;; Potentially useful functions: js2-visit-ast js2-node-get-enclosing-scope
-;; js2-get-defining-scope js2-visit-ast-root
+;; js2-get-defining-scope js2-visit-ast-root js2-node-root
 
-(defun context-coloring-js2-mode-scopifier ()
-  (vector))
+(defsubst context-coloring-js2-scope-level (scope)
+  (let ((level 0))
+    (while (and (not (null (js2-node-parent scope)))
+                (not (null (setq scope (js2-node-get-enclosing-scope scope)))))
+      (setq level (+ level 1)))
+    level))
+
+(defsubst context-coloring-js2-scope-to-token (scope)
+  (let ((level (context-coloring-js2-scope-level scope))
+        (start (js2-node-abs-pos scope)))
+    (let ((end (+ start (js2-scope-len scope))))
+      `(,start ,end ,level))))
+
+(defsubst context-coloring-js2-name-get-defining-scope (name)
+  (js2-get-defining-scope
+   (js2-node-get-enclosing-scope name)
+   (js2-name-node-name name)))
+
+(defsubst context-coloring-js2-name-to-token (name)
+  (let ((level (context-coloring-js2-scope-level
+                (context-coloring-js2-name-get-defining-scope name)))
+        (start (js2-node-abs-pos name)))
+    (let ((end (+ start (js2-name-node-len name))))
+      `(,start ,end ,level))))
+
+(defun context-coloring-js2-scopifier ()
+  (let ((tokens '()))
+    (js2-visit-ast
+     js2-mode-ast
+     (lambda (node end-p)
+       (when (null end-p)
+         (when (js2-scope-p node)
+           (setq tokens (nconc tokens (context-coloring-js2-scope-to-token node))))
+         (when (js2-name-node-p node)
+           (let ((scope (js2-node-get-enclosing-scope node))
+                 (name (js2-name-node-name node)))
+             (setq tokens (nconc tokens (context-coloring-js2-name-to-token node)))))
+         t) ; Always search children.
+       ))
+    (vconcat tokens)))
 
 
 ;;; Scopification
@@ -192,19 +230,19 @@ imply that it should be colorized again.")
                               :command ,(expand-file-name
                                          "./languages/javascript/bin/scopifier"
                                          context-coloring-path)))
-      (js2-mode-scopifier `(:type elisp
-                            :scopifier context-coloring-js2-mode-scopifier)))
+      (js2-scopifier `(:type elisp
+                       :scopifier context-coloring-js2-scopifier)))
   (defcustom context-coloring-scopifier-plist
     `(js-mode ,javascript-scopifier
-      js2-mode ,js2-mode-scopifier
+      js2-mode ,js2-scopifier
       js3-mode ,javascript-scopifier)
     "Property list mapping major modes to scopification programs."))
 
 (defun context-coloring-apply-tokens (tokens)
-  "Processes TOKENS to apply context-based coloring to the
-current buffer. Tokens are 3 integers: start, end, level. The
-array is flat, with a new token occurring after every 3rd
-number."
+  "Processes a vector of TOKENS to apply context-based coloring
+to the current buffer. Tokens are 3 integers: start, end,
+level. The vector is flat, with a new token occurring after every
+3rd element."
   (with-silent-modifications
     ;; Reset in case there should be uncolored areas.
     (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil))
