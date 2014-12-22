@@ -97,6 +97,14 @@ FIXTURE."
    (context-coloring-mode)
    (context-coloring-test-region-level-p 1 10 0)))
 
+(ert-deftest context-coloring-test-js2-mode-catch ()
+  (context-coloring-test-js2-with-fixture
+   "./fixtures/catch.js"
+   (js2-mode)
+   (context-coloring-mode)
+   (context-coloring-test-region-level-p 1 8 0)
+   (context-coloring-test-region-level-p 8 20 1)))
+
 (ert-deftest context-coloring-test-js2-mode-complexity ()
   (context-coloring-test-js2-with-fixture
    "../benchmark/fixtures/mkdirp-0.5.0.js"

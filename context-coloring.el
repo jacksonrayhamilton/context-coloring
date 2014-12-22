@@ -254,13 +254,18 @@ For example: \"context-coloring-level-1-face\"."
 
 (defun context-coloring-js2-colorize ()
   (with-silent-modifications
-    (context-coloring-uncolorize-buffer)
+    ;; (context-coloring-uncolorize-buffer)
     (js2-visit-ast
      js2-mode-ast
      (lambda (node end-p)
        (when (null end-p)
          (cond
           ((js2-scope-p node)
+           ;; TODO: Work on catch blocks.
+           ;; (message "SCOPE: %s, SPOS: %s, EPOS: %s"
+           ;;          (js2-scope-type node)
+           ;;          (js2-node-abs-pos node)
+           ;;          (+ (js2-node-abs-pos node) (js2-scope-len node)))
            (let ((start (js2-node-abs-pos node)))
              (context-coloring-colorize-region
               start
@@ -288,7 +293,7 @@ to the current buffer. Tokens are 3 integers: start, end,
 level. The vector is flat, with a new token occurring after every
 3rd element."
   (with-silent-modifications
-    (context-coloring-uncolorize-buffer)
+    ;; (context-coloring-uncolorize-buffer)
     (let ((i 0)
           (len (length tokens)))
       (while (< i len)
