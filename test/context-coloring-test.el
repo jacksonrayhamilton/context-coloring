@@ -91,6 +91,13 @@ FIXTURE."
    ;; Don't error.
    ))
 
+(ert-deftest context-coloring-test-js2-mode-block-scopes ()
+  (context-coloring-test-js2-with-fixture
+   "./fixtures/block-scopes.js"
+   (js2-mode)
+   (context-coloring-mode)
+   (context-coloring-test-region-level-p 1 10 0)))
+
 (ert-deftest context-coloring-test-js2-mode-complexity ()
   (context-coloring-test-js2-with-fixture
    "../benchmark/fixtures/mkdirp-0.5.0.js"
