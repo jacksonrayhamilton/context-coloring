@@ -5,7 +5,7 @@
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; Keywords: context coloring syntax highlighting
 ;; Version: 1.0.0
-;; Package-Requires: ((emacs "24"))
+;; Package-Requires: ((emacs "24") (js2-mode "20141118"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -37,6 +37,8 @@
 ;; (add-hook 'js-mode-hook 'context-coloring-mode) ; Requires Node.js 0.10+.
 
 ;;; Code:
+
+(require 'js2-mode)
 
 
 ;;; Constants
@@ -171,7 +173,8 @@ imply that it should be colorized again.")
 
 (defcustom context-coloring-face-count 7
   "Number of faces defined for highlighting delimiter levels.
-Determines level at which to cycle through faces again.")
+Determines level at which to cycle through faces again."
+  :group 'context-coloring)
 
 
 ;;; Face functions
@@ -326,14 +329,14 @@ parsed list of tokens to `context-coloring-apply-tokens'."
     ;; accumulates the chunks into a message.
     (set-process-filter
      context-coloring-scopifier-process
-     (lambda (process chunk)
+     (lambda (_process chunk)
        (setq output (concat output chunk))))
 
     ;; When the process's message is complete, this sentinel parses it as JSON
     ;; and applies the tokens to the buffer.
     (set-process-sentinel
      context-coloring-scopifier-process
-     (lambda (process event)
+     (lambda (_process event)
        (when (equal "finished\n" event)
          (let ((tokens (context-coloring-parse-array output)))
            (with-current-buffer buffer
@@ -401,7 +404,7 @@ of the current buffer, then does it."
   (interactive)
   (context-coloring-dispatch))
 
-(defun context-coloring-change-function (start end length)
+(defun context-coloring-change-function (_start _end _length)
   "Registers a change so that a context-colored buffer can be
 colorized soon."
   ;; Tokenization is obsolete if there was a change.

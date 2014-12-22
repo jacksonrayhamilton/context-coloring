@@ -42,7 +42,7 @@
 
 (defun context-coloring-benchmark-js2-mode-setup ()
   (add-to-list 'load-path (context-coloring-benchmark-resolve-path
-                           "../test/fixtures/js2-mode"))
+                           "../lib/js2-mode"))
   (require 'js2-mode)
   (setq js2-mode-show-parse-errors nil)
   (setq js2-mode-show-strict-warnings nil)

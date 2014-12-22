@@ -12,7 +12,9 @@ benchjs:
 	node_modules/.bin/matcha
 
 compile:
-	emacs -Q -batch -f batch-byte-compile *.el
+	emacs -Q \
+	-L lib/js2-mode \
+	-batch -f batch-byte-compile *.el
 
 clean:
 	rm -f *.log benchmark/*.log *.elc
