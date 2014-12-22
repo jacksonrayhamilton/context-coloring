@@ -24,7 +24,6 @@ FIXTURE."
 FIXTURE."
   `(context-coloring-test-with-fixture
     ,fixture
-    (add-to-list 'load-path (context-coloring-test-resolve-path "../lib/js2-mode"))
     (require 'js2-mode)
     (setq js2-mode-show-parse-errors nil)
     (setq js2-mode-show-strict-warnings nil)

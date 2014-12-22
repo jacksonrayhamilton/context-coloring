@@ -41,8 +41,6 @@
   (context-coloring-benchmark-js-mode-teardown))
 
 (defun context-coloring-benchmark-js2-mode-setup ()
-  (add-to-list 'load-path (context-coloring-benchmark-resolve-path
-                           "../lib/js2-mode"))
   (require 'js2-mode)
   (setq js2-mode-show-parse-errors nil)
   (setq js2-mode-show-strict-warnings nil)
@@ -55,10 +53,7 @@
   (setq auto-mode-alist (delete '("\\.js\\'" . js2-mode)
                                 auto-mode-alist))
   (setq js2-mode-show-strict-warnings t)
-  (setq js2-mode-show-parse-errors t)
-  (setq load-path (delete (context-coloring-benchmark-resolve-path
-                           "../test/fixtures/js2-mode")
-                          load-path)))
+  (setq js2-mode-show-parse-errors t))
 
 (defun context-coloring-benchmark-js2-mode-run ()
   (context-coloring-benchmark-js2-mode-setup)
