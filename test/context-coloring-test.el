@@ -19,6 +19,17 @@ FIXTURE."
      (insert (context-coloring-test-read-file ,fixture))
      ,@body))
 
+(defmacro context-coloring-test-js2-with-fixture (fixture &rest body)
+  "Evaluate BODY in a temporary buffer with the relative
+FIXTURE."
+  `(context-coloring-test-with-fixture
+    ,fixture
+    (add-to-list 'load-path (context-coloring-test-resolve-path "./fixtures/js2-mode"))
+    (require 'js2-mode)
+    (setq js2-mode-show-parse-errors nil)
+    (setq js2-mode-show-strict-warnings nil)
+    ,@body))
+
 (defun context-coloring-test-region-level-p (start end level)
   (let ((i 0)
         (length (- end start)))
@@ -66,12 +77,26 @@ FIXTURE."
    (context-coloring-test-function-scopes)))
 
 (ert-deftest context-coloring-test-js2-mode-function-scopes ()
-  (context-coloring-test-with-fixture
+  (context-coloring-test-js2-with-fixture
    "./fixtures/function-scopes.js"
-   (add-to-list 'load-path (context-coloring-test-resolve-path "./fixtures/js2-mode"))
-   (require 'js2-mode)
    (js2-mode)
    (context-coloring-mode)
    (context-coloring-test-function-scopes)))
+
+(ert-deftest context-coloring-test-js2-mode-global ()
+  (context-coloring-test-js2-with-fixture
+   "./fixtures/global.js"
+   (js2-mode)
+   (context-coloring-mode)
+   ;; Don't error.
+   ))
+
+(ert-deftest context-coloring-test-js2-mode-complexity ()
+  (context-coloring-test-js2-with-fixture
+   "../benchmark/fixtures/mkdirp-0.5.0.js"
+   (js2-mode)
+   (context-coloring-mode)
+   ;; Don't error.
+   ))
 
 (provide 'context-coloring-test)

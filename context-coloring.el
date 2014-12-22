@@ -197,34 +197,48 @@ For example: \"context-coloring-level-1-face\"."
 (defsubst context-coloring-js2-scope-level (scope)
   "Gets the level of SCOPE."
   (let ((level 0))
-    (while (and (not (null (js2-node-parent scope)))
+    (while (and (not (null scope))
+                (not (null (js2-node-parent scope)))
                 (not (null (setq scope (js2-node-get-enclosing-scope scope)))))
       (setq level (+ level 1)))
     level))
 
+;; Obtained from js2-refactor.el/js2r-vars.el
+(defun context-coloring-js2-local-name-node-p (node)
+  (and (js2-name-node-p node)
+       (not (save-excursion ; not key in object literal { key: value }
+              (goto-char (+ (js2-node-abs-pos node) (js2-node-len node)))
+              (looking-at "[\n\t ]*:")))
+       (not (save-excursion ; not property lookup on object
+              (goto-char (js2-node-abs-pos node))
+              (looking-back "\\.[\n\t ]*")))))
+
 (defun context-coloring-js2-colorize ()
-  (js2-visit-ast
-   js2-mode-ast
-   (lambda (node end-p)
-     (when (null end-p)
-       (when (js2-scope-p node)
-         (let ((start (js2-node-abs-pos node)))
-           (context-coloring-colorize-region
-            start
-            (+ start (js2-scope-len node))          ; End
-            (context-coloring-js2-scope-level node) ; Level
-            )))
-       (when (js2-name-node-p node)
-         (let ((start (js2-node-abs-pos node)))
-           (context-coloring-colorize-region
-            start
-            (+ start (js2-name-node-len node)) ; End
-            (context-coloring-js2-scope-level  ; Level
-             (js2-get-defining-scope
-              (js2-node-get-enclosing-scope node)
-              (js2-name-node-name node))))))
-       ;; The `t' indicates to search children.
-       t))))
+  (with-silent-modifications
+    (context-coloring-uncolorize-buffer)
+    (js2-visit-ast
+     js2-mode-ast
+     (lambda (node end-p)
+       (when (null end-p)
+         (cond
+          ((js2-scope-p node)
+           (let ((start (js2-node-abs-pos node)))
+             (context-coloring-colorize-region
+              start
+              (+ start (js2-scope-len node))          ; End
+              (context-coloring-js2-scope-level node) ; Level
+              )))
+          ((context-coloring-js2-local-name-node-p node)
+           (let ((start (js2-node-abs-pos node)))
+             (context-coloring-colorize-region
+              start
+              (+ start (js2-name-node-len node)) ; End
+              (context-coloring-js2-scope-level  ; Level
+               (js2-get-defining-scope
+                (js2-node-get-enclosing-scope node)
+                (js2-name-node-name node)))))))
+         ;; The `t' indicates to search children.
+         t)))))
 
 
 ;;; Shell command copification / colorization
@@ -398,7 +412,9 @@ colorizing would be redundant."
     (jit-lock-mode nil)
 
     ;; Colorize once initially.
-    (context-coloring-colorize)
+    ;; (let ((start-time (float-time)))
+      (context-coloring-colorize)
+      ;; (message "Elapsed time: %f" (- (float-time) start-time)))
 
     ;; Only recolor on change.
     (add-hook 'after-change-functions 'context-coloring-change-function nil t)
