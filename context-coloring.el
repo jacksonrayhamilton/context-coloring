@@ -438,7 +438,11 @@ colorizing would be redundant."
         (context-coloring-kill-scopifier)
         (when (not (null 'context-coloring-colorize-idle-timer))
           (cancel-timer context-coloring-colorize-idle-timer))
-        (remove-hook 'after-change-functions 'context-coloring-change-function t)
+        (cond
+         ((equal major-mode 'js2-mode)
+          (remove-hook 'js2-post-parse-callbacks 'context-coloring-change-function t))
+         (t
+          (remove-hook 'after-change-functions 'context-coloring-change-function t)))
         (font-lock-mode)
         (jit-lock-mode t))
 
@@ -451,11 +455,15 @@ colorizing would be redundant."
 
     ;; Colorize once initially.
     ;; (let ((start-time (float-time)))
-      (context-coloring-colorize)
+    (context-coloring-colorize)
     ;;  (message "Elapsed time: %f" (- (float-time) start-time)))
 
     ;; Only recolor on change.
-    (add-hook 'after-change-functions 'context-coloring-change-function nil t)
+    (cond
+     ((equal major-mode 'js2-mode)
+      (add-hook 'js2-post-parse-callbacks 'context-coloring-change-function nil t))
+     (t
+      (add-hook 'after-change-functions 'context-coloring-change-function nil t)))
 
     ;; Only recolor idly.
     (setq context-coloring-colorize-idle-timer
