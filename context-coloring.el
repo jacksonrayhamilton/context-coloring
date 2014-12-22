@@ -196,7 +196,7 @@ For example: \"context-coloring-level-1-face\"."
 
 ;;; Colorization utilities
 
-(defsubst context-coloring-uncolorize-buffer ()
+(defun context-coloring-uncolorize-buffer ()
   "Clears all coloring in the current buffer."
   (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil)))
 
@@ -228,15 +228,26 @@ For example: \"context-coloring-level-1-face\"."
       (setq scope enclosing-scope))
     level))
 
-;; Obtained from js2-refactor.el/js2r-vars.el
-(defun context-coloring-js2-local-name-node-p (node)
+;; Adapted from js2-refactor.el/js2r-vars.el
+(defsubst context-coloring-js2-local-name-node-p (node)
   (and (js2-name-node-p node)
-       (not (save-excursion ; not key in object literal { key: value }
-              (goto-char (+ (js2-node-abs-pos node) (js2-node-len node)))
-              (looking-at "[\n\t ]*:")))
-       (not (save-excursion ; not property lookup on object
-              (goto-char (js2-node-abs-pos node))
-              (looking-back "\\.[\n\t ]*")))))
+       (let ((start (js2-node-abs-pos node)))
+         (and
+          ;; (save-excursion ; not key in object literal { key: value }
+          ;;   (goto-char (+ (js2-node-abs-pos node) (js2-node-len node)))
+          ;;   (looking-at "[\n\t ]*:"))
+          (let ((end (+ start (js2-node-len node))))
+            (not (string-match "[\n\t ]*:" (buffer-substring-no-properties
+                                            end
+                                            (+ end 1)))))
+          ;; (save-excursion ; not property lookup on object
+          ;;   (goto-char (js2-node-abs-pos node))
+          ;;   (looking-back "\\.[\n\t ]*"))
+          (not (string-match "\\.[\n\t ]*" (buffer-substring-no-properties
+                                            (max 1 (- start 1)) ; 0 throws an
+                                                                ; error. "" will
+                                                                ; fail the test.
+                                            start)))))))
 
 (defun context-coloring-js2-colorize ()
   (with-silent-modifications
@@ -288,7 +299,7 @@ level. The vector is flat, with a new token occurring after every
   "Specialized JSON parser for a flat array of numbers."
   (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
 
-(defsubst context-coloring-kill-scopifier ()
+(defun context-coloring-kill-scopifier ()
   "Kills the currently-running scopifier process for this
 buffer."
   (when (not (null context-coloring-scopifier-process))
@@ -433,7 +444,7 @@ colorizing would be redundant."
     ;; Colorize once initially.
     ;; (let ((start-time (float-time)))
       (context-coloring-colorize)
-      ;; (message "Elapsed time: %f" (- (float-time) start-time)))
+    ;;  (message "Elapsed time: %f" (- (float-time) start-time)))
 
     ;; Only recolor on change.
     (add-hook 'after-change-functions 'context-coloring-change-function nil t)
