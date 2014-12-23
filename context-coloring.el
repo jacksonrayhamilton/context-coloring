@@ -260,6 +260,13 @@ For example: \"context-coloring-level-1-face\"."
      (lambda (node end-p)
        (when (null end-p)
          (cond
+          ((js2-comment-node-p node)
+           (let ((start (js2-node-abs-pos node)))
+             (context-coloring-colorize-region
+              start
+              (+ start (js2-comment-node-len node)) ; End
+              -1                                    ; Level
+              )))
           ((js2-scope-p node)
            ;; TODO: Work on catch blocks.
            ;; (message "SCOPE: %s, SPOS: %s, EPOS: %s"
