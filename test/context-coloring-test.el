@@ -72,7 +72,7 @@ FIXTURE."
    "./fixtures/function-scopes.js"
    (js-mode)
    (context-coloring-mode)
-   (sleep-for .1) ; Wait for asynchronous coloring.
+   (sleep-for .25) ; Wait for asynchronous coloring.
    (context-coloring-test-function-scopes)))
 
 (ert-deftest context-coloring-test-js2-mode-function-scopes ()
@@ -102,15 +102,13 @@ FIXTURE."
    "./fixtures/catch.js"
    (js2-mode)
    (context-coloring-mode)
-   (context-coloring-test-region-level-p 1 8 0)
-   (context-coloring-test-region-level-p 8 20 1)))
-
-(ert-deftest context-coloring-test-js2-mode-complexity ()
-  (context-coloring-test-js2-with-fixture
-   "../benchmark/fixtures/mkdirp-0.5.0.js"
-   (js2-mode)
-   (context-coloring-mode)
-   ;; Don't error.
-   ))
+   (context-coloring-test-region-level-p 20 27 1)
+   (context-coloring-test-region-level-p 27 51 2)
+   (context-coloring-test-region-level-p 51 52 1)
+   (context-coloring-test-region-level-p 52 73 2)
+   (context-coloring-test-region-level-p 73 101 3)
+   (context-coloring-test-region-level-p 101 102 1)
+   (context-coloring-test-region-level-p 102 117 3)
+   (context-coloring-test-region-level-p 117 123 2)))
 
 (provide 'context-coloring-test)
