@@ -318,7 +318,7 @@ buffer."
     (delete-process context-coloring-scopifier-process)
     (setq context-coloring-scopifier-process nil)))
 
-(defun context-coloring-scopify-shell-command (command)
+(defun context-coloring-scopify-shell-command (command &optional callback)
   "Invokes a scopifier with the current buffer's contents,
 reading the scopifier's response asynchronously and applying a
 parsed list of tokens to `context-coloring-apply-tokens'."
@@ -350,7 +350,8 @@ parsed list of tokens to `context-coloring-apply-tokens'."
          (let ((tokens (context-coloring-parse-array output)))
            (with-current-buffer buffer
              (context-coloring-apply-tokens tokens))
-           (setq context-coloring-scopifier-process nil))))))
+           (setq context-coloring-scopifier-process nil)
+           (if callback (funcall callback)))))))
 
   ;; Give the process its input so it can begin.
   (process-send-region context-coloring-scopifier-process (point-min) (point-max))
@@ -377,7 +378,7 @@ parsed list of tokens to `context-coloring-apply-tokens'."
   "Property list mapping major modes to scopification programs."
   :group 'context-coloring)
 
-(defun context-coloring-dispatch ()
+(defun context-coloring-dispatch (&optional callback)
   "Determines the optimal track for scopification / colorization
 of the current buffer, then does it."
   (let ((dispatch (plist-get context-coloring-dispatch-plist major-mode)))
@@ -389,10 +390,12 @@ of the current buffer, then does it."
         (let ((colorizer (plist-get dispatch :colorizer))
               (scopifier (plist-get dispatch :scopifier)))
           (cond
-           ((not (null colorizer))
-            (funcall colorizer))
-           ((not (null scopifier))
-            (context-coloring-apply-tokens (funcall scopifier)))
+           (colorizer
+            (funcall colorizer)
+            (if callback (funcall callback)))
+           (scopifier
+            (context-coloring-apply-tokens (funcall scopifier))
+            (if callback (funcall callback)))
            (t
             (error "No `:colorizer' nor `:scopifier' specified for dispatch of `:type' elisp")))))
        ((eq type 'shell-command)
@@ -403,15 +406,15 @@ of the current buffer, then does it."
           (if (and (not (null executable))
                    (null (executable-find executable)))
               (message "Executable \"%s\" not found" executable))
-          (context-coloring-scopify-shell-command command)))))))
+          (context-coloring-scopify-shell-command command callback)))))))
 
 
 ;;; Colorization
 
-(defun context-coloring-colorize ()
+(defun context-coloring-colorize (&optional callback)
   "Colors the current buffer by function context."
   (interactive)
-  (context-coloring-dispatch))
+  (context-coloring-dispatch callback))
 
 (defun context-coloring-change-function (_start _end _length)
   "Registers a change so that a context-colored buffer can be

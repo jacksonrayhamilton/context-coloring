@@ -29,8 +29,10 @@ test: testel testjs
 testel:
 	emacs -Q -batch \
 	-L . \
+	-L lib/ert-async \
 	-L lib/js2-mode \
 	-l ert \
+	-l ert-async \
 	-l context-coloring \
 	-l test/context-coloring-test.el \
 	-f ert-run-tests-batch-and-exit
