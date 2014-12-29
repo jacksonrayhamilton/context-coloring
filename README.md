@@ -38,14 +38,32 @@ code*.
   - Async (1124 lines): 0.17 seconds
   - mkdirp (98 lines): 0.09 seconds
 
+## Usage
+
+Requires Emacs 24+.
+
+JavaScript language support requires either [js2-mode][] or
+[Node.js 0.10+][node], respectively.
+
+- Clone this repository.
+
+```bash
+cd ~/.emacs.d/
+git clone https://github.com/jacksonrayhamilton/context-coloring.git
+```
+
+- Add the following to your `~/.emacs` file:
+
+```lisp
+(add-to-list 'load-path "~/.emacs.d/context-coloring")
+(require 'context-coloring)
+(add-hook 'js-mode-hook 'context-coloring-mode)
+```
+
 ## Extending
 
-It would be great if this package supported more languages. I welcome any pull
-request that adds new language support.
-
-Extension is relatively straightforward. Write a "scopifier" for the language of
-your choice, add an entry to `context-coloring-dispatch-plist`, and the plugin
-should handle the rest.
+To add support for a new language, write a "scopifier" for it, and add an entry
+to `context-coloring-dispatch-plist`. Then the plugin should handle the rest.
 
 A "scopifier" is a CLI program that reads a buffer's contents from stdin and
 writes a JSON array of numbers to stdout. Every three numbers in the array
@@ -64,36 +82,21 @@ then the scopifier would produce the following array:
 
 Where, for every three numbers, the first number is a 1-indexed start [point][],
 the second number is an exclusive end point, and the third number is a scope
-level. The result of applying level 0 coloring to the range
-\[1, 24) and then applying level 1 coloring to the range \[9, 23) would result in the following coloring:
+level. The result of applying level 0 coloring to the range &#91;1, 24) and then
+applying level 1 coloring to the range &#91;9, 23) would result in the following
+coloring:
 
 <p align="center">
-  <img alt="Screenshot of ranges [1, 24) and [9, 23)." src="scopifier-example.png" title="Screenshot">
+  <img alt="Screenshot of ranges &#91;1, 24) and &#91;9, 23)." src="scopifier-example.png" title="Screenshot">
 </p>
 
-## Usage
-
-Requires Emacs 24+.
-
-JavaScript language support requires [Node.js 0.10+][node].
-
-- Clone this repository.
-
-```bash
-cd ~/.emacs.d/
-git clone https://github.com/jacksonrayhamilton/context-coloring.git
-```
-
-- Add the following to your `~/.emacs` file:
-
-```lisp
-(add-to-list 'load-path "~/.emacs.d/context-coloring")
-(require 'context-coloring)
-(add-hook 'js-mode-hook 'context-coloring-mode)
-```
+If there is an abstract syntax tree generator for your language, you can walk
+the syntax tree, find variables and scopes, and build their lengths and levels
+into an array like the one above.
 
 [linter]: https://github.com/jacksonrayhamilton/jslinted
 [integration]: https://github.com/jacksonrayhamilton/jslinted#emacs-integration
 [point]: http://www.gnu.org/software/emacs/manual/html_node/elisp/Point.html
+[js2-mode]: https://github.com/mooz/js2-mode
 [node]: http://nodejs.org/download/
 [load path]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Lisp-Libraries.html
