@@ -1,7 +1,7 @@
 'use strict';
 
-var escope = require('./lib/escope');
-var esprima = require('./lib/esprima');
+var escope = require('./lib/escope'),
+    esprima = require('./lib/esprima');
 
 // Given code, returns an array of tokens for context-coloring.
 function scopifier(code) {
@@ -9,8 +9,23 @@ function scopifier(code) {
     // Strip BOM.
     code = code.replace(/^\ufeff/g, '');
 
-    var ast;
-    var analyzedScopes;
+    var analyzedScopes,
+        ast,
+        comment,
+        definition,
+        definitionsCount,
+        definitionsIndex,
+        i,
+        isDefined,
+        j,
+        k,
+        pointer,
+        range,
+        reference,
+        scope,
+        scopes,
+        tokens,
+        variable;
 
     // Gracefully handle parse errors by doing nothing.
     try {
@@ -23,21 +38,8 @@ function scopifier(code) {
         process.exit(1);
     }
 
-    var scopes = [];
-    var tokens = [];
-
-    var definition;
-    var definitionsCount;
-    var definitionsIndex;
-    var i;
-    var isDefined;
-    var j;
-    var k;
-    var pointer;
-    var range;
-    var reference;
-    var scope;
-    var variable;
+    scopes = [];
+    tokens = [];
     for (i = 0; i < analyzedScopes.length; i += 1) {
         scope = analyzedScopes[i];
         // Having its level set implies it was already annotated.
@@ -107,7 +109,6 @@ function scopifier(code) {
         }
     }
 
-    var comment;
     for (i = 0; i < ast.comments.length; i += 1) {
         comment = ast.comments[i];
         range = comment.range;
