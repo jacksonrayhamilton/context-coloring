@@ -1,4 +1,4 @@
-# Context Coloring
+# Context Coloring [![Build Status](https://travis-ci.org/jacksonrayhamilton/context-coloring.png?branch=develop)](https://travis-ci.org/jacksonrayhamilton/context-coloring)
 
 <p align="center">
   <img alt="Screenshot of JavaScript code highlighted by context." src="screenshot.png" title="Screenshot">
