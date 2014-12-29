@@ -5,7 +5,7 @@
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; Keywords: context coloring syntax highlighting
 ;; Version: 1.0.0
-;; Package-Requires: ((emacs "24"))
+;; Package-Requires: ((emacs "24") (js2-mode "20141118"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -37,6 +37,53 @@
 ;; (add-hook 'js-mode-hook 'context-coloring-mode) ; Requires Node.js 0.10+.
 
 ;;; Code:
+
+(require 'js2-mode)
+
+
+;;; Constants
+
+(defconst context-coloring-path
+  (file-name-directory (or load-file-name buffer-file-name))
+  "This file's directory.")
+
+
+;;; Customizable options
+
+(defcustom context-coloring-delay 0.25
+  "Delay between a buffer update and colorization.
+
+Increase this if your machine is high-performing. Decrease it if it ain't.
+
+Supported modes: `js-mode', `js3-mode'"
+  :group 'context-coloring)
+
+(defcustom context-coloring-js-block-scopes nil
+  "If non-nil, add block scopes to the scope hierarchy.
+
+The block-scope-inducing `let' and `const' are introduced in
+ES6. If you are writing ES6 code, enable this; otherwise, don't.
+
+Supported modes: `js2-mode'"
+  :group 'context-coloring)
+
+
+;;; Local variables
+
+(defvar-local context-coloring-buffer nil
+  "Reference to this buffer (for timers).")
+
+(defvar-local context-coloring-scopifier-process nil
+  "Only allow a single scopifier process to run at a time. This
+is a reference to that one process.")
+
+(defvar-local context-coloring-colorize-idle-timer nil
+  "Reference to currently-running idle timer.")
+
+(defvar-local context-coloring-changed nil
+  "Indication that the buffer has changed recently, which would
+imply that it should be colorized again.")
+
 
 ;;; Faces
 
@@ -95,7 +142,7 @@
   "Context coloring face, level 6."
   :group 'context-coloring-faces)
 
-;;; Additional 6 faces as placeholders for potential (insane) levels of nesting.
+;;; Additional 6 faces for insane levels of nesting
 
 (defface context-coloring-level-7-face
   '((t (:inherit context-coloring-level-1-face)))
@@ -129,7 +176,8 @@
 
 (defcustom context-coloring-face-count 7
   "Number of faces defined for highlighting delimiter levels.
-Determines level at which to cycle through faces again.")
+Determines level at which to cycle through faces again."
+  :group 'context-coloring)
 
 
 ;;; Face functions
@@ -152,81 +200,125 @@ For example: \"context-coloring-level-1-face\"."
            "-face")))
 
 
-;;; Constants
+;;; Colorization utilities
 
-(defconst context-coloring-path
-  (file-name-directory (or load-file-name buffer-file-name))
-  "This file's directory.")
+(defun context-coloring-uncolorize-buffer ()
+  "Clears all coloring in the current buffer."
+  (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil)))
 
-
-;;; Customizable variables
-
-(let ((javascript-scopifier `(:type shell-command
-                              :executable "node"
-                              :command ,(expand-file-name
-                                         "./languages/javascript/bin/scopifier"
-                                         context-coloring-path))))
-  (defcustom context-coloring-scopifier-plist
-    `(js-mode ,javascript-scopifier
-      js2-mode ,javascript-scopifier
-      js3-mode ,javascript-scopifier)
-    "Property list mapping major modes to scopification programs."))
-
-(defcustom context-coloring-delay 0.25
-  "Delay between a buffer update and colorization.
-
-Increase this if your machine is high-performing. Decrease it if it ain't."
-  :group 'context-coloring)
+(defsubst context-coloring-colorize-region (start end level)
+  "Colorizes characters from 1-indexed START (inclusive) to END
+\(exclusive) with the face corresponding to LEVEL."
+  (add-text-properties
+   start
+   end
+   `(face ,(context-coloring-level-face level) rear-nonsticky t)))
 
 
-;;; Local variables
+;;; js2-mode colorization
 
-(defvar-local context-coloring-buffer nil
-  "Reference to this buffer (for timers).")
+(defsubst context-coloring-js2-scope-level (scope)
+  "Gets the level of SCOPE."
+  (let ((level 0)
+        enclosing-scope)
+    (while (and scope
+                (js2-node-parent scope)
+                (setq enclosing-scope (js2-node-get-enclosing-scope scope)))
+      (when (or context-coloring-js-block-scopes
+                (let ((type (js2-scope-type scope)))
+                  (or (= type js2-SCRIPT)
+                      (= type js2-FUNCTION)
+                      (= type js2-CATCH)
+                      (= type js2-WITH))))
+        (setq level (+ level 1)))
+      (setq scope enclosing-scope))
+    level))
 
-(defvar-local context-coloring-scopifier-process nil
-  "Only allow a single scopifier process to run at a time. This
-is a reference to that one process.")
+;; Adapted from js2-refactor.el/js2r-vars.el
+(defsubst context-coloring-js2-local-name-node-p (node)
+  (and (js2-name-node-p node)
+       (let ((start (js2-node-abs-pos node)))
+         (and
+          ;; (save-excursion ; not key in object literal { key: value }
+          ;;   (goto-char (+ (js2-node-abs-pos node) (js2-node-len node)))
+          ;;   (looking-at "[\n\t ]*:"))
+          (let ((end (+ start (js2-node-len node))))
+            (not (string-match "[\n\t ]*:" (buffer-substring-no-properties
+                                            end
+                                            (+ end 1)))))
+          ;; (save-excursion ; not property lookup on object
+          ;;   (goto-char (js2-node-abs-pos node))
+          ;;   (looking-back "\\.[\n\t ]*"))
+          (not (string-match "\\.[\n\t ]*" (buffer-substring-no-properties
+                                            (max 1 (- start 1)) ; 0 throws an
+                                                                ; error. "" will
+                                                                ; fail the test.
+                                            start)))))))
 
-(defvar-local context-coloring-colorize-idle-timer nil
-  "Reference to currently-running idle timer.")
+(defsubst context-coloring-js2-colorize-node (node level)
+  (let ((start (js2-node-abs-pos node)))
+    (context-coloring-colorize-region
+     start
+     (+ start (js2-node-len node)) ; End
+     level)))
 
-(defvar-local context-coloring-changed nil
-  "Indication that the buffer has changed recently, which would
-imply that it should be colorized again.")
+(defun context-coloring-js2-colorize ()
+  (with-silent-modifications
+    ;; (context-coloring-uncolorize-buffer)
+    (js2-visit-ast
+     js2-mode-ast
+     (lambda (node end-p)
+       (when (null end-p)
+         (cond
+          ((js2-comment-node-p node)
+           (context-coloring-js2-colorize-node
+            node
+            -1))
+          ((js2-scope-p node)
+           (context-coloring-js2-colorize-node
+            node
+            (context-coloring-js2-scope-level node)))
+          ((context-coloring-js2-local-name-node-p node)
+           (context-coloring-js2-colorize-node
+            node
+            (context-coloring-js2-scope-level
+             (js2-get-defining-scope
+              (js2-node-get-enclosing-scope node)
+              (js2-name-node-name node))))))
+         ;; The `t' indicates to search children.
+         t)))))
 
 
-;;; Scopification
+;;; Shell command copification / colorization
 
 (defun context-coloring-apply-tokens (tokens)
-  "Processes TOKENS to apply context-based coloring to the
-current buffer. Tokens are 3 integers: start, end, level. The
-array is flat, with a new token occurring after every 3rd
-number."
+  "Processes a vector of TOKENS to apply context-based coloring
+to the current buffer. Tokens are 3 integers: start, end,
+level. The vector is flat, with a new token occurring after every
+3rd element."
   (with-silent-modifications
-    ;; Reset in case there should be uncolored areas.
-    (remove-text-properties (point-min) (point-max) `(face nil rear-nonsticky nil))
+    ;; (context-coloring-uncolorize-buffer)
     (let ((i 0)
           (len (length tokens)))
       (while (< i len)
-        (add-text-properties
+        (context-coloring-colorize-region
          (elt tokens i)
          (elt tokens (+ i 1))
-         `(face ,(context-coloring-level-face (elt tokens (+ i 2))) rear-nonsticky t))
+         (elt tokens (+ i 2)))
         (setq i (+ i 3))))))
 
-(defsubst context-coloring-kill-scopifier ()
+(defun context-coloring-parse-array (input)
+  "Specialized JSON parser for a flat array of numbers."
+  (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
+
+(defun context-coloring-kill-scopifier ()
   "Kills the currently-running scopifier process for this
 buffer."
   (when (not (null context-coloring-scopifier-process))
     (delete-process context-coloring-scopifier-process)
     (setq context-coloring-scopifier-process nil)))
 
-(defun context-coloring-parse-array (input)
-  "Specialized JSON parser for a flat array of numbers."
-  (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
-
-(defun context-coloring-scopify-shell-command (command)
+(defun context-coloring-scopify-shell-command (command &optional callback)
   "Invokes a scopifier with the current buffer's contents,
 reading the scopifier's response asynchronously and applying a
 parsed list of tokens to `context-coloring-apply-tokens'."
@@ -246,45 +338,85 @@ parsed list of tokens to `context-coloring-apply-tokens'."
     ;; accumulates the chunks into a message.
     (set-process-filter
      context-coloring-scopifier-process
-     (lambda (process chunk)
+     (lambda (_process chunk)
        (setq output (concat output chunk))))
 
     ;; When the process's message is complete, this sentinel parses it as JSON
     ;; and applies the tokens to the buffer.
     (set-process-sentinel
      context-coloring-scopifier-process
-     (lambda (process event)
+     (lambda (_process event)
        (when (equal "finished\n" event)
          (let ((tokens (context-coloring-parse-array output)))
            (with-current-buffer buffer
              (context-coloring-apply-tokens tokens))
-           (setq context-coloring-scopifier-process nil))))))
+           (setq context-coloring-scopifier-process nil)
+           (if callback (funcall callback)))))))
 
   ;; Give the process its input so it can begin.
   (process-send-region context-coloring-scopifier-process (point-min) (point-max))
   (process-send-eof context-coloring-scopifier-process))
 
-(defun context-coloring-scopify ()
-  "Determines the optimal track for scopification of the current
-buffer, then scopifies the current buffer."
-  (let ((scopifier (plist-get context-coloring-scopifier-plist major-mode)))
-    (cond ((null scopifier)
-           (message "%s" "Context coloring is not available for this major mode"))
-          ((eq (plist-get scopifier :type) 'shell-command)
-           (let ((executable (plist-get scopifier :executable)))
-             (if (null (executable-find executable))
-                 (message "Context coloring executable \"%s\" not found" executable)
-               (context-coloring-scopify-shell-command (plist-get scopifier :command))))))))
+
+;;; Dispatch
+
+(defvar context-coloring-javascript-scopifier
+  `(:type shell-command
+          :executable "node"
+          :command ,(expand-file-name
+                     "./languages/javascript/bin/scopifier"
+                     context-coloring-path)))
+
+(defvar context-coloring-js2-colorizer
+  `(:type elisp
+          :colorizer context-coloring-js2-colorize))
+
+(defcustom context-coloring-dispatch-plist
+  `(js-mode ,context-coloring-javascript-scopifier
+            js2-mode ,context-coloring-js2-colorizer
+            js3-mode ,context-coloring-javascript-scopifier)
+  "Property list mapping major modes to scopification programs."
+  :group 'context-coloring)
+
+(defun context-coloring-dispatch (&optional callback)
+  "Determines the optimal track for scopification / colorization
+of the current buffer, then does it."
+  (let ((dispatch (plist-get context-coloring-dispatch-plist major-mode)))
+    (if (null dispatch)
+        (message "%s" "Context coloring is not available for this major mode"))
+    (let ((type (plist-get dispatch :type)))
+      (cond
+       ((eq type 'elisp)
+        (let ((colorizer (plist-get dispatch :colorizer))
+              (scopifier (plist-get dispatch :scopifier)))
+          (cond
+           (colorizer
+            (funcall colorizer)
+            (if callback (funcall callback)))
+           (scopifier
+            (context-coloring-apply-tokens (funcall scopifier))
+            (if callback (funcall callback)))
+           (t
+            (error "No `:colorizer' nor `:scopifier' specified for dispatch of `:type' elisp")))))
+       ((eq type 'shell-command)
+        (let ((executable (plist-get dispatch :executable))
+              (command (plist-get dispatch :command)))
+          (if (null command)
+              (error "No `:command' specified for dispatch of `:type' shell-command"))
+          (if (and (not (null executable))
+                   (null (executable-find executable)))
+              (message "Executable \"%s\" not found" executable))
+          (context-coloring-scopify-shell-command command callback)))))))
 
 
 ;;; Colorization
 
-(defun context-coloring-colorize ()
+(defun context-coloring-colorize (&optional callback)
   "Colors the current buffer by function context."
   (interactive)
-  (context-coloring-scopify))
+  (context-coloring-dispatch callback))
 
-(defun context-coloring-change-function (start end length)
+(defun context-coloring-change-function (_start _end _length)
   "Registers a change so that a context-colored buffer can be
 colorized soon."
   ;; Tokenization is obsolete if there was a change.
@@ -313,6 +445,7 @@ colorizing would be redundant."
         (context-coloring-kill-scopifier)
         (when (not (null 'context-coloring-colorize-idle-timer))
           (cancel-timer context-coloring-colorize-idle-timer))
+        (remove-hook 'js2-post-parse-callbacks 'context-coloring-change-function t)
         (remove-hook 'after-change-functions 'context-coloring-change-function t)
         (font-lock-mode)
         (jit-lock-mode t))
@@ -320,19 +453,27 @@ colorizing would be redundant."
     ;; Remember this buffer. This value should not be dynamically-bound.
     (setq context-coloring-buffer (current-buffer))
 
-    ;; Colorize once initially.
-    (context-coloring-colorize)
-
     ;; Font lock is incompatible with this mode; the converse is also true.
     (font-lock-mode 0)
     (jit-lock-mode nil)
 
-    ;; Only recolor on change.
-    (add-hook 'after-change-functions 'context-coloring-change-function nil t)
+    ;; Colorize once initially.
+    ;; (let ((start-time (float-time)))
+    (context-coloring-colorize)
+    ;;  (message "Elapsed time: %f" (- (float-time) start-time)))
 
-    ;; Only recolor idly.
-    (setq context-coloring-colorize-idle-timer
-          (run-with-idle-timer context-coloring-delay t 'context-coloring-maybe-colorize))))
+    (cond
+     ((equal major-mode 'js2-mode)
+      ;; Only recolor on reparse.
+      (add-hook 'js2-post-parse-callbacks 'context-coloring-colorize nil t))
+     (t
+      ;; Only recolor on change.
+      (add-hook 'after-change-functions 'context-coloring-change-function nil t)))
+
+    (when (not (equal major-mode 'js2-mode))
+      ;; Only recolor idly.
+      (setq context-coloring-colorize-idle-timer
+            (run-with-idle-timer context-coloring-delay t 'context-coloring-maybe-colorize)))))
 
 (provide 'context-coloring)
 
