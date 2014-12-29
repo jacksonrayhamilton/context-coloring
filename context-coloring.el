@@ -53,15 +53,18 @@
 (defcustom context-coloring-delay 0.25
   "Delay between a buffer update and colorization.
 
-Increase this if your machine is high-performing. Decrease it if it ain't."
+Increase this if your machine is high-performing. Decrease it if it ain't.
+
+Supported modes: `js-mode', `js3-mode'"
   :group 'context-coloring)
 
-(defcustom context-coloring-block-scopes nil
+(defcustom context-coloring-js-block-scopes nil
   "If non-nil, add block scopes to the scope hierarchy.
 
 The block-scope-inducing `let' and `const' are introduced in
-ES6. If you are writing ES6 code, then turn this on; otherwise,
-confusion will ensue."
+ES6. If you are writing ES6 code, enable this; otherwise, don't.
+
+Supported modes: `js2-mode'"
   :group 'context-coloring)
 
 
@@ -221,7 +224,7 @@ For example: \"context-coloring-level-1-face\"."
     (while (and scope
                 (js2-node-parent scope)
                 (setq enclosing-scope (js2-node-get-enclosing-scope scope)))
-      (when (or context-coloring-block-scopes
+      (when (or context-coloring-js-block-scopes
                 (let ((type (js2-scope-type scope)))
                   (or (= type js2-SCRIPT)
                       (= type js2-FUNCTION)

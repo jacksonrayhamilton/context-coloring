@@ -16,8 +16,12 @@
   "Evaluate BODY in a temporary buffer with the relative
 FIXTURE."
   `(with-temp-buffer
-     (insert (context-coloring-test-read-file ,fixture))
-     ,@body))
+     (unwind-protect
+         (progn
+           (insert (context-coloring-test-read-file ,fixture))
+           ,@body)
+       ;; Cleanup.
+       (setq context-coloring-js-block-scopes nil))))
 
 (defmacro context-coloring-test-js-mode (fixture &rest body)
   `(context-coloring-test-with-fixture
@@ -95,7 +99,13 @@ FIXTURE."
 (ert-deftest context-coloring-test-js2-mode-block-scopes ()
   (context-coloring-test-js2-mode
    "./fixtures/block-scopes.js"
-   (context-coloring-test-region-level-p 1 10 0)))
+   (context-coloring-test-region-level-p 20 64 1)
+   (setq context-coloring-js-block-scopes t)
+   (context-coloring-colorize)
+   (context-coloring-test-region-level-p 20 27 1)
+   (context-coloring-test-region-level-p 27 41 2)
+   (context-coloring-test-region-level-p 41 42 1)
+   (context-coloring-test-region-level-p 42 64 2)))
 
 (ert-deftest context-coloring-test-js2-mode-catch ()
   (context-coloring-test-js2-mode
