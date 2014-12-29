@@ -1,7 +1,9 @@
+EMACS = emacs
+
 all: clean compile test
 
 bench:
-	emacs -Q \
+	${EMACS} -Q \
 	-L . \
 	-L lib \
 	-l context-coloring \
@@ -9,7 +11,7 @@ bench:
 	-f context-coloring-benchmark-run
 
 compile:
-	emacs -Q -batch \
+	${EMACS} -Q -batch \
 	-L lib \
 	-f batch-byte-compile *.el lib/*.el
 
@@ -17,7 +19,7 @@ clean:
 	rm -f *.log benchmark/*.log *.elc lib/*.elc
 
 test:
-	emacs -Q -batch \
+	${EMACS} -Q -batch \
 	-L . \
 	-L lib \
 	-l ert \
