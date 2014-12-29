@@ -5,7 +5,7 @@ bench: benchel benchjs
 benchel:
 	emacs -Q \
 	-L . \
-	-L lib/js2-mode \
+	-L lib \
 	-l context-coloring \
 	-l benchmark/context-coloring-benchmark \
 	-f context-coloring-benchmark-run
@@ -15,8 +15,8 @@ benchjs:
 
 compile:
 	emacs -Q -batch \
-	-L lib/js2-mode \
-	-f batch-byte-compile *.el
+	-L lib \
+	-f batch-byte-compile *.el lib/*.el
 
 clean:
 	rm -f *.log benchmark/*.log *.elc
@@ -29,8 +29,7 @@ test: testel testjs
 testel:
 	emacs -Q -batch \
 	-L . \
-	-L lib/ert-async \
-	-L lib/js2-mode \
+	-L lib \
 	-l ert \
 	-l ert-async \
 	-l context-coloring \
