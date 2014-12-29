@@ -435,7 +435,7 @@ colorizing would be redundant."
   (if (not context-coloring-mode)
       (progn
         (context-coloring-kill-scopifier)
-        (when (not (null 'context-coloring-colorize-idle-timer))
+        (when context-coloring-colorize-idle-timer
           (cancel-timer context-coloring-colorize-idle-timer))
         (remove-hook 'js2-post-parse-callbacks 'context-coloring-colorize t)
         (remove-hook 'after-change-functions 'context-coloring-change-function t)
