@@ -28,9 +28,10 @@ FIXTURE."
            ,@body)
        (context-coloring-test-cleanup))))
 
-(defun context-coloring-test-with-temp-buffer (callback)
-  "Create a temporary buffer, and evaluate BODY there like `progn'.
-See also `with-temp-file' and `with-output-to-string'."
+(defun context-coloring-test-with-temp-buffer-async (callback)
+  "Create a temporary buffer, and evaluate CALLBACK there. A
+teardown callback is passed to CALLBACK for it to invoke when it
+is done."
   (let ((temp-buffer (make-symbol "temp-buffer")))
     (let ((previous-buffer (current-buffer))
           (temp-buffer (generate-new-buffer " *temp*")))
@@ -43,9 +44,10 @@ See also `with-temp-file' and `with-output-to-string'."
          (set-buffer previous-buffer))))))
 
 (defun context-coloring-test-with-fixture-async (fixture callback)
-  "Evaluate BODY in a temporary buffer with the relative
-FIXTURE."
-  (context-coloring-test-with-temp-buffer
+  "Evaluate CALLBACK in a temporary buffer with the relative
+FIXTURE. A teardown callback is passed to CALLBACK for it to
+invoke when it is done."
+  (context-coloring-test-with-temp-buffer-async
    (lambda (done-with-temp-buffer)
      (insert (context-coloring-test-read-file fixture))
      (funcall
@@ -57,12 +59,12 @@ FIXTURE."
 (defun context-coloring-test-js-mode (fixture callback)
   (context-coloring-test-with-fixture-async
    fixture
-   (lambda (done-with-fixture)
+   (lambda (done-with-test)
      (js-mode)
      (context-coloring-mode)
      (context-coloring-colorize
       (lambda ()
-        (funcall callback done-with-fixture))))))
+        (funcall callback done-with-test))))))
 
 (defmacro context-coloring-test-js2-mode (fixture &rest body)
   `(context-coloring-test-with-fixture
@@ -115,9 +117,10 @@ FIXTURE."
 (ert-deftest-async context-coloring-test-js-mode-function-scopes (done)
   (context-coloring-test-js-mode
    "./fixtures/function-scopes.js"
-   (lambda (done-with-fixture)
-     (context-coloring-test-js-function-scopes)
-     (funcall done-with-fixture)
+   (lambda (teardown)
+     (unwind-protect
+         (context-coloring-test-js-function-scopes)
+       (funcall teardown))
      (funcall done))))
 
 (ert-deftest context-coloring-test-js2-mode-function-scopes ()
@@ -130,10 +133,14 @@ FIXTURE."
   (context-coloring-test-region-level-p 28 35 0)
   (context-coloring-test-region-level-p 35 41 1))
 
-;; (ert-deftest context-coloring-test-js-mode-global ()
-;;   (context-coloring-test-js-mode
-;;    "./fixtures/global.js"
-;;    (context-coloring-test-js-global)))
+(ert-deftest-async context-coloring-test-js-mode-global (done)
+  (context-coloring-test-js-mode
+   "./fixtures/global.js"
+   (lambda (teardown)
+     (unwind-protect
+         (context-coloring-test-js-global)
+       (funcall teardown))
+     (funcall done))))
 
 (ert-deftest context-coloring-test-js2-mode-global ()
   (context-coloring-test-js2-mode
@@ -164,10 +171,14 @@ FIXTURE."
   (context-coloring-test-region-level-p 102 117 3)
   (context-coloring-test-region-level-p 117 123 2))
 
-;; (ert-deftest context-coloring-test-js-mode-catch ()
-;;   (context-coloring-test-js-mode
-;;    "./fixtures/catch.js"
-;;    (context-coloring-test-js-catch)))
+(ert-deftest-async context-coloring-test-js-mode-catch (done)
+  (context-coloring-test-js-mode
+   "./fixtures/catch.js"
+   (lambda (teardown)
+     (unwind-protect
+         (context-coloring-test-js-catch)
+       (funcall teardown))
+     (funcall done))))
 
 (ert-deftest context-coloring-test-js2-mode-catch ()
   (context-coloring-test-js2-mode
