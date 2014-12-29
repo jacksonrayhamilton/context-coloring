@@ -87,8 +87,9 @@ FIXTURE."
    "./fixtures/global.js"
    (js2-mode)
    (context-coloring-mode)
-   ;; Don't error.
-   ))
+   (context-coloring-test-region-level-p 20 28 1)
+   (context-coloring-test-region-level-p 28 35 0)
+   (context-coloring-test-region-level-p 35 41 1)))
 
 (ert-deftest context-coloring-test-js2-mode-block-scopes ()
   (context-coloring-test-js2-with-fixture

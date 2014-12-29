@@ -1,1 +1,3 @@
-var a = require('a');
+(function () {
+    var a = require('a');
+}());
