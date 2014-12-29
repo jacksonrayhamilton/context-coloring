@@ -19,7 +19,7 @@ FIXTURE."
      (insert (context-coloring-test-read-file ,fixture))
      ,@body))
 
-(defmacro context-coloring-test-js-with-fixture (fixture &rest body)
+(defmacro context-coloring-test-js-mode (fixture &rest body)
   `(context-coloring-test-with-fixture
     ,fixture
     (js-mode)
@@ -27,7 +27,7 @@ FIXTURE."
     (sleep-for .25) ; Wait for asynchronous coloring.
     ,@body))
 
-(defmacro context-coloring-test-js2-mode-with-fixture (fixture &rest body)
+(defmacro context-coloring-test-js2-mode (fixture &rest body)
   `(context-coloring-test-with-fixture
     ,fixture
     (require 'js2-mode)
@@ -76,29 +76,29 @@ FIXTURE."
   (context-coloring-test-region-level-p 87 89 1))
 
 (ert-deftest context-coloring-test-js-mode-function-scopes ()
-  (context-coloring-test-js-with-fixture
+  (context-coloring-test-js-mode
    "./fixtures/function-scopes.js"
    (context-coloring-test-js-function-scopes)))
 
 (ert-deftest context-coloring-test-js2-mode-function-scopes ()
-  (context-coloring-test-js2-mode-with-fixture
+  (context-coloring-test-js2-mode
    "./fixtures/function-scopes.js"
    (context-coloring-test-js-function-scopes)))
 
 (ert-deftest context-coloring-test-js2-mode-global ()
-  (context-coloring-test-js2-mode-with-fixture
+  (context-coloring-test-js2-mode
    "./fixtures/global.js"
    (context-coloring-test-region-level-p 20 28 1)
    (context-coloring-test-region-level-p 28 35 0)
    (context-coloring-test-region-level-p 35 41 1)))
 
 (ert-deftest context-coloring-test-js2-mode-block-scopes ()
-  (context-coloring-test-js2-mode-with-fixture
+  (context-coloring-test-js2-mode
    "./fixtures/block-scopes.js"
    (context-coloring-test-region-level-p 1 10 0)))
 
 (ert-deftest context-coloring-test-js2-mode-catch ()
-  (context-coloring-test-js2-mode-with-fixture
+  (context-coloring-test-js2-mode
    "./fixtures/catch.js"
    (context-coloring-test-region-level-p 20 27 1)
    (context-coloring-test-region-level-p 27 51 2)
