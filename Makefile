@@ -1,8 +1,6 @@
-all: clean install compile test
+all: clean compile test
 
-bench: benchel benchjs
-
-benchel:
+bench:
 	emacs -Q \
 	-L . \
 	-L lib \
@@ -10,23 +8,15 @@ benchel:
 	-l benchmark/context-coloring-benchmark \
 	-f context-coloring-benchmark-run
 
-benchjs:
-	node_modules/.bin/matcha
-
 compile:
 	emacs -Q -batch \
 	-L lib \
 	-f batch-byte-compile *.el lib/*.el
 
 clean:
-	rm -f *.log benchmark/*.log *.elc
+	rm -f *.log benchmark/*.log *.elc lib/*.elc
 
-install:
-	npm install
-
-test: testel testjs
-
-testel:
+test:
 	emacs -Q -batch \
 	-L . \
 	-L lib \
@@ -36,7 +26,4 @@ testel:
 	-l test/context-coloring-test.el \
 	-f ert-run-tests-batch-and-exit
 
-testjs:
-	node_modules/.bin/mocha
-
-.PHONY: all bench benchel benchjs compile clean install test testel testjs
+.PHONY: all bench compile clean test
