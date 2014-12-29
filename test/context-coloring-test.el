@@ -19,14 +19,22 @@ FIXTURE."
      (insert (context-coloring-test-read-file ,fixture))
      ,@body))
 
-(defmacro context-coloring-test-js2-with-fixture (fixture &rest body)
-  "Evaluate BODY in a temporary buffer with the relative
-FIXTURE."
+(defmacro context-coloring-test-js-with-fixture (fixture &rest body)
+  `(context-coloring-test-with-fixture
+    ,fixture
+    (js-mode)
+    (context-coloring-mode)
+    (sleep-for .25) ; Wait for asynchronous coloring.
+    ,@body))
+
+(defmacro context-coloring-test-js2-mode-with-fixture (fixture &rest body)
   `(context-coloring-test-with-fixture
     ,fixture
     (require 'js2-mode)
     (setq js2-mode-show-parse-errors nil)
     (setq js2-mode-show-strict-warnings nil)
+    (js2-mode)
+    (context-coloring-mode)
     ,@body))
 
 (defun context-coloring-test-region-level-p (start end level)
@@ -53,7 +61,7 @@ FIXTURE."
    (context-coloring-test-message-should-be
     "Context coloring is not available for this major mode")))
 
-(defun context-coloring-test-function-scopes ()
+(defun context-coloring-test-js-function-scopes ()
   (context-coloring-test-region-level-p 1 9 0)
   (context-coloring-test-region-level-p 9 23 1)
   (context-coloring-test-region-level-p 23 25 0)
@@ -68,41 +76,30 @@ FIXTURE."
   (context-coloring-test-region-level-p 87 89 1))
 
 (ert-deftest context-coloring-test-js-mode-function-scopes ()
-  (context-coloring-test-with-fixture
+  (context-coloring-test-js-with-fixture
    "./fixtures/function-scopes.js"
-   (js-mode)
-   (context-coloring-mode)
-   (sleep-for .25) ; Wait for asynchronous coloring.
-   (context-coloring-test-function-scopes)))
+   (context-coloring-test-js-function-scopes)))
 
 (ert-deftest context-coloring-test-js2-mode-function-scopes ()
-  (context-coloring-test-js2-with-fixture
+  (context-coloring-test-js2-mode-with-fixture
    "./fixtures/function-scopes.js"
-   (js2-mode)
-   (context-coloring-mode)
-   (context-coloring-test-function-scopes)))
+   (context-coloring-test-js-function-scopes)))
 
 (ert-deftest context-coloring-test-js2-mode-global ()
-  (context-coloring-test-js2-with-fixture
+  (context-coloring-test-js2-mode-with-fixture
    "./fixtures/global.js"
-   (js2-mode)
-   (context-coloring-mode)
    (context-coloring-test-region-level-p 20 28 1)
    (context-coloring-test-region-level-p 28 35 0)
    (context-coloring-test-region-level-p 35 41 1)))
 
 (ert-deftest context-coloring-test-js2-mode-block-scopes ()
-  (context-coloring-test-js2-with-fixture
+  (context-coloring-test-js2-mode-with-fixture
    "./fixtures/block-scopes.js"
-   (js2-mode)
-   (context-coloring-mode)
    (context-coloring-test-region-level-p 1 10 0)))
 
 (ert-deftest context-coloring-test-js2-mode-catch ()
-  (context-coloring-test-js2-with-fixture
+  (context-coloring-test-js2-mode-with-fixture
    "./fixtures/catch.js"
-   (js2-mode)
-   (context-coloring-mode)
    (context-coloring-test-region-level-p 20 27 1)
    (context-coloring-test-region-level-p 27 51 2)
    (context-coloring-test-region-level-p 51 52 1)
