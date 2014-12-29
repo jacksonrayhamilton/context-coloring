@@ -89,34 +89,53 @@ FIXTURE."
    "./fixtures/function-scopes.js"
    (context-coloring-test-js-function-scopes)))
 
+(defun context-coloring-test-js-global ()
+  (context-coloring-test-region-level-p 20 28 1)
+  (context-coloring-test-region-level-p 28 35 0)
+  (context-coloring-test-region-level-p 35 41 1))
+
+(ert-deftest context-coloring-test-js-mode-global ()
+  (context-coloring-test-js-mode
+   "./fixtures/global.js"
+   (context-coloring-test-js-global)))
+
 (ert-deftest context-coloring-test-js2-mode-global ()
   (context-coloring-test-js2-mode
    "./fixtures/global.js"
-   (context-coloring-test-region-level-p 20 28 1)
-   (context-coloring-test-region-level-p 28 35 0)
-   (context-coloring-test-region-level-p 35 41 1)))
+   (context-coloring-test-js-global)))
 
-(ert-deftest context-coloring-test-js2-mode-block-scopes ()
-  (context-coloring-test-js2-mode
-   "./fixtures/block-scopes.js"
-   (context-coloring-test-region-level-p 20 64 1)
+(defun context-coloring-test-js-block-scopes ()
+  (context-coloring-test-region-level-p 20 64 1)
    (setq context-coloring-js-block-scopes t)
    (context-coloring-colorize)
    (context-coloring-test-region-level-p 20 27 1)
    (context-coloring-test-region-level-p 27 41 2)
    (context-coloring-test-region-level-p 41 42 1)
-   (context-coloring-test-region-level-p 42 64 2)))
+   (context-coloring-test-region-level-p 42 64 2))
+
+(ert-deftest context-coloring-test-js2-mode-block-scopes ()
+  (context-coloring-test-js2-mode
+   "./fixtures/block-scopes.js"
+   (context-coloring-test-js-block-scopes)))
+
+(defun context-coloring-test-js-catch ()
+  (context-coloring-test-region-level-p 20 27 1)
+  (context-coloring-test-region-level-p 27 51 2)
+  (context-coloring-test-region-level-p 51 52 1)
+  (context-coloring-test-region-level-p 52 73 2)
+  (context-coloring-test-region-level-p 73 101 3)
+  (context-coloring-test-region-level-p 101 102 1)
+  (context-coloring-test-region-level-p 102 117 3)
+  (context-coloring-test-region-level-p 117 123 2))
+
+(ert-deftest context-coloring-test-js-mode-catch ()
+  (context-coloring-test-js-mode
+   "./fixtures/catch.js"
+   (context-coloring-test-js-catch)))
 
 (ert-deftest context-coloring-test-js2-mode-catch ()
   (context-coloring-test-js2-mode
    "./fixtures/catch.js"
-   (context-coloring-test-region-level-p 20 27 1)
-   (context-coloring-test-region-level-p 27 51 2)
-   (context-coloring-test-region-level-p 51 52 1)
-   (context-coloring-test-region-level-p 52 73 2)
-   (context-coloring-test-region-level-p 73 101 3)
-   (context-coloring-test-region-level-p 101 102 1)
-   (context-coloring-test-region-level-p 102 117 3)
-   (context-coloring-test-region-level-p 117 123 2)))
+   (context-coloring-test-js-catch)))
 
 (provide 'context-coloring-test)
