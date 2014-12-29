@@ -218,9 +218,9 @@ For example: \"context-coloring-level-1-face\"."
   "Gets the level of SCOPE."
   (let ((level 0)
         enclosing-scope)
-    (while (and (not (null scope))
-                (not (null (js2-node-parent scope)))
-                (not (null (setq enclosing-scope (js2-node-get-enclosing-scope scope)))))
+    (while (and scope
+                (js2-node-parent scope)
+                (setq enclosing-scope (js2-node-get-enclosing-scope scope)))
       (when (or context-coloring-block-scopes
                 (let ((type (js2-scope-type scope)))
                   (or (= type js2-SCRIPT)
@@ -252,6 +252,13 @@ For example: \"context-coloring-level-1-face\"."
                                                                 ; fail the test.
                                             start)))))))
 
+(defsubst context-coloring-js2-colorize-node (node level)
+  (let ((start (js2-node-abs-pos node)))
+    (context-coloring-colorize-region
+     start
+     (+ start (js2-node-len node)) ; End
+     level)))
+
 (defun context-coloring-js2-colorize ()
   (with-silent-modifications
     ;; (context-coloring-uncolorize-buffer)
@@ -261,33 +268,20 @@ For example: \"context-coloring-level-1-face\"."
        (when (null end-p)
          (cond
           ((js2-comment-node-p node)
-           (let ((start (js2-node-abs-pos node)))
-             (context-coloring-colorize-region
-              start
-              (+ start (js2-comment-node-len node)) ; End
-              -1                                    ; Level
-              )))
+           (context-coloring-js2-colorize-node
+            node
+            -1))
           ((js2-scope-p node)
-           ;; TODO: Work on catch blocks.
-           ;; (message "SCOPE: %s, SPOS: %s, EPOS: %s"
-           ;;          (js2-scope-type node)
-           ;;          (js2-node-abs-pos node)
-           ;;          (+ (js2-node-abs-pos node) (js2-scope-len node)))
-           (let ((start (js2-node-abs-pos node)))
-             (context-coloring-colorize-region
-              start
-              (+ start (js2-scope-len node))          ; End
-              (context-coloring-js2-scope-level node) ; Level
-              )))
+           (context-coloring-js2-colorize-node
+            node
+            (context-coloring-js2-scope-level node)))
           ((context-coloring-js2-local-name-node-p node)
-           (let ((start (js2-node-abs-pos node)))
-             (context-coloring-colorize-region
-              start
-              (+ start (js2-name-node-len node)) ; End
-              (context-coloring-js2-scope-level  ; Level
-               (js2-get-defining-scope
-                (js2-node-get-enclosing-scope node)
-                (js2-name-node-name node)))))))
+           (context-coloring-js2-colorize-node
+            node
+            (context-coloring-js2-scope-level
+             (js2-get-defining-scope
+              (js2-node-get-enclosing-scope node)
+              (js2-name-node-name node))))))
          ;; The `t' indicates to search children.
          t)))))
 
