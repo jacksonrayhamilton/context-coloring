@@ -34,7 +34,7 @@
 ;; To use, add the following to your ~/.emacs:
 
 ;; (require 'context-coloring)
-;; (add-hook 'js-mode-hook 'context-coloring-mode) ; Requires Node.js 0.10+.
+;; (add-hook 'js-mode-hook 'context-coloring-mode)
 
 ;;; Code:
 
@@ -228,27 +228,21 @@ For example: \"context-coloring-level-1-face\"."
                 (let ((type (js2-scope-type scope)))
                   (or (= type js2-SCRIPT)
                       (= type js2-FUNCTION)
-                      (= type js2-CATCH)
-                      (= type js2-WITH))))
+                      (= type js2-CATCH))))
         (setq level (+ level 1)))
       (setq scope enclosing-scope))
     level))
 
-;; Adapted from js2-refactor.el/js2r-vars.el
+;; Adapted from js2-refactor.el/js2r-vars.el.
+;; FIXME: This fails if there is whitespace between the name and the colon.
 (defsubst context-coloring-js2-local-name-node-p (node)
   (and (js2-name-node-p node)
        (let ((start (js2-node-abs-pos node)))
          (and
-          ;; (save-excursion ; not key in object literal { key: value }
-          ;;   (goto-char (+ (js2-node-abs-pos node) (js2-node-len node)))
-          ;;   (looking-at "[\n\t ]*:"))
           (let ((end (+ start (js2-node-len node))))
             (not (string-match "[\n\t ]*:" (buffer-substring-no-properties
                                             end
                                             (+ end 1)))))
-          ;; (save-excursion ; not property lookup on object
-          ;;   (goto-char (js2-node-abs-pos node))
-          ;;   (looking-back "\\.[\n\t ]*"))
           (not (string-match "\\.[\n\t ]*" (buffer-substring-no-properties
                                             (max 1 (- start 1)) ; 0 throws an
                                                                 ; error. "" will
@@ -264,7 +258,6 @@ For example: \"context-coloring-level-1-face\"."
 
 (defun context-coloring-js2-colorize ()
   (with-silent-modifications
-    ;; (context-coloring-uncolorize-buffer)
     (js2-visit-ast
      js2-mode-ast
      (lambda (node end-p)
@@ -297,7 +290,6 @@ to the current buffer. Tokens are 3 integers: start, end,
 level. The vector is flat, with a new token occurring after every
 3rd element."
   (with-silent-modifications
-    ;; (context-coloring-uncolorize-buffer)
     (let ((i 0)
           (len (length tokens)))
       (while (< i len)
@@ -458,9 +450,7 @@ colorizing would be redundant."
     (jit-lock-mode nil)
 
     ;; Colorize once initially.
-    ;; (let ((start-time (float-time)))
     (context-coloring-colorize)
-    ;;  (message "Elapsed time: %f" (- (float-time) start-time)))
 
     (cond
      ((equal major-mode 'js2-mode)
