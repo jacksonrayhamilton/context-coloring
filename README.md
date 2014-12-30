@@ -101,7 +101,7 @@ coloring:
 </p>
 
 If there is an abstract syntax tree generator for your language, you can walk
-the syntax tree, find variables and scopes, and build their lengths and levels
+the syntax tree, find variables and scopes, and build their positions and levels
 into an array like the one above.
 
 [linter]: https://github.com/jacksonrayhamilton/jslinted
