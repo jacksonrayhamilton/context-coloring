@@ -38,7 +38,7 @@ code*.
   - Async (1124 lines): 0.05 seconds (js2-mode), 0.17 seconds (js-mode)
   - mkdirp (98 lines): 0.005 seconds (js2-mode), 0.09 seconds (js-mode)
 
-* js2-mode parses idly, irrespective of this plugin; its benchmarks represent
+\* js2-mode parses idly, irrespective of this plugin; its benchmarks represent
 coloring only. js-mode benchmarks represent parsing and coloring.
 
 ## Usage
