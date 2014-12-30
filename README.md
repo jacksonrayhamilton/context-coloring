@@ -52,6 +52,13 @@ cd ~/.emacs.d/
 git clone https://github.com/jacksonrayhamilton/context-coloring.git
 ```
 
+- Byte-compile the package for improved speed.
+
+```bash
+cd context-coloring/
+make compile
+```
+
 - Add the following to your `~/.emacs` file:
 
 ```lisp
