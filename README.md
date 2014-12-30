@@ -32,11 +32,11 @@ code*.
 
 - Supported languages: JavaScript
 - Light and dark (customizable) color schemes.
-- Fast async AST parsing. Some total parse + recolor times:
-  - jQuery (9191 lines): 0.63 seconds
-  - Lodash (6786 lines): 0.37 seconds
-  - Async (1124 lines): 0.17 seconds
-  - mkdirp (98 lines): 0.09 seconds
+- Fast AST parsing. Some total parse + recolor times:
+  - jQuery (9191 lines): 0.43 seconds (js2-mode), 0.63 seconds (js-mode)
+  - Lodash (6786 lines): 0.19 seconds (js2-mode), 0.37 seconds (js-mode)
+  - Async (1124 lines): 0.05 seconds (js2-mode), 0.17 seconds (js-mode)
+  - mkdirp (98 lines): 0.005 seconds (js2-mode), 0.09 seconds (js-mode)
 
 ## Usage
 

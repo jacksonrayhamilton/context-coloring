@@ -67,6 +67,11 @@ ES6. If you are writing ES6 code, enable this; otherwise, don't.
 Supported modes: `js2-mode'"
   :group 'context-coloring)
 
+(defcustom context-coloring-benchmark-colorization nil
+  "If non-nil, track how long colorization takes and print
+messages with the colorization duration."
+  :group 'context-coloring)
+
 
 ;;; Local variables
 
@@ -416,7 +421,12 @@ of the current buffer, then does it."
 (defun context-coloring-colorize (&optional callback)
   "Colors the current buffer by function context."
   (interactive)
-  (context-coloring-dispatch callback))
+  (let ((start-time (float-time)))
+    (context-coloring-dispatch
+     (lambda ()
+       (when context-coloring-benchmark-colorization
+         (message "Colorization took %.3f seconds" (- (float-time) start-time)))
+       (if callback (funcall callback))))))
 
 (defun context-coloring-change-function (_start _end _length)
   "Registers a change so that a context-colored buffer can be
