@@ -196,4 +196,21 @@ invoke when it is done."
    "./fixtures/catch.js"
    (context-coloring-test-js-catch)))
 
+(defun context-coloring-test-js-key-names ()
+  (context-coloring-test-assert-region-level 20 63 1))
+
+(ert-deftest-async context-coloring-test-js-mode-key-names (done)
+  (context-coloring-test-js-mode
+   "./fixtures/key-names.js"
+   (lambda (teardown)
+     (unwind-protect
+         (context-coloring-test-js-key-names)
+       (funcall teardown))
+     (funcall done))))
+
+(ert-deftest context-coloring-test-js2-mode-key-names ()
+  (context-coloring-test-js2-mode
+   "./fixtures/key-names.js"
+   (context-coloring-test-js-key-names)))
+
 (provide 'context-coloring-test)
