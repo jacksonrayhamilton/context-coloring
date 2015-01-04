@@ -76,18 +76,29 @@ invoke when it is done."
     (context-coloring-mode)
     ,@body))
 
-(defun context-coloring-test-region-level-p (start end level)
+(defconst context-coloring-test-level-regexp
+  "context-coloring-level-\\([[:digit:]]+\\)-face")
+
+(defun context-coloring-test-assert-region-level (start end level)
   (let ((i 0)
         (length (- end start)))
     (while (< i length)
-      (let ((point (+ i start)))
-        (should (equal (get-text-property point 'face)
-                       (intern-soft (concat "context-coloring-level-"
-                                            (number-to-string level)
-                                            "-face")))))
+      (let* ((point (+ i start))
+             (face (get-text-property point 'face))
+             actual-level)
+        (when (not (when face
+                     (let* ((face-string (symbol-name face))
+                            (matches (string-match context-coloring-test-level-regexp face-string)))
+                       (when matches
+                         (setq actual-level (string-to-number (substring face-string
+                                                                         (match-beginning 1)
+                                                                         (match-end 1))))
+                         (= level actual-level)))))
+          (ert-fail (format "Expected level at point %s to be %s; was %s"
+                            point level actual-level))))
       (setq i (+ i 1)))))
 
-(defun context-coloring-test-message-should-be (expected)
+(defun context-coloring-test-assert-message (expected)
   (with-current-buffer "*Messages*"
     (let ((messages (split-string (buffer-substring-no-properties (point-min) (point-max)) "\n")))
       (let ((message (car (nthcdr (- (length messages) 2) messages))))
@@ -97,22 +108,22 @@ invoke when it is done."
   (context-coloring-test-with-fixture
    "./fixtures/function-scopes.js"
    (context-coloring-mode)
-   (context-coloring-test-message-should-be
+   (context-coloring-test-assert-message
     "Context coloring is not available for this major mode")))
 
 (defun context-coloring-test-js-function-scopes ()
-  (context-coloring-test-region-level-p 1 9 0)
-  (context-coloring-test-region-level-p 9 23 1)
-  (context-coloring-test-region-level-p 23 25 0)
-  (context-coloring-test-region-level-p 25 34 1)
-  (context-coloring-test-region-level-p 34 35 0)
-  (context-coloring-test-region-level-p 35 52 1)
-  (context-coloring-test-region-level-p 52 66 2)
-  (context-coloring-test-region-level-p 66 72 1)
-  (context-coloring-test-region-level-p 72 81 2)
-  (context-coloring-test-region-level-p 81 82 1)
-  (context-coloring-test-region-level-p 82 87 2)
-  (context-coloring-test-region-level-p 87 89 1))
+  (context-coloring-test-assert-region-level 1 9 0)
+  (context-coloring-test-assert-region-level 9 23 1)
+  (context-coloring-test-assert-region-level 23 25 0)
+  (context-coloring-test-assert-region-level 25 34 1)
+  (context-coloring-test-assert-region-level 34 35 0)
+  (context-coloring-test-assert-region-level 35 52 1)
+  (context-coloring-test-assert-region-level 52 66 2)
+  (context-coloring-test-assert-region-level 66 72 1)
+  (context-coloring-test-assert-region-level 72 81 2)
+  (context-coloring-test-assert-region-level 81 82 1)
+  (context-coloring-test-assert-region-level 82 87 2)
+  (context-coloring-test-assert-region-level 87 89 1))
 
 (ert-deftest-async context-coloring-test-js-mode-function-scopes (done)
   (context-coloring-test-js-mode
@@ -129,9 +140,9 @@ invoke when it is done."
    (context-coloring-test-js-function-scopes)))
 
 (defun context-coloring-test-js-global ()
-  (context-coloring-test-region-level-p 20 28 1)
-  (context-coloring-test-region-level-p 28 35 0)
-  (context-coloring-test-region-level-p 35 41 1))
+  (context-coloring-test-assert-region-level 20 28 1)
+  (context-coloring-test-assert-region-level 28 35 0)
+  (context-coloring-test-assert-region-level 35 41 1))
 
 (ert-deftest-async context-coloring-test-js-mode-global (done)
   (context-coloring-test-js-mode
@@ -148,13 +159,13 @@ invoke when it is done."
    (context-coloring-test-js-global)))
 
 (defun context-coloring-test-js-block-scopes ()
-  (context-coloring-test-region-level-p 20 64 1)
+  (context-coloring-test-assert-region-level 20 64 1)
    (setq context-coloring-js-block-scopes t)
    (context-coloring-colorize)
-   (context-coloring-test-region-level-p 20 27 1)
-   (context-coloring-test-region-level-p 27 41 2)
-   (context-coloring-test-region-level-p 41 42 1)
-   (context-coloring-test-region-level-p 42 64 2))
+   (context-coloring-test-assert-region-level 20 27 1)
+   (context-coloring-test-assert-region-level 27 41 2)
+   (context-coloring-test-assert-region-level 41 42 1)
+   (context-coloring-test-assert-region-level 42 64 2))
 
 (ert-deftest context-coloring-test-js2-mode-block-scopes ()
   (context-coloring-test-js2-mode
@@ -162,14 +173,14 @@ invoke when it is done."
    (context-coloring-test-js-block-scopes)))
 
 (defun context-coloring-test-js-catch ()
-  (context-coloring-test-region-level-p 20 27 1)
-  (context-coloring-test-region-level-p 27 51 2)
-  (context-coloring-test-region-level-p 51 52 1)
-  (context-coloring-test-region-level-p 52 73 2)
-  (context-coloring-test-region-level-p 73 101 3)
-  (context-coloring-test-region-level-p 101 102 1)
-  (context-coloring-test-region-level-p 102 117 3)
-  (context-coloring-test-region-level-p 117 123 2))
+  (context-coloring-test-assert-region-level 20 27 1)
+  (context-coloring-test-assert-region-level 27 51 2)
+  (context-coloring-test-assert-region-level 51 52 1)
+  (context-coloring-test-assert-region-level 52 73 2)
+  (context-coloring-test-assert-region-level 73 101 3)
+  (context-coloring-test-assert-region-level 101 102 1)
+  (context-coloring-test-assert-region-level 102 117 3)
+  (context-coloring-test-assert-region-level 117 123 2))
 
 (ert-deftest-async context-coloring-test-js-mode-catch (done)
   (context-coloring-test-js-mode
