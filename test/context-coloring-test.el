@@ -213,4 +213,24 @@ invoke when it is done."
    "./fixtures/key-names.js"
    (context-coloring-test-js-key-names)))
 
+(defun context-coloring-test-js-property-lookup ()
+  (context-coloring-test-assert-region-level 20 26 0)
+  (context-coloring-test-assert-region-level 26 38 1)
+  (context-coloring-test-assert-region-level 38 44 0)
+  (context-coloring-test-assert-region-level 44 52 1))
+
+(ert-deftest-async context-coloring-test-js-mode-property-lookup (done)
+  (context-coloring-test-js-mode
+   "./fixtures/property-lookup.js"
+   (lambda (teardown)
+     (unwind-protect
+         (context-coloring-test-js-property-lookup)
+       (funcall teardown))
+     (funcall done))))
+
+(ert-deftest context-coloring-test-js2-mode-property-lookup ()
+  (context-coloring-test-js2-mode
+   "./fixtures/property-lookup.js"
+   (context-coloring-test-js-property-lookup)))
+
 (provide 'context-coloring-test)
