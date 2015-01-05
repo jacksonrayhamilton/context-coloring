@@ -15,6 +15,7 @@
     (with-temp-buffer
       (insert "\n")
       (append-to-buffer results-buffer (point-min) (point-max))))
+  (make-directory (context-coloring-benchmark-resolve-path "./logs") t)
   (append-to-file nil nil result-file))
 
 (defun context-coloring-benchmark-next-tick (function)
@@ -34,7 +35,7 @@
 (defun context-coloring-benchmark-async (title setup teardown fixtures callback)
   (funcall setup)
   (let ((result-file (context-coloring-benchmark-resolve-path
-                      (concat "./results-" title "-" (format-time-string "%s") ".log"))))
+                      (concat "./logs/results-" title "-" (format-time-string "%s") ".log"))))
     (context-coloring-benchmark-next
      fixtures
      (lambda (path next)

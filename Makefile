@@ -16,7 +16,7 @@ compile:
 	-f batch-byte-compile *.el lib/*.el
 
 clean:
-	rm -f *.log benchmark/*.log *.elc lib/*.elc
+	rm -f *.elc lib/*.elc
 
 test:
 	${EMACS} -Q -batch \
