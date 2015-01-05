@@ -336,7 +336,9 @@ buffer."
 (defun context-coloring-scopify-shell-command (command &optional callback)
   "Invokes a scopifier with the current buffer's contents,
 reading the scopifier's response asynchronously and applying a
-parsed list of tokens to `context-coloring-apply-tokens'."
+parsed list of tokens to `context-coloring-apply-tokens'.
+
+Invokes CALLBACK when complete."
 
   ;; Prior running tokenization is implicitly obsolete if this function is
   ;; called.
@@ -390,12 +392,16 @@ parsed list of tokens to `context-coloring-apply-tokens'."
   `(js-mode ,context-coloring-javascript-scopifier
             js2-mode ,context-coloring-js2-colorizer
             js3-mode ,context-coloring-javascript-scopifier)
-  "Property list mapping major modes to scopification programs."
+  "Property list mapping major modes to scopification and
+colorization programs."
   :group 'context-coloring)
 
 (defun context-coloring-dispatch (&optional callback)
   "Determines the optimal track for scopification / colorization
-of the current buffer, then does it."
+of the current buffer, then executes it.
+
+Invokes CALLBACK when complete. It is invoked synchronously for
+elisp tracks, and asynchronously for shell command tracks."
   (let ((dispatch (plist-get context-coloring-dispatch-plist major-mode)))
     (if (null dispatch)
         (message "%s" "Context coloring is not available for this major mode"))
@@ -427,7 +433,9 @@ of the current buffer, then does it."
 ;;; Colorization
 
 (defun context-coloring-colorize (&optional callback)
-  "Colors the current buffer by function context."
+  "Colors the current buffer by function context.
+
+Invokes CALLBACK when complete; see `context-coloring-dispatch'."
   (interactive)
   (let ((start-time (float-time)))
     (context-coloring-dispatch
