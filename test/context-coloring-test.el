@@ -94,8 +94,8 @@ invoke when it is done."
                                                                          (match-beginning 1)
                                                                          (match-end 1))))
                          (= level actual-level)))))
-          (ert-fail (format "Expected level at point %s to be %s; was %s"
-                            point level actual-level))))
+          (ert-fail (format "Expected level in region [%s, %s), which is \"%s\", to be %s; but at point %s, it was %s"
+                            start end (buffer-substring-no-properties start end) level point actual-level))))
       (setq i (+ i 1)))))
 
 (defun context-coloring-test-assert-message (expected)
@@ -195,5 +195,44 @@ invoke when it is done."
   (context-coloring-test-js2-mode
    "./fixtures/catch.js"
    (context-coloring-test-js-catch)))
+
+(defun context-coloring-test-js-key-names ()
+  (context-coloring-test-assert-region-level 20 63 1))
+
+(ert-deftest-async context-coloring-test-js-mode-key-names (done)
+  (context-coloring-test-js-mode
+   "./fixtures/key-names.js"
+   (lambda (teardown)
+     (unwind-protect
+         (context-coloring-test-js-key-names)
+       (funcall teardown))
+     (funcall done))))
+
+(ert-deftest context-coloring-test-js2-mode-key-names ()
+  (context-coloring-test-js2-mode
+   "./fixtures/key-names.js"
+   (context-coloring-test-js-key-names)))
+
+(defun context-coloring-test-js-property-lookup ()
+  (context-coloring-test-assert-region-level 20 26 0)
+  (context-coloring-test-assert-region-level 26 38 1)
+  (context-coloring-test-assert-region-level 38 44 0)
+  (context-coloring-test-assert-region-level 44 52 1)
+  (context-coloring-test-assert-region-level 57 63 0)
+  (context-coloring-test-assert-region-level 63 74 1))
+
+(ert-deftest-async context-coloring-test-js-mode-property-lookup (done)
+  (context-coloring-test-js-mode
+   "./fixtures/property-lookup.js"
+   (lambda (teardown)
+     (unwind-protect
+         (context-coloring-test-js-property-lookup)
+       (funcall teardown))
+     (funcall done))))
+
+(ert-deftest context-coloring-test-js2-mode-property-lookup ()
+  (context-coloring-test-js2-mode
+   "./fixtures/property-lookup.js"
+   (context-coloring-test-js-property-lookup)))
 
 (provide 'context-coloring-test)

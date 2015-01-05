@@ -227,6 +227,7 @@ END (exclusive) with the face corresponding to LEVEL."
 
 ;;; js2-mode colorization
 
+;; TODO: Consider `js2-node-top-level-decl-p' as an optimization.
 (defsubst context-coloring-js2-scope-level (scope)
   "Gets the level of SCOPE."
   (let ((level 0)
@@ -243,23 +244,16 @@ END (exclusive) with the face corresponding to LEVEL."
       (setq scope enclosing-scope))
     level))
 
-;; Adapted from js2-refactor.el/js2r-vars.el.
-;; FIXME: This fails if there is whitespace between the name and the colon.
 (defsubst context-coloring-js2-local-name-node-p (node)
   "Determines if NODE is a js2-name-node representing a local
 variable."
   (and (js2-name-node-p node)
-       (let ((start (js2-node-abs-pos node)))
-         (and
-          (let ((end (+ start (js2-node-len node))))
-            (not (string-match "[\n\t ]*:" (buffer-substring-no-properties
-                                            end
-                                            (+ end 1)))))
-          (not (string-match "\\.[\n\t ]*" (buffer-substring-no-properties
-                                            (max 1 (- start 1)) ; 0 throws an
-                                                                ; error. "" will
-                                                                ; fail the test.
-                                            start)))))))
+       (let ((parent (js2-node-parent node)))
+         (not (or (js2-object-prop-node-p parent)
+                  (and (js2-prop-get-node-p parent)
+                       ;; For nested property lookup, the node on the left is a
+                       ;; `js2-prop-get-node', so this always works.
+                       (eq node (js2-prop-get-node-right parent))))))))
 
 (defsubst context-coloring-js2-colorize-node (node level)
   "Colors NODE with the color for LEVEL."
