@@ -1,6 +1,6 @@
 // Reads a JavaScript file from stdin.
 
-// Writes an array of `[start, end, level, style]' tokens to stdout.
+// Writes an array of tokens to stdout.
 
 'use strict';
 
