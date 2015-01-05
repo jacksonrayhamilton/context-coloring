@@ -94,8 +94,8 @@ invoke when it is done."
                                                                          (match-beginning 1)
                                                                          (match-end 1))))
                          (= level actual-level)))))
-          (ert-fail (format "Expected level at point %s to be %s; was %s"
-                            point level actual-level))))
+          (ert-fail (format "Expected level in region [%s, %s), which is \"%s\", to be %s; but at point %s, it was %s"
+                            start end (buffer-substring-no-properties start end) level point actual-level))))
       (setq i (+ i 1)))))
 
 (defun context-coloring-test-assert-message (expected)
