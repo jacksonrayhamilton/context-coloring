@@ -217,7 +217,9 @@ invoke when it is done."
   (context-coloring-test-assert-region-level 20 26 0)
   (context-coloring-test-assert-region-level 26 38 1)
   (context-coloring-test-assert-region-level 38 44 0)
-  (context-coloring-test-assert-region-level 44 52 1))
+  (context-coloring-test-assert-region-level 44 52 1)
+  (context-coloring-test-assert-region-level 57 63 0)
+  (context-coloring-test-assert-region-level 63 74 1))
 
 (ert-deftest-async context-coloring-test-js-mode-property-lookup (done)
   (context-coloring-test-js-mode
