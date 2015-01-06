@@ -255,7 +255,8 @@ END (exclusive) with the face corresponding to LEVEL."
 variable."
   (and (js2-name-node-p node)
        (let ((parent (js2-node-parent node)))
-         (not (or (js2-object-prop-node-p parent)
+         (not (or (and (js2-object-prop-node-p parent)
+                       (eq node (js2-object-prop-node-left parent)))
                   (and (js2-prop-get-node-p parent)
                        ;; For nested property lookup, the node on the left is a
                        ;; `js2-prop-get-node', so this always works.
