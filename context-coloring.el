@@ -4,7 +4,7 @@
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; Keywords: context coloring syntax highlighting
-;; Version: 2.0.0
+;; Version: 2.0.1
 ;; Package-Requires: ((emacs "24") (js2-mode "20141228"))
 
 ;; This program is free software; you can redistribute it and/or modify
