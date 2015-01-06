@@ -4,7 +4,7 @@
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; Keywords: context coloring syntax highlighting
-;; Version: 1.0.0
+;; Version: 2.0.1
 ;; Package-Requires: ((emacs "24") (js2-mode "20141228"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -255,7 +255,8 @@ END (exclusive) with the face corresponding to LEVEL."
 variable."
   (and (js2-name-node-p node)
        (let ((parent (js2-node-parent node)))
-         (not (or (js2-object-prop-node-p parent)
+         (not (or (and (js2-object-prop-node-p parent)
+                       (eq node (js2-object-prop-node-left parent)))
                   (and (js2-prop-get-node-p parent)
                        ;; For nested property lookup, the node on the left is a
                        ;; `js2-prop-get-node', so this always works.
