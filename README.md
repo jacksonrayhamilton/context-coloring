@@ -70,6 +70,43 @@ make compile
 (add-hook 'js-mode-hook 'context-coloring-mode)
 ```
 
+## Customizing
+
+You can adjust the colors to your liking using
+`context-coloring-set-colors`. The first argument is an alist of levels, and the
+optional second argument is the new total number of levels. This plugin does not
+figure out the total for you; you need to specify it if your number of colors is
+different from the default (`7`).
+
+I like to take the colors from an existing theme and use those to create a
+rainbow that matches that theme. The end result is consistent, and usually looks
+as good as the theme does. Here's an example for `tango`:
+
+```lisp
+;; ~/.emacs
+(load-theme 'tango)
+(require 'context-coloring)
+(defun jrh-context-coloring-tango ()
+  (interactive)
+  (context-coloring-set-colors
+   '((comment . "#5f615c")
+     (0       . "#2e3436") ; Globals.
+     (1       . "#346604")
+     (2       . "#204a87")
+     (3       . "#5c3566")
+     (4       . "#a40000")
+     (5       . "#b35000")
+     (6       . "#c4a000")
+     (7       . "#8ae234") ; "You're screwed" colors.
+     (8       . "#8cc4ff")
+     (9       . "#ad7fa8")
+     (10      . "#ef2929")
+     (11      . "#fcaf3e")
+     (12      . "#fce94f"))
+   13))
+(jrh-context-coloring-tango)
+```
+
 ## Extending
 
 To add support for a new language, write a "scopifier" for it, and add an entry

@@ -4,7 +4,7 @@
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; Keywords: context coloring syntax highlighting
-;; Version: 2.0.1
+;; Version: 2.1.0
 ;; Package-Requires: ((emacs "24") (js2-mode "20141228"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -189,22 +189,37 @@ Determines level at which to cycle through faces again."
 
 ;;; Face functions
 
+(defsubst context-coloring-face-symbol (level)
+  "Returns a symbol for a face with LEVEL."
+  (intern-soft (concat "context-coloring-level-" (number-to-string level) "-face")))
+
+(defun context-coloring-set-colors (pairs &optional count)
+  "Set an alist of PAIRS for different levels' colors. Also sets
+`context-coloring-face-count' to COUNT, if specified."
+  (dolist (pair pairs)
+    (let ((level (car pair))
+          (color (cdr pair)))
+      (cond
+       ((eq level 'comment)
+        (setq level -1)))
+      (set-face-foreground (context-coloring-face-symbol level) color)))
+  (when count
+    (setq context-coloring-face-count count)))
+
 (defsubst context-coloring-level-face (level)
   "Return face-name for LEVEL as a string \"context-coloring-level-LEVEL-face\".
-For example: \"context-coloring-level-1-face\"."
-  (intern-soft
-   (concat "context-coloring-level-"
-           (number-to-string
-            (or
-             ;; Has a face directly mapping to it.
-             (and (< level context-coloring-face-count)
-                  level)
-             ;; After the number of available faces are used up, pretend the 0th
-             ;; face doesn't exist.
-             (+ 1
-                (mod (- level 1)
-                     (- context-coloring-face-count 1)))))
-           "-face")))
+For example: \"context-coloring-level-1-face\". Automatically
+wraps around to reuse faces when levels get too deep."
+  (context-coloring-face-symbol
+   (or
+    ;; Has a face directly mapping to it.
+    (and (< level context-coloring-face-count)
+         level)
+    ;; After the number of available faces are used up, pretend the 0th
+    ;; face doesn't exist.
+    (+ 1
+       (mod (- level 1)
+            (- context-coloring-face-count 1))))))
 
 
 ;;; Colorization utilities
