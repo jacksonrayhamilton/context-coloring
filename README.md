@@ -22,8 +22,7 @@ This coloring strategy is probably more useful than conventional *syntax*
 highlighting. Highlighting keywords can help one to detect spelling errors, and
 highlighting the content between quotation marks can alert one to unclosed
 string literals. But a [linter][] could also spot those errors, and if
-[integrated via flycheck][integration], an extra spot opens up in your editing
-toolbelt.
+integrated via [flycheck][], an extra spot opens up in your editing toolbelt.
 
 Give context coloring a try; you may find that it *changes the way you write
 code*.
@@ -141,8 +140,8 @@ If there is an abstract syntax tree generator for your language, you can walk
 the syntax tree, find variables and scopes, and build their positions and levels
 into an array like the one above.
 
-[linter]: https://github.com/jacksonrayhamilton/jslinted
-[integration]: https://github.com/jacksonrayhamilton/jslinted#emacs-integration
+[linter]: http://jshint.com/about/
+[flycheck]: https://github.com/flycheck/flycheck
 [point]: http://www.gnu.org/software/emacs/manual/html_node/elisp/Point.html
 [js2-mode]: https://github.com/mooz/js2-mode
 [node]: http://nodejs.org/download/
