@@ -141,7 +141,7 @@ the syntax tree, find variables and scopes, and build their positions and levels
 into an array like the one above.
 
 [linter]: http://jshint.com/about/
-[flycheck]: https://github.com/flycheck/flycheck
+[flycheck]: http://www.flycheck.org/
 [point]: http://www.gnu.org/software/emacs/manual/html_node/elisp/Point.html
 [js2-mode]: https://github.com/mooz/js2-mode
 [node]: http://nodejs.org/download/
