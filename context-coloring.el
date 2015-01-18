@@ -519,4 +519,8 @@ colorizing would be redundant."
 
 (provide 'context-coloring)
 
+;; Local Variables:
+;; eval: (when (fboundp 'rainbow-mode) (rainbow-mode 1))
+;; End:
+
 ;;; context-coloring.el ends here
