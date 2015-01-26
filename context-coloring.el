@@ -87,97 +87,36 @@ used.")
 
 ;;; Faces
 
-(defface context-coloring-level--1-face
-  '((((type tty)) (:foreground "white"))
-    (t (:foreground "#7f7f7f")))
-  "Context coloring face, level -1; comments."
-  :group 'context-coloring-faces)
+(defmacro context-coloring-defface (level tty light dark)
+  (let ((face (intern (format "context-coloring-level-%s-face" level)))
+        (doc (format "Context coloring face, level %s." level)))
+    `(defface ,face
+       '((((type tty)) (:foreground ,tty))
+         (((background light)) (:foreground ,light))
+         (((background dark)) (:foreground ,dark)))
+       ,doc
+       :group 'context-coloring)))
 
-(defface context-coloring-level-0-face
-  '((((type tty)) (:foreground "white"))
-    (((background light)) (:foreground "#000000"))
-    (((background dark)) (:foreground "#ffffff")))
-  "Context coloring face, level 0; global scope."
-  :group 'context-coloring-faces)
+(context-coloring-defface -1 "white"   "#7f7f7f" "#7f7f7f")
+(context-coloring-defface 0  "white"   "#000000" "#ffffff")
+(context-coloring-defface 1  "yellow"  "#007f80" "#ffff80")
+(context-coloring-defface 2  "green"   "#001580" "#cdfacd")
+(context-coloring-defface 3  "cyan"    "#550080" "#d8d8ff")
+(context-coloring-defface 4  "blue"    "#802b00" "#e7c7ff")
+(context-coloring-defface 5  "magenta" "#6a8000" "#ffcdcd")
+(context-coloring-defface 6  "red"     "#008000" "#ffe390")
 
-(defface context-coloring-level-1-face
-  '((((type tty)) (:foreground "yellow"))
-    (((background light)) (:foreground "#007f80"))
-    (((background dark)) (:foreground "#ffff80")))
-  "Context coloring face, level 1."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-level-2-face
-  '((((type tty)) (:foreground "green"))
-    (((background light)) (:foreground "#001580"))
-    (((background dark)) (:foreground "#cdfacd")))
-  "Context coloring face, level 2."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-level-3-face
-  '((((type tty)) (:foreground "cyan"))
-    (((background light)) (:foreground "#550080"))
-    (((background dark)) (:foreground "#d8d8ff")))
-  "Context coloring face, level 3."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-level-4-face
-  '((((type tty)) (:foreground "blue"))
-    (((background light)) (:foreground "#802b00"))
-    (((background dark)) (:foreground "#e7c7ff")))
-  "Context coloring face, level 4."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-level-5-face
-  '((((type tty)) (:foreground "magenta"))
-    (((background light)) (:foreground "#6a8000"))
-    (((background dark)) (:foreground "#ffcdcd")))
-  "Context coloring face, level 5."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-level-6-face
-  '((((type tty)) (:foreground "red"))
-    (((background light)) (:foreground "#008000"))
-    (((background dark)) (:foreground "#ffe390")))
-  "Context coloring face, level 6."
-  :group 'context-coloring-faces)
-
-;;; Additional 6 faces for insane levels of nesting
-
-(defface context-coloring-level-7-face
-  '((t (:inherit context-coloring-level-1-face)))
-  "Context coloring face, level 7."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-level-8-face
-  '((t (:inherit context-coloring-level-2-face)))
-  "Context coloring face, level 8."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-level-9-face
-  '((t (:inherit context-coloring-level-3-face)))
-  "Context coloring face, level 9."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-level-10-face
-  '((t (:inherit context-coloring-level-4-face)))
-  "Context coloring face, level 10."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-level-11-face
-  '((t (:inherit context-coloring-level-5-face)))
-  "Context coloring face, level 11."
-  :group 'context-coloring-faces)
-
-(defface context-coloring-level-12-face
-  '((t (:inherit context-coloring-level-6-face)))
-  "Context coloring face, level 12."
-  :group 'context-coloring-faces)
-
-(defcustom context-coloring-face-count 7
+(defcustom context-coloring-face-count 8
   "Number of faces defined for highlighting levels.
 Determines level at which to cycle through faces again."
   :group 'context-coloring)
+
+(defvar context-coloring-max-level (- context-coloring-face-count 1))
+
+(defun context-coloring-defface-doom (level)
+  (eval (macroexpand `(context-coloring-defface ,level "white" "#3f3f3f" "#cdcdcd"))))
+
+(context-coloring-defface-doom context-coloring-max-level)
 
 
 ;;; Face functions
@@ -189,30 +128,25 @@ Determines level at which to cycle through faces again."
 (defun context-coloring-set-colors (pairs &optional count)
   "Set an alist of PAIRS for different levels' colors. Also sets
 `context-coloring-face-count' to COUNT, if specified."
+  (when count
+    (setq context-coloring-face-count count)
+    (setq context-coloring-max-level (- count 1))
+    ;; Ensure there are available faces to contain new colors.
+    (let ((current context-coloring-max-level))
+      (while (not (context-coloring-face-symbol current))
+        (context-coloring-defface-doom current)
+        (setq current (- current 1)))))
   (dolist (pair pairs)
     (let ((level (car pair))
           (color (cdr pair)))
       (cond
        ((eq level 'comment)
         (setq level -1)))
-      (set-face-foreground (context-coloring-face-symbol level) color)))
-  (when count
-    (setq context-coloring-face-count count)))
+      (set-face-foreground (context-coloring-face-symbol level) color))))
 
 (defsubst context-coloring-level-face (level)
-  "Return face-name for LEVEL as a string \"context-coloring-level-LEVEL-face\".
-For example: \"context-coloring-level-1-face\". Automatically
-wraps around to reuse faces when levels get too deep."
-  (context-coloring-face-symbol
-   (or
-    ;; Has a face directly mapping to it.
-    (and (< level context-coloring-face-count)
-         level)
-    ;; After the number of available faces are used up, pretend the 0th
-    ;; face doesn't exist.
-    (+ 1
-       (mod (- level 1)
-            (- context-coloring-face-count 1))))))
+  "Returns the face name for LEVEL."
+  (context-coloring-face-symbol (min level context-coloring-max-level)))
 
 
 ;;; Colorization utilities
@@ -454,8 +388,7 @@ Invokes CALLBACK when complete; see `context-coloring-dispatch'."
        (if callback (funcall callback))))))
 
 (defun context-coloring-change-function (_start _end _length)
-  "Registers a change so that a context-colored buffer can be
-colorized soon."
+  "Registers a change so that a buffer can be colorized soon."
   ;; Tokenization is obsolete if there was a change.
   (context-coloring-kill-scopifier)
   (setq context-coloring-changed t))
