@@ -22,14 +22,7 @@
 
 ;;; Commentary:
 
-;; Colors code by scope, rather than by syntax.
-
-;; A range of characters encompassing a scope is colored according to its level;
-;; the global scope is white, scopes within the global scope are yellow, scopes
-;; within scopes within the global scope are green, etc.  Variables defined in a
-;; parent scope which are referenced from child scopes retain the same color as
-;; the scope in which they are defined; a variable defined in the global scope
-;; will be the same color when referenced from nested scopes.
+;; Highlights code according to function context.
 
 ;; To use, add the following to your ~/.emacs:
 
@@ -397,7 +390,7 @@ Invokes CALLBACK when complete."
   `(:type shell-command
           :executable "node"
           :command ,(expand-file-name
-                     "./languages/javascript/bin/scopifier"
+                     "./languages/javascript/binaries/scopifier"
                      context-coloring-path)))
 
 (defvar context-coloring-js2-colorizer

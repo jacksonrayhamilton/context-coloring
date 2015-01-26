@@ -1,7 +1,7 @@
 'use strict';
 
-var escope = require('./lib/escope'),
-    esprima = require('./lib/esprima');
+var escope = require('./libraries/escope'),
+    esprima = require('./libraries/esprima');
 
 // Given code, returns an array of tokens for context-coloring.
 function scopifier(code) {

@@ -5,23 +5,23 @@ all: clean compile test
 bench:
 	${EMACS} -Q \
 	-L . \
-	-L lib \
+	-L libraries \
 	-l context-coloring \
 	-l benchmark/context-coloring-benchmark \
 	-f context-coloring-benchmark-run
 
 compile:
 	${EMACS} -Q -batch \
-	-L lib \
-	-f batch-byte-compile *.el lib/*.el
+	-L libraries \
+	-f batch-byte-compile *.el libraries/*.el
 
 clean:
-	rm -f *.elc lib/*.elc
+	rm -f *.elc libraries/*.elc
 
 test:
 	${EMACS} -Q -batch \
 	-L . \
-	-L lib \
+	-L libraries \
 	-l ert \
 	-l ert-async \
 	-l context-coloring \

@@ -10,13 +10,13 @@ Highlights code according to function context.
   scope is a different color, and code within such functions is another color,
   and so on.
 - Identifiers retain the color of the scope in which they were declared.
-- Comments are gray.
+- Comments are a neutral color.
 
 Lexical scope information at-a-glance can assist a programmer in understanding
 the overall structure of a program. It can also help curb nasty bugs like name
 shadowing or unexpected assignment. A rainbow can indicate excessive
 complexity. A spot of contrast followed by an assignment expression could be a
-side-effect... or, the state of a closure could be undergoing change.
+side-effect. The state of a closure could be undergoing change.
 
 This coloring strategy is probably more useful than conventional *syntax*
 highlighting. Highlighting keywords can help one to detect spelling errors, and
@@ -133,7 +133,7 @@ applying level 1 coloring to the range &#91;9, 23) would result in the following
 coloring:
 
 <p align="center">
-  <img alt="Screenshot of ranges &#91;1, 24) and &#91;9, 23)." src="scopifier-example.png" title="Screenshot">
+  <img alt="Screenshot of ranges &#91;1, 24) and &#91;9, 23)." src="scopifier.png" title="Screenshot">
 </p>
 
 If there is an abstract syntax tree generator for your language, you can walk
