@@ -151,20 +151,13 @@ Determines level at which to cycle through faces again."
 
 ;;; Colorization utilities
 
-(defun context-coloring-uncolorize-buffer ()
-  "Clears all coloring in the current buffer."
-  (remove-text-properties
-   (point-min)
-   (point-max)
-   `(face nil rear-nonsticky nil)))
-
 (defsubst context-coloring-colorize-region (start end level)
   "Colorizes characters from the 1-indexed START (inclusive) to
 END (exclusive) with the face corresponding to LEVEL."
   (add-text-properties
    start
    end
-   `(face ,(context-coloring-level-face level) rear-nonsticky t)))
+   `(face ,(context-coloring-level-face level))))
 
 
 ;;; js2-mode colorization
