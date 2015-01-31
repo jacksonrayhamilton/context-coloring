@@ -32,14 +32,7 @@ code*.
 
 - Supported languages: JavaScript
 - Light and dark (customizable) color schemes.
-- Insanely fast for regular files, quick for big ones too.
-  - jQuery (9191 lines): 0.20 seconds (js2-mode), 0.57 seconds (js-mode)
-  - Lodash (6786 lines): 0.07 seconds (js2-mode), 0.35 seconds (js-mode)
-  - Async (1124 lines): 0.03 seconds (js2-mode), 0.17 seconds (js-mode)
-  - mkdirp (98 lines): 0.002 seconds (js2-mode), 0.09 seconds (js-mode)
-
-\* js2-mode parses idly, irrespective of this plugin; its benchmarks represent
-coloring only. js-mode benchmarks represent parsing and coloring.
+- Very fast for files under 1000 lines.
 
 ## Usage
 
