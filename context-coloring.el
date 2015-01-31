@@ -161,7 +161,8 @@ END (exclusive) with the face corresponding to LEVEL."
 
 (defsubst context-coloring-maybe-colorize-comments-and-strings ()
   (when context-coloring-comments-and-strings
-    (font-lock-fontify-syntactically-region (point-min) (point-max))))
+    (save-excursion
+      (font-lock-fontify-syntactically-region (point-min) (point-max)))))
 
 
 ;;; js2-mode colorization
