@@ -82,8 +82,7 @@ as good as the theme does. Here's an example for `tango`:
 (defun jrh-context-coloring-tango ()
   (interactive)
   (context-coloring-set-colors
-   '((comment . "#5f615c")
-     (0       . "#2e3436") ; Globals.
+   '((0       . "#2e3436") ; Globals.
      (1       . "#346604")
      (2       . "#204a87")
      (3       . "#5c3566")
