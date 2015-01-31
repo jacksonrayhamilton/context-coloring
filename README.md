@@ -9,20 +9,21 @@ Highlights code according to function context.
 - Code in the global scope is one color. Code in functions within the global
   scope is a different color, and code within such functions is another color,
   and so on.
-- Identifiers retain the color of the scope in which they were declared.
-- Comments are a neutral color.
+- Identifiers retain the color of the scope in which they are declared.
 
 Lexical scope information at-a-glance can assist a programmer in understanding
-the overall structure of a program. It can also help curb nasty bugs like name
-shadowing or unexpected assignment. A rainbow can indicate excessive
-complexity. A spot of contrast followed by an assignment expression could be a
-side-effect. The state of a closure could be undergoing change.
+the overall structure of a program. It can help to curb nasty bugs like name
+shadowing. A rainbow can indicate excessive complexity. State change within a
+closure is easily monitored.
 
-This coloring strategy is probably more useful than conventional *syntax*
-highlighting. Highlighting keywords can help one to detect spelling errors, and
-highlighting the content between quotation marks can alert one to unclosed
-string literals. But a [linter][] could also spot those errors, and if
-integrated via [flycheck][], an extra spot opens up in your editing toolbelt.
+By default, Context Coloring still highlights comments and strings
+syntactically. It is still easy to differentiate code from non-code, and strings
+cannot be confused for variables.
+
+This coloring strategy is probably more useful than conventional syntax
+highlighting. Highlighting keywords can help one to detect spelling errors, but
+a [linter][] could also spot those errors, and if integrated with [flycheck][],
+an extra spot opens up in your editing toolbelt.
 
 Give context coloring a try; you may find that it *changes the way you write
 code*.
