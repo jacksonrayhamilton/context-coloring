@@ -11,7 +11,6 @@ function scopifier(code) {
 
     var analyzedScopes,
         ast,
-        comment,
         definition,
         definitionsCount,
         definitionsIndex,
@@ -30,7 +29,6 @@ function scopifier(code) {
     // Gracefully handle parse errors by doing nothing.
     try {
         ast = esprima.parse(code, {
-            comment: true,
             range: true
         });
         analyzedScopes = escope.analyze(ast).scopes;
@@ -107,16 +105,6 @@ function scopifier(code) {
                 }
             }
         }
-    }
-
-    for (i = 0; i < ast.comments.length; i += 1) {
-        comment = ast.comments[i];
-        range = comment.range;
-        tokens.push(
-            range[0] + 1,
-            range[1] + 1,
-            -1
-        );
     }
 
     return scopes.concat(tokens);

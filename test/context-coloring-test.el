@@ -14,7 +14,11 @@
 (defun context-coloring-test-read-file (path)
   (get-string-from-file (context-coloring-test-resolve-path path)))
 
+(defun context-coloring-test-setup ()
+  (setq context-coloring-comments-and-strings nil))
+
 (defun context-coloring-test-cleanup ()
+  (setq context-coloring-comments-and-strings t)
   (setq context-coloring-after-colorize-hook nil)
   (setq context-coloring-js-block-scopes nil))
 
@@ -24,6 +28,7 @@ FIXTURE."
   `(with-temp-buffer
      (unwind-protect
          (progn
+           (context-coloring-test-setup)
            (insert (context-coloring-test-read-file ,fixture))
            ,@body)
        (context-coloring-test-cleanup))))
@@ -49,6 +54,7 @@ FIXTURE. A teardown callback is passed to CALLBACK for it to
 invoke when it is done."
   (context-coloring-test-with-temp-buffer-async
    (lambda (done-with-temp-buffer)
+     (context-coloring-test-setup)
      (insert (context-coloring-test-read-file fixture))
      (funcall
       callback
