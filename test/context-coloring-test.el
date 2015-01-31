@@ -48,13 +48,15 @@ is done."
               (kill-buffer temp-buffer))
          (set-buffer previous-buffer))))))
 
-(defun context-coloring-test-with-fixture-async (fixture callback)
+(defun context-coloring-test-with-fixture-async (fixture callback &optional setup)
   "Evaluate CALLBACK in a temporary buffer with the relative
 FIXTURE. A teardown callback is passed to CALLBACK for it to
-invoke when it is done."
+invoke when it is done. An optional SETUP callback can be passed
+to run arbitrary code before the mode is invoked."
   (context-coloring-test-with-temp-buffer-async
    (lambda (done-with-temp-buffer)
      (context-coloring-test-setup)
+     (if setup (funcall setup))
      (insert (context-coloring-test-read-file fixture))
      (funcall
       callback
@@ -62,7 +64,7 @@ invoke when it is done."
         (context-coloring-test-cleanup)
         (funcall done-with-temp-buffer))))))
 
-(defun context-coloring-test-js-mode (fixture callback)
+(defun context-coloring-test-js-mode (fixture callback &optional setup)
   (context-coloring-test-with-fixture-async
    fixture
    (lambda (done-with-test)
@@ -70,7 +72,8 @@ invoke when it is done."
      (context-coloring-mode)
      (context-coloring-colorize
       (lambda ()
-        (funcall callback done-with-test))))))
+        (funcall callback done-with-test))))
+   setup))
 
 (defmacro context-coloring-test-js2-mode (fixture &rest body)
   `(context-coloring-test-with-fixture
@@ -82,27 +85,46 @@ invoke when it is done."
     (context-coloring-mode)
     ,@body))
 
+(defmacro context-coloring-test-assert-region (&rest body)
+  `(let ((i 0)
+         (length (- end start)))
+     (while (< i length)
+       (let* ((point (+ i start))
+              (face (get-text-property point 'face))
+              actual-level)
+         ,@body)
+       (setq i (+ i 1)))))
+
 (defconst context-coloring-test-level-regexp
   "context-coloring-level-\\([[:digit:]]+\\)-face")
 
 (defun context-coloring-test-assert-region-level (start end level)
-  (let ((i 0)
-        (length (- end start)))
-    (while (< i length)
-      (let* ((point (+ i start))
-             (face (get-text-property point 'face))
-             actual-level)
-        (when (not (when face
-                     (let* ((face-string (symbol-name face))
-                            (matches (string-match context-coloring-test-level-regexp face-string)))
-                       (when matches
-                         (setq actual-level (string-to-number (substring face-string
-                                                                         (match-beginning 1)
-                                                                         (match-end 1))))
-                         (= level actual-level)))))
-          (ert-fail (format "Expected level in region [%s, %s), which is \"%s\", to be %s; but at point %s, it was %s"
-                            start end (buffer-substring-no-properties start end) level point actual-level))))
-      (setq i (+ i 1)))))
+  (context-coloring-test-assert-region
+   (when (not (when face
+                (let* ((face-string (symbol-name face))
+                       (matches (string-match context-coloring-test-level-regexp face-string)))
+                  (when matches
+                    (setq actual-level (string-to-number (substring face-string
+                                                                    (match-beginning 1)
+                                                                    (match-end 1))))
+                    (= level actual-level)))))
+     (ert-fail (format "Expected level in region [%s, %s), which is \"%s\", to be %s; but at point %s, it was %s"
+                       start end (buffer-substring-no-properties start end) level point actual-level)))))
+
+(defun context-coloring-test-assert-region-face (start end expected-face)
+  (context-coloring-test-assert-region
+   (when (not (eq face expected-face))
+     (ert-fail (format "Expected face in region [%s, %s), which is \"%s\", to be %s; but at point %s, it was %s"
+                       start end (buffer-substring-no-properties start end) expected-face point face)))))
+
+(defun context-coloring-test-assert-region-comment-delimiter (start end)
+  (context-coloring-test-assert-region-face start end 'font-lock-comment-delimiter-face))
+
+(defun context-coloring-test-assert-region-comment (start end)
+  (context-coloring-test-assert-region-face start end 'font-lock-comment-face))
+
+(defun context-coloring-test-assert-region-string (start end)
+  (context-coloring-test-assert-region-face start end 'font-lock-string-face))
 
 (defun context-coloring-test-assert-message (expected)
   (with-current-buffer "*Messages*"
@@ -257,5 +279,31 @@ invoke when it is done."
   (context-coloring-test-js2-mode
    "./fixtures/key-values.js"
    (context-coloring-test-js-key-values)))
+
+(defun context-coloring-test-js-comments-and-strings ()
+  (context-coloring-test-assert-region-comment-delimiter 1 4)
+  (context-coloring-test-assert-region-comment 4 8)
+  (context-coloring-test-assert-region-comment-delimiter 9 12)
+  (context-coloring-test-assert-region-comment 12 19)
+  (context-coloring-test-assert-region-string 20 32)
+  (context-coloring-test-assert-region-level 32 33 0))
+
+(ert-deftest-async context-coloring-test-js-mode-comments-and-strings (done)
+  (context-coloring-test-js-mode
+   "./fixtures/comments-and-strings.js"
+   (lambda (teardown)
+     (unwind-protect
+         (context-coloring-test-js-comments-and-strings)
+       (funcall teardown))
+     (funcall done))
+   (lambda ()
+     (setq context-coloring-comments-and-strings t))))
+
+(ert-deftest context-coloring-test-js2-mode-comments-and-strings ()
+  (context-coloring-test-js2-mode
+   "./fixtures/comments-and-strings.js"
+   (setq context-coloring-comments-and-strings t)
+   (context-coloring-colorize)
+   (context-coloring-test-js-comments-and-strings)))
 
 (provide 'context-coloring-test)
