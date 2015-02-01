@@ -91,8 +91,9 @@ theme used in the screenshot above).
 
 ## Extending
 
-To add support for a new language, write a "scopifier" for it, and add an entry
-to `context-coloring-dispatch-plist`. Then the plugin should handle the rest.
+To add support for a new language, write a "scopifier" for it, and define a new
+coloring dispatch strategy with `context-coloring-define-dispatch`. Then the
+plugin should handle the rest.
 
 A "scopifier" is a CLI program that reads a buffer's contents from stdin and
 writes a JSON array of numbers to stdout. Every three numbers in the array
@@ -122,6 +123,24 @@ coloring:
 If there is an abstract syntax tree generator for your language, you can walk
 the syntax tree, find variables and scopes, and build their positions and levels
 into an array like the one above.
+
+For example, a Ruby scopifier might be defined and implemented like this:
+
+```lisp
+(context-coloring-define-dispatch 'ruby
+  :modes '(ruby-mode)
+  :executable "ruby"
+  :command "/home/username/scopifier")
+```
+
+```ruby
+#!/usr/bin/env ruby
+def scopifier(code)
+    # Parse code.
+    # Return an array.
+end
+print scopifier ARGF.read
+```
 
 [linter]: http://jshint.com/about/
 [flycheck]: http://www.flycheck.org/
