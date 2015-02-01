@@ -120,6 +120,7 @@ used.")
 
 (context-coloring-set-colors-default)
 
+
 ;;; Face functions
 
 (defsubst context-coloring-face-symbol (level)
@@ -155,6 +156,8 @@ END (exclusive) with the face corresponding to LEVEL."
    `(face ,(context-coloring-level-face level))))
 
 (defsubst context-coloring-maybe-colorize-comments-and-strings ()
+  "Colorizes the current buffer's comments and strings if
+`context-coloring-comments-and-strings' is non-nil."
   (when context-coloring-comments-and-strings
     (save-excursion
       (font-lock-fontify-syntactically-region (point-min) (point-max)))))
@@ -316,11 +319,13 @@ Invokes CALLBACK when complete."
           :executable "node"
           :command ,(expand-file-name
                      "./languages/javascript/binaries/scopifier"
-                     context-coloring-path)))
+                     context-coloring-path))
+  "JavaScript scopifier via Node.js.")
 
 (defvar context-coloring-js2-colorizer
   `(:type elisp
-          :colorizer context-coloring-js2-colorize))
+          :colorizer context-coloring-js2-colorize)
+  "JavaScript colorizer via `js2-mode'.")
 
 (defcustom context-coloring-dispatch-plist
   `(js-mode ,context-coloring-javascript-scopifier

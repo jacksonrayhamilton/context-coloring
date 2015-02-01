@@ -103,33 +103,51 @@ to run arbitrary code before the mode is invoked."
   (context-coloring-test-assert-region
    (when (not (when face
                 (let* ((face-string (symbol-name face))
-                       (matches (string-match context-coloring-test-level-regexp face-string)))
+                       (matches (string-match
+                                 context-coloring-test-level-regexp
+                                 face-string)))
                   (when matches
-                    (setq actual-level (string-to-number (substring face-string
-                                                                    (match-beginning 1)
-                                                                    (match-end 1))))
+                    (setq actual-level (string-to-number
+                                        (substring face-string
+                                                   (match-beginning 1)
+                                                   (match-end 1))))
                     (= level actual-level)))))
-     (ert-fail (format "Expected level in region [%s, %s), which is \"%s\", to be %s; but at point %s, it was %s"
-                       start end (buffer-substring-no-properties start end) level point actual-level)))))
+     (ert-fail (format (concat "Expected level in region [%s, %s), "
+                               "which is \"%s\", to be %s; "
+                               "but at point %s, it was %s")
+                       start end
+                       (buffer-substring-no-properties start end) level
+                       point actual-level)))))
 
 (defun context-coloring-test-assert-region-face (start end expected-face)
   (context-coloring-test-assert-region
    (when (not (eq face expected-face))
-     (ert-fail (format "Expected face in region [%s, %s), which is \"%s\", to be %s; but at point %s, it was %s"
-                       start end (buffer-substring-no-properties start end) expected-face point face)))))
+     (ert-fail (format (concat "Expected face in region [%s, %s), "
+                               "which is \"%s\", to be %s; "
+                               "but at point %s, it was %s")
+                       start end
+                       (buffer-substring-no-properties start end) expected-face
+                       point face)))))
 
 (defun context-coloring-test-assert-region-comment-delimiter (start end)
-  (context-coloring-test-assert-region-face start end 'font-lock-comment-delimiter-face))
+  (context-coloring-test-assert-region-face
+   start end 'font-lock-comment-delimiter-face))
 
 (defun context-coloring-test-assert-region-comment (start end)
-  (context-coloring-test-assert-region-face start end 'font-lock-comment-face))
+  (context-coloring-test-assert-region-face
+   start end 'font-lock-comment-face))
 
 (defun context-coloring-test-assert-region-string (start end)
-  (context-coloring-test-assert-region-face start end 'font-lock-string-face))
+  (context-coloring-test-assert-region-face
+   start end 'font-lock-string-face))
 
 (defun context-coloring-test-assert-message (expected)
   (with-current-buffer "*Messages*"
-    (let ((messages (split-string (buffer-substring-no-properties (point-min) (point-max)) "\n")))
+    (let ((messages (split-string
+                     (buffer-substring-no-properties
+                      (point-min)
+                      (point-max))
+                     "\n")))
       (let ((message (car (nthcdr (- (length messages) 2) messages))))
         (should (equal message expected))))))
 
@@ -144,11 +162,15 @@ to run arbitrary code before the mode is invoked."
   (let* ((face (context-coloring-face-symbol level))
          actual-foreground)
     (when (not face)
-      (ert-fail (format "Expected face for level `%s' to exist; but it didn't" level)))
+      (ert-fail (format (concat "Expected face for level `%s' to exist; "
+                                "but it didn't")
+                        level)))
     (setq actual-foreground (face-attribute face :foreground))
     (when (not (string-equal foreground actual-foreground))
-      (ert-fail (format "Expected face for level `%s' to have foreground `%s'; but it was `%s'"
-                        level foreground actual-foreground)))))
+      (ert-fail (format (concat "Expected face for level `%s' "
+                                "to have foreground `%s'; but it was `%s'")
+                        level
+                        foreground actual-foreground)))))
 
 (ert-deftest context-coloring-test-set-colors ()
   ;; This test has an irreversible side-effect in that it defines faces beyond
