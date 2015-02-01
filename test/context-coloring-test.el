@@ -1,18 +1,17 @@
 ;; -*- lexical-binding: t; -*-
 
+;;; Test running
+
 (defconst context-coloring-test-path
   (file-name-directory (or load-file-name buffer-file-name)))
 
 (defun context-coloring-test-resolve-path (path)
   (expand-file-name path context-coloring-test-path))
 
-(defun get-string-from-file (path)
-  (with-temp-buffer
-    (insert-file-contents path)
-    (buffer-string)))
-
 (defun context-coloring-test-read-file (path)
-  (get-string-from-file (context-coloring-test-resolve-path path)))
+  (with-temp-buffer
+    (insert-file-contents (context-coloring-test-resolve-path path))
+    (buffer-string)))
 
 (defun context-coloring-test-setup ()
   (setq context-coloring-comments-and-strings nil))
@@ -65,6 +64,9 @@ to run arbitrary code before the mode is invoked."
         (context-coloring-test-cleanup)
         (funcall done-with-temp-buffer))))))
 
+
+;;; Test defining
+
 (defun context-coloring-test-js-mode (fixture callback &optional setup)
   (context-coloring-test-with-fixture-async
    fixture
@@ -85,6 +87,31 @@ to run arbitrary code before the mode is invoked."
     (js2-mode)
     (context-coloring-mode)
     ,@body))
+
+(defmacro context-coloring-test-deftest-js-mode (name)
+  (let ((test-name (intern (format "context-coloring-test-js-mode-%s" name)))
+        (fixture (format "./fixtures/%s.js" name))
+        (function-name (intern-soft (format "context-coloring-test-js-%s" name))))
+    `(ert-deftest-async ,test-name (done)
+                        (context-coloring-test-js-mode
+                         ,fixture
+                         (lambda (teardown)
+                           (unwind-protect
+                               (,function-name)
+                             (funcall teardown))
+                           (funcall done))))))
+
+(defmacro context-coloring-test-deftest-js2-mode (name)
+  (let ((test-name (intern (format "context-coloring-test-js2-mode-%s" name)))
+        (fixture (format "./fixtures/%s.js" name))
+        (function-name (intern-soft (format "context-coloring-test-js-%s" name))))
+    `(ert-deftest ,test-name ()
+       (context-coloring-test-js2-mode
+        ,fixture
+        (,function-name)))))
+
+
+;;; Assertion functions
 
 (defmacro context-coloring-test-assert-region (&rest body)
   `(let ((i 0)
@@ -151,13 +178,6 @@ to run arbitrary code before the mode is invoked."
       (let ((message (car (nthcdr (- (length messages) 2) messages))))
         (should (equal message expected))))))
 
-(ert-deftest context-coloring-test-unsupported-mode ()
-  (context-coloring-test-with-fixture
-   "./fixtures/function-scopes.js"
-   (context-coloring-mode)
-   (context-coloring-test-assert-message
-    "Context coloring is not available for this major mode")))
-
 (defun context-coloring-test-assert-face (level foreground)
   (let* ((face (context-coloring-face-symbol level))
          actual-foreground)
@@ -171,6 +191,16 @@ to run arbitrary code before the mode is invoked."
                                 "to have foreground `%s'; but it was `%s'")
                         level
                         foreground actual-foreground)))))
+
+
+;;; The tests
+
+(ert-deftest context-coloring-test-unsupported-mode ()
+  (context-coloring-test-with-fixture
+   "./fixtures/function-scopes.js"
+   (context-coloring-mode)
+   (context-coloring-test-assert-message
+    "Context coloring is not available for this major mode")))
 
 (ert-deftest context-coloring-test-set-colors ()
   ;; This test has an irreversible side-effect in that it defines faces beyond
@@ -212,38 +242,16 @@ to run arbitrary code before the mode is invoked."
   (context-coloring-test-assert-region-level 82 87 2)
   (context-coloring-test-assert-region-level 87 89 1))
 
-(ert-deftest-async context-coloring-test-js-mode-function-scopes (done)
-  (context-coloring-test-js-mode
-   "./fixtures/function-scopes.js"
-   (lambda (teardown)
-     (unwind-protect
-         (context-coloring-test-js-function-scopes)
-       (funcall teardown))
-     (funcall done))))
-
-(ert-deftest context-coloring-test-js2-mode-function-scopes ()
-  (context-coloring-test-js2-mode
-   "./fixtures/function-scopes.js"
-   (context-coloring-test-js-function-scopes)))
+(context-coloring-test-deftest-js-mode function-scopes)
+(context-coloring-test-deftest-js2-mode function-scopes)
 
 (defun context-coloring-test-js-global ()
   (context-coloring-test-assert-region-level 20 28 1)
   (context-coloring-test-assert-region-level 28 35 0)
   (context-coloring-test-assert-region-level 35 41 1))
 
-(ert-deftest-async context-coloring-test-js-mode-global (done)
-  (context-coloring-test-js-mode
-   "./fixtures/global.js"
-   (lambda (teardown)
-     (unwind-protect
-         (context-coloring-test-js-global)
-       (funcall teardown))
-     (funcall done))))
-
-(ert-deftest context-coloring-test-js2-mode-global ()
-  (context-coloring-test-js2-mode
-   "./fixtures/global.js"
-   (context-coloring-test-js-global)))
+(context-coloring-test-deftest-js-mode global)
+(context-coloring-test-deftest-js2-mode global)
 
 (defun context-coloring-test-js-block-scopes ()
   (context-coloring-test-assert-region-level 20 64 1)
@@ -254,10 +262,7 @@ to run arbitrary code before the mode is invoked."
    (context-coloring-test-assert-region-level 41 42 1)
    (context-coloring-test-assert-region-level 42 64 2))
 
-(ert-deftest context-coloring-test-js2-mode-block-scopes ()
-  (context-coloring-test-js2-mode
-   "./fixtures/block-scopes.js"
-   (context-coloring-test-js-block-scopes)))
+(context-coloring-test-deftest-js2-mode block-scopes)
 
 (defun context-coloring-test-js-catch ()
   (context-coloring-test-assert-region-level 20 27 1)
@@ -269,36 +274,14 @@ to run arbitrary code before the mode is invoked."
   (context-coloring-test-assert-region-level 102 117 3)
   (context-coloring-test-assert-region-level 117 123 2))
 
-(ert-deftest-async context-coloring-test-js-mode-catch (done)
-  (context-coloring-test-js-mode
-   "./fixtures/catch.js"
-   (lambda (teardown)
-     (unwind-protect
-         (context-coloring-test-js-catch)
-       (funcall teardown))
-     (funcall done))))
-
-(ert-deftest context-coloring-test-js2-mode-catch ()
-  (context-coloring-test-js2-mode
-   "./fixtures/catch.js"
-   (context-coloring-test-js-catch)))
+(context-coloring-test-deftest-js-mode catch)
+(context-coloring-test-deftest-js2-mode catch)
 
 (defun context-coloring-test-js-key-names ()
   (context-coloring-test-assert-region-level 20 63 1))
 
-(ert-deftest-async context-coloring-test-js-mode-key-names (done)
-  (context-coloring-test-js-mode
-   "./fixtures/key-names.js"
-   (lambda (teardown)
-     (unwind-protect
-         (context-coloring-test-js-key-names)
-       (funcall teardown))
-     (funcall done))))
-
-(ert-deftest context-coloring-test-js2-mode-key-names ()
-  (context-coloring-test-js2-mode
-   "./fixtures/key-names.js"
-   (context-coloring-test-js-key-names)))
+(context-coloring-test-deftest-js-mode key-names)
+(context-coloring-test-deftest-js2-mode key-names)
 
 (defun context-coloring-test-js-property-lookup ()
   (context-coloring-test-assert-region-level 20 26 0)
@@ -308,36 +291,14 @@ to run arbitrary code before the mode is invoked."
   (context-coloring-test-assert-region-level 57 63 0)
   (context-coloring-test-assert-region-level 63 74 1))
 
-(ert-deftest-async context-coloring-test-js-mode-property-lookup (done)
-  (context-coloring-test-js-mode
-   "./fixtures/property-lookup.js"
-   (lambda (teardown)
-     (unwind-protect
-         (context-coloring-test-js-property-lookup)
-       (funcall teardown))
-     (funcall done))))
-
-(ert-deftest context-coloring-test-js2-mode-property-lookup ()
-  (context-coloring-test-js2-mode
-   "./fixtures/property-lookup.js"
-   (context-coloring-test-js-property-lookup)))
+(context-coloring-test-deftest-js-mode property-lookup)
+(context-coloring-test-deftest-js2-mode property-lookup)
 
 (defun context-coloring-test-js-key-values ()
   (context-coloring-test-assert-region-level 78 79 1))
 
-(ert-deftest-async context-coloring-test-js-mode-key-values (done)
-  (context-coloring-test-js-mode
-   "./fixtures/key-values.js"
-   (lambda (teardown)
-     (unwind-protect
-         (context-coloring-test-js-key-values)
-       (funcall teardown))
-     (funcall done))))
-
-(ert-deftest context-coloring-test-js2-mode-key-values ()
-  (context-coloring-test-js2-mode
-   "./fixtures/key-values.js"
-   (context-coloring-test-js-key-values)))
+(context-coloring-test-deftest-js-mode key-values)
+(context-coloring-test-deftest-js2-mode key-values)
 
 (defun context-coloring-test-js-comments-and-strings ()
   (context-coloring-test-assert-region-comment-delimiter 1 4)
