@@ -65,38 +65,28 @@ make compile
 
 ## Customizing
 
-You can adjust the colors to your liking using
-`context-coloring-set-colors`. The first argument is an alist of levels, and the
-optional second argument is the new total number of levels. This plugin does not
-figure out the total for you; you need to specify it if your number of colors is
-different from the default (`7`).
+You can adjust the colors to your liking using `context-coloring-set-colors`.
 
 I like to take the colors from an existing theme and use those to create a
-rainbow that matches that theme. The end result is consistent, and usually looks
-as good as the theme does. Here's an example for `tango`:
+rainbow that matches that theme. Here's an example for [`zenburn`][zenburn] (which is the
+theme used in the screenshot above).
 
 ```lisp
 ;; ~/.emacs
-(load-theme 'tango)
+(load-theme 'zenburn t)
 (require 'context-coloring)
-(defun jrh-context-coloring-tango ()
-  (interactive)
-  (context-coloring-set-colors
-   '((0       . "#2e3436") ; Globals.
-     (1       . "#346604")
-     (2       . "#204a87")
-     (3       . "#5c3566")
-     (4       . "#a40000")
-     (5       . "#b35000")
-     (6       . "#c4a000")
-     (7       . "#8ae234") ; "You're screwed" colors.
-     (8       . "#8cc4ff")
-     (9       . "#ad7fa8")
-     (10      . "#ef2929")
-     (11      . "#fcaf3e")
-     (12      . "#fce94f"))
-   13))
-(jrh-context-coloring-tango)
+(context-coloring-set-colors
+ "#DCDCCC"
+ "#93E0E3"
+ "#BFEBBF"
+ "#F0DFAF"
+ "#DFAF8F"
+ "#CC9393"
+ "#DC8CC3"
+ "#94BFF3"
+ "#9FC59F"
+ "#D0BF8F"
+ "#DCA3A3")
 ```
 
 ## Extending
@@ -135,6 +125,7 @@ into an array like the one above.
 
 [linter]: http://jshint.com/about/
 [flycheck]: http://www.flycheck.org/
+[zenburn]: http://github.com/bbatsov/zenburn-emacs
 [point]: http://www.gnu.org/software/emacs/manual/html_node/elisp/Point.html
 [js2-mode]: https://github.com/mooz/js2-mode
 [node]: http://nodejs.org/download/

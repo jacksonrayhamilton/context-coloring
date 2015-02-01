@@ -91,62 +91,57 @@ used.")
 
 ;;; Faces
 
-(defmacro context-coloring-defface (level tty light dark)
+(defun context-coloring-defface (level tty light dark)
   (let ((face (intern (format "context-coloring-level-%s-face" level)))
         (doc (format "Context coloring face, level %s." level)))
-    `(defface ,face
-       '((((type tty)) (:foreground ,tty))
-         (((background light)) (:foreground ,light))
-         (((background dark)) (:foreground ,dark)))
-       ,doc
-       :group 'context-coloring)))
+    (eval (macroexpand `(defface ,face
+                          '((((type tty)) (:foreground ,tty))
+                            (((background light)) (:foreground ,light))
+                            (((background dark)) (:foreground ,dark)))
+                          ,doc
+                          :group 'context-coloring)))))
 
-(context-coloring-defface 0  "white"   "#000000" "#ffffff")
-(context-coloring-defface 1  "yellow"  "#007f80" "#ffff80")
-(context-coloring-defface 2  "green"   "#001580" "#cdfacd")
-(context-coloring-defface 3  "cyan"    "#550080" "#d8d8ff")
-(context-coloring-defface 4  "blue"    "#802b00" "#e7c7ff")
-(context-coloring-defface 5  "magenta" "#6a8000" "#ffcdcd")
-(context-coloring-defface 6  "red"     "#008000" "#ffe390")
+(defvar context-coloring-face-count nil
+  "Number of faces available for context coloring.")
 
-(defcustom context-coloring-face-count 8
-  "Number of faces defined for highlighting levels.
-Determines level at which to cycle through faces again."
-  :group 'context-coloring)
+(defun context-coloring-defface-default (level)
+  (context-coloring-defface level "white" "#3f3f3f" "#cdcdcd"))
 
-(defvar context-coloring-max-level (- context-coloring-face-count 1))
+(defun context-coloring-set-colors-default ()
+  (context-coloring-defface 0 "white"   "#000000" "#ffffff")
+  (context-coloring-defface 1 "yellow"  "#007f80" "#ffff80")
+  (context-coloring-defface 2 "green"   "#001580" "#cdfacd")
+  (context-coloring-defface 3 "cyan"    "#550080" "#d8d8ff")
+  (context-coloring-defface 4 "blue"    "#802b00" "#e7c7ff")
+  (context-coloring-defface 5 "magenta" "#6a8000" "#ffcdcd")
+  (context-coloring-defface 6 "red"     "#008000" "#ffe390")
+  (context-coloring-defface-default 7)
+  (setq context-coloring-face-count 8))
 
-(defun context-coloring-defface-doom (level)
-  (eval (macroexpand `(context-coloring-defface ,level "white" "#3f3f3f" "#cdcdcd"))))
-
-(context-coloring-defface-doom context-coloring-max-level)
-
+(context-coloring-set-colors-default)
 
 ;;; Face functions
 
 (defsubst context-coloring-face-symbol (level)
   "Returns a symbol for a face with LEVEL."
+  ;; `concat' is faster than `format' here.
   (intern-soft (concat "context-coloring-level-" (number-to-string level) "-face")))
 
-(defun context-coloring-set-colors (pairs &optional count)
-  "Set an alist of PAIRS for different levels' colors. Also sets
-`context-coloring-face-count' to COUNT, if specified."
-  (when count
-    (setq context-coloring-face-count count)
-    (setq context-coloring-max-level (- count 1))
-    ;; Ensure there are available faces to contain new colors.
-    (let ((current context-coloring-max-level))
-      (while (not (context-coloring-face-symbol current))
-        (context-coloring-defface-doom current)
-        (setq current (- current 1)))))
-  (dolist (pair pairs)
-    (let ((level (car pair))
-          (color (cdr pair)))
-      (set-face-foreground (context-coloring-face-symbol level) color))))
+(defun context-coloring-set-colors (&rest colors)
+  "Set context coloring's levels' coloring to COLORS, where the
+Nth element of COLORS is level N's color."
+  (setq context-coloring-face-count (length colors))
+  (let ((level 0))
+    (dolist (color colors)
+      ;; Ensure there are available faces to contain new colors.
+      (when (not (context-coloring-face-symbol level))
+        (context-coloring-defface-default level))
+      (set-face-foreground (context-coloring-face-symbol level) color)
+      (setq level (+ level 1)))))
 
 (defsubst context-coloring-level-face (level)
   "Returns the face name for LEVEL."
-  (context-coloring-face-symbol (min level context-coloring-max-level)))
+  (context-coloring-face-symbol (min level context-coloring-face-count)))
 
 
 ;;; Colorization utilities

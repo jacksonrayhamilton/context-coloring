@@ -20,7 +20,8 @@
 (defun context-coloring-test-cleanup ()
   (setq context-coloring-comments-and-strings t)
   (setq context-coloring-after-colorize-hook nil)
-  (setq context-coloring-js-block-scopes nil))
+  (setq context-coloring-js-block-scopes nil)
+  (context-coloring-set-colors-default))
 
 (defmacro context-coloring-test-with-fixture (fixture &rest body)
   "Evaluate BODY in a temporary buffer with the relative
@@ -138,6 +139,42 @@ to run arbitrary code before the mode is invoked."
    (context-coloring-mode)
    (context-coloring-test-assert-message
     "Context coloring is not available for this major mode")))
+
+(defun context-coloring-test-assert-face (level foreground)
+  (let* ((face (context-coloring-face-symbol level))
+         actual-foreground)
+    (when (not face)
+      (ert-fail (format "Expected face for level `%s' to exist; but it didn't" level)))
+    (setq actual-foreground (face-attribute face :foreground))
+    (when (not (string-equal foreground actual-foreground))
+      (ert-fail (format "Expected face for level `%s' to have foreground `%s'; but it was `%s'"
+                        level foreground actual-foreground)))))
+
+(ert-deftest context-coloring-test-set-colors ()
+  ;; This test has an irreversible side-effect in that it defines faces beyond
+  ;; 7. Faces 0 through 7 are reset to their default states, so it might not
+  ;; matter, but be aware anyway.
+  (context-coloring-set-colors
+   "#000000"
+   "#111111"
+   "#222222"
+   "#333333"
+   "#444444"
+   "#555555"
+   "#666666"
+   "#777777"
+   "#888888"
+   "#999999")
+  (context-coloring-test-assert-face 0 "#000000")
+  (context-coloring-test-assert-face 1 "#111111")
+  (context-coloring-test-assert-face 2 "#222222")
+  (context-coloring-test-assert-face 3 "#333333")
+  (context-coloring-test-assert-face 4 "#444444")
+  (context-coloring-test-assert-face 5 "#555555")
+  (context-coloring-test-assert-face 6 "#666666")
+  (context-coloring-test-assert-face 7 "#777777")
+  (context-coloring-test-assert-face 8 "#888888")
+  (context-coloring-test-assert-face 9 "#999999"))
 
 (defun context-coloring-test-js-function-scopes ()
   (context-coloring-test-assert-region-level 1 9 0)
