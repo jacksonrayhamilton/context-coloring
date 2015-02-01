@@ -9,21 +9,21 @@ Highlights code according to function context.
 - Code in the global scope is one color. Code in functions within the global
   scope is a different color, and code within such functions is another color,
   and so on.
-- Identifiers retain the color of the scope in which they were declared.
-- Comments are gray.
+- Identifiers retain the color of the scope in which they are declared.
 
 Lexical scope information at-a-glance can assist a programmer in understanding
-the overall structure of a program. It can also help curb nasty bugs like name
-shadowing or unexpected assignment. A rainbow can indicate excessive
-complexity. A spot of contrast followed by an assignment expression could be a
-side-effect... or, the state of a closure could be undergoing change.
+the overall structure of a program. It can help to curb nasty bugs like name
+shadowing. A rainbow can indicate excessive complexity. State change within a
+closure is easily monitored.
 
-This coloring strategy is probably more useful than conventional *syntax*
-highlighting. Highlighting keywords can help one to detect spelling errors, and
-highlighting the content between quotation marks can alert one to unclosed
-string literals. But a [linter][] could also spot those errors, and if
-[integrated via flycheck][integration], an extra spot opens up in your editing
-toolbelt.
+By default, Context Coloring still highlights comments and strings
+syntactically. It is still easy to differentiate code from non-code, and strings
+cannot be confused for variables.
+
+This coloring strategy is probably more useful than conventional syntax
+highlighting. Highlighting keywords can help one to detect spelling errors, but
+a [linter][] could also spot those errors, and if integrated with [flycheck][],
+an extra spot opens up in your editing toolbelt.
 
 Give context coloring a try; you may find that it *changes the way you write
 code*.
@@ -32,14 +32,7 @@ code*.
 
 - Supported languages: JavaScript
 - Light and dark (customizable) color schemes.
-- Insanely fast for regular files, quick for big ones too.
-  - jQuery (9191 lines): 0.20 seconds (js2-mode), 0.57 seconds (js-mode)
-  - Lodash (6786 lines): 0.07 seconds (js2-mode), 0.35 seconds (js-mode)
-  - Async (1124 lines): 0.03 seconds (js2-mode), 0.17 seconds (js-mode)
-  - mkdirp (98 lines): 0.002 seconds (js2-mode), 0.09 seconds (js-mode)
-
-\* js2-mode parses idly, irrespective of this plugin; its benchmarks represent
-coloring only. js-mode benchmarks represent parsing and coloring.
+- Very fast for files under 1000 lines.
 
 ## Usage
 
@@ -72,45 +65,35 @@ make compile
 
 ## Customizing
 
-You can adjust the colors to your liking using
-`context-coloring-set-colors`. The first argument is an alist of levels, and the
-optional second argument is the new total number of levels. This plugin does not
-figure out the total for you; you need to specify it if your number of colors is
-different from the default (`7`).
+You can adjust the colors to your liking using `context-coloring-set-colors`.
 
 I like to take the colors from an existing theme and use those to create a
-rainbow that matches that theme. The end result is consistent, and usually looks
-as good as the theme does. Here's an example for `tango`:
+rainbow that matches that theme. Here's an example for [`zenburn`][zenburn] (which is the
+theme used in the screenshot above).
 
 ```lisp
 ;; ~/.emacs
-(load-theme 'tango)
+(load-theme 'zenburn t)
 (require 'context-coloring)
-(defun jrh-context-coloring-tango ()
-  (interactive)
-  (context-coloring-set-colors
-   '((comment . "#5f615c")
-     (0       . "#2e3436") ; Globals.
-     (1       . "#346604")
-     (2       . "#204a87")
-     (3       . "#5c3566")
-     (4       . "#a40000")
-     (5       . "#b35000")
-     (6       . "#c4a000")
-     (7       . "#8ae234") ; "You're screwed" colors.
-     (8       . "#8cc4ff")
-     (9       . "#ad7fa8")
-     (10      . "#ef2929")
-     (11      . "#fcaf3e")
-     (12      . "#fce94f"))
-   13))
-(jrh-context-coloring-tango)
+(context-coloring-set-colors
+ "#DCDCCC"
+ "#93E0E3"
+ "#BFEBBF"
+ "#F0DFAF"
+ "#DFAF8F"
+ "#CC9393"
+ "#DC8CC3"
+ "#94BFF3"
+ "#9FC59F"
+ "#D0BF8F"
+ "#DCA3A3")
 ```
 
 ## Extending
 
-To add support for a new language, write a "scopifier" for it, and add an entry
-to `context-coloring-dispatch-plist`. Then the plugin should handle the rest.
+To add support for a new language, write a "scopifier" for it, and define a new
+coloring dispatch strategy with `context-coloring-define-dispatch`. Then the
+plugin should handle the rest.
 
 A "scopifier" is a CLI program that reads a buffer's contents from stdin and
 writes a JSON array of numbers to stdout. Every three numbers in the array
@@ -134,15 +117,34 @@ applying level 1 coloring to the range &#91;9, 23) would result in the following
 coloring:
 
 <p align="center">
-  <img alt="Screenshot of ranges &#91;1, 24) and &#91;9, 23)." src="scopifier-example.png" title="Screenshot">
+  <img alt="Screenshot of ranges &#91;1, 24) and &#91;9, 23)." src="scopifier.png" title="Screenshot">
 </p>
 
 If there is an abstract syntax tree generator for your language, you can walk
 the syntax tree, find variables and scopes, and build their positions and levels
 into an array like the one above.
 
-[linter]: https://github.com/jacksonrayhamilton/jslinted
-[integration]: https://github.com/jacksonrayhamilton/jslinted#emacs-integration
+For example, a Ruby scopifier might be defined and implemented like this:
+
+```lisp
+(context-coloring-define-dispatch 'ruby
+  :modes '(ruby-mode)
+  :executable "ruby"
+  :command "/home/username/scopifier")
+```
+
+```ruby
+#!/usr/bin/env ruby
+def scopifier(code)
+    # Parse code.
+    # Return an array.
+end
+print scopifier ARGF.read
+```
+
+[linter]: http://jshint.com/about/
+[flycheck]: http://www.flycheck.org/
+[zenburn]: http://github.com/bbatsov/zenburn-emacs
 [point]: http://www.gnu.org/software/emacs/manual/html_node/elisp/Point.html
 [js2-mode]: https://github.com/mooz/js2-mode
 [node]: http://nodejs.org/download/

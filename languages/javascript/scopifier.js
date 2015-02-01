@@ -1,7 +1,22 @@
+// Copyright (C) 2014 Jackson Ray Hamilton
+
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 'use strict';
 
-var escope = require('./lib/escope'),
-    esprima = require('./lib/esprima');
+var escope = require('./libraries/escope'),
+    esprima = require('./libraries/esprima');
 
 // Given code, returns an array of tokens for context-coloring.
 function scopifier(code) {
@@ -11,7 +26,6 @@ function scopifier(code) {
 
     var analyzedScopes,
         ast,
-        comment,
         definition,
         definitionsCount,
         definitionsIndex,
@@ -30,7 +44,6 @@ function scopifier(code) {
     // Gracefully handle parse errors by doing nothing.
     try {
         ast = esprima.parse(code, {
-            comment: true,
             range: true
         });
         analyzedScopes = escope.analyze(ast).scopes;
@@ -107,16 +120,6 @@ function scopifier(code) {
                 }
             }
         }
-    }
-
-    for (i = 0; i < ast.comments.length; i += 1) {
-        comment = ast.comments[i];
-        range = comment.range;
-        tokens.push(
-            range[0] + 1,
-            range[1] + 1,
-            -1
-        );
     }
 
     return scopes.concat(tokens);
