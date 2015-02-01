@@ -318,26 +318,75 @@ Invokes CALLBACK when complete."
 
 ;;; Dispatch
 
-(defvar context-coloring-javascript-scopifier
-  `(:type shell-command
-          :executable "node"
-          :command ,(expand-file-name
-                     "./languages/javascript/binaries/scopifier"
-                     context-coloring-path))
-  "JavaScript scopifier via Node.js.")
+(defvar context-coloring-dispatch-hash-table (make-hash-table :test 'eq)
+  "Mapping of dispatch strategy names to their corresponding
+  property lists, which contain details about the strategies.")
 
-(defvar context-coloring-js2-colorizer
-  `(:type elisp
-          :colorizer context-coloring-js2-colorize)
-  "JavaScript colorizer via `js2-mode'.")
+(defvar context-coloring-mode-hash-table (make-hash-table :test 'eq)
+  "Mapping of major mode names to dispatch property lists.")
 
-(defcustom context-coloring-dispatch-plist
-  `(js-mode ,context-coloring-javascript-scopifier
-            js2-mode ,context-coloring-js2-colorizer
-            js3-mode ,context-coloring-javascript-scopifier)
-  "Property list mapping major modes to scopification and
-colorization programs."
-  :group 'context-coloring)
+(defun context-coloring-select-dispatch (mode dispatch)
+  "Use DISPATCH for MODE."
+  (puthash
+   mode
+   (gethash
+    dispatch
+    context-coloring-dispatch-hash-table)
+   context-coloring-mode-hash-table))
+
+(defun context-coloring-define-dispatch (symbol &rest properties)
+  "Define a new dispatch named SYMBOL with PROPERTIES.
+
+A \"dispatch\" is a property list describing a strategy for
+coloring a buffer. There are three possible strategies: Parse and
+color in a single function (`:colorizer'), parse in a function
+that returns scope data (`:scopifier'), or parse with a shell
+command that returns scope data (`:command'). In the latter two
+cases, the scope data will be used to automatically color the
+buffer.
+
+PROPERTIES must include `:modes' and one of `:colorizer',
+`:scopifier' or `:command'.
+
+`:modes' - List of major modes this dispatch is valid for.
+
+`:colorizer' - Symbol referring to a function that parses and
+colors the buffer.
+
+`:scopifier' - Symbol referring to a function that parses the
+buffer a returns a flat vector of start, end and level data.
+
+`:executable' - Optional name of an executable required by
+`:command'.
+
+`:command' - Shell command to execute with the current buffer
+sent via stdin, and with a flat JSON array of start, end and
+level data returned via stdout."
+  (let ((modes (plist-get properties :modes))
+        (colorizer (plist-get properties :colorizer))
+        (scopifier (plist-get properties :scopifier))
+        (command (plist-get properties :command)))
+    (when (null modes)
+      (error "No mode defined for dispatch"))
+    (when (not (or colorizer
+                   scopifier
+                   command))
+      (error "No colorizer, scopifier or command defined for dispatch"))
+    (puthash symbol properties context-coloring-dispatch-hash-table)
+    (dolist (mode modes)
+      (when (null (gethash mode context-coloring-mode-hash-table))
+        (puthash mode properties context-coloring-mode-hash-table)))))
+
+(context-coloring-define-dispatch 'javascript-node
+  :modes '(js-mode js3-mode)
+  :executable "node"
+  :command (expand-file-name
+            "./languages/javascript/binaries/scopifier"
+            context-coloring-path))
+
+(context-coloring-define-dispatch 'javascript-js2
+  :modes '(js2-mode)
+  :colorizer 'context-coloring-js2-colorize)
 
 (defun context-coloring-dispatch (&optional callback)
   "Determines the optimal track for scopification / colorization
@@ -345,31 +394,25 @@ of the current buffer, then executes it.
 
 Invokes CALLBACK when complete. It is invoked synchronously for
 elisp tracks, and asynchronously for shell command tracks."
-  (let ((dispatch (plist-get context-coloring-dispatch-plist major-mode)))
+  (let ((dispatch (gethash major-mode context-coloring-mode-hash-table)))
     (if (null dispatch)
         (message "%s" "Context coloring is not available for this major mode"))
-    (let ((type (plist-get dispatch :type)))
+    (let (colorizer
+          scopifier
+          command
+          executable)
       (cond
-       ((eq type 'elisp)
-        (let ((colorizer (plist-get dispatch :colorizer))
-              (scopifier (plist-get dispatch :scopifier)))
-          (cond
-           (colorizer
-            (funcall colorizer)
-            (if callback (funcall callback)))
-           (scopifier
-            (context-coloring-apply-tokens (funcall scopifier))
-            (if callback (funcall callback)))
-           (t
-            (error "No `:colorizer' nor `:scopifier' specified for dispatch of `:type' elisp")))))
-       ((eq type 'shell-command)
-        (let ((executable (plist-get dispatch :executable))
-              (command (plist-get dispatch :command)))
-          (if (null command)
-              (error "No `:command' specified for dispatch of `:type' shell-command"))
-          (if (and (not (null executable))
-                   (null (executable-find executable)))
-              (message "Executable \"%s\" not found" executable))
+       ((setq colorizer (plist-get dispatch :colorizer))
+        (funcall colorizer)
+        (if callback (funcall callback)))
+       ((setq scopifier (plist-get dispatch :scopifier))
+        (context-coloring-apply-tokens (funcall scopifier))
+        (if callback (funcall callback)))
+       ((setq command (plist-get dispatch :command))
+        (setq executable (plist-get dispatch :executable))
+        (if (and (not (null executable))
+                 (null (executable-find executable)))
+            (message "Executable \"%s\" not found" executable)
           (context-coloring-scopify-shell-command command callback)))))))
 
 
