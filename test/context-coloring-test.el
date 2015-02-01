@@ -1,22 +1,23 @@
 ;; -*- lexical-binding: t; -*-
 
-;;; Test running
+;;; Test running utilities
 
 (defconst context-coloring-test-path
-  (file-name-directory (or load-file-name buffer-file-name)))
-
-(defun context-coloring-test-resolve-path (path)
-  (expand-file-name path context-coloring-test-path))
+  (file-name-directory (or load-file-name buffer-file-name))
+  "This file's directory.")
 
 (defun context-coloring-test-read-file (path)
+  "Read a file's contents into a string."
   (with-temp-buffer
-    (insert-file-contents (context-coloring-test-resolve-path path))
+    (insert-file-contents (expand-file-name path context-coloring-test-path))
     (buffer-string)))
 
 (defun context-coloring-test-setup ()
+  "Preparation code to run before all tests."
   (setq context-coloring-comments-and-strings nil))
 
 (defun context-coloring-test-cleanup ()
+  "Cleanup code to run after all tests."
   (setq context-coloring-comments-and-strings t)
   (setq context-coloring-after-colorize-hook nil)
   (setq context-coloring-js-block-scopes nil)
@@ -34,7 +35,7 @@ FIXTURE."
        (context-coloring-test-cleanup))))
 
 (defun context-coloring-test-with-temp-buffer-async (callback)
-  "Create a temporary buffer, and evaluate CALLBACK there. A
+  "Create a temporary buffer, and evaluate CALLBACK there.  A
 teardown callback is passed to CALLBACK for it to invoke when it
 is done."
   (let ((temp-buffer (make-symbol "temp-buffer")))
@@ -50,8 +51,8 @@ is done."
 
 (defun context-coloring-test-with-fixture-async (fixture callback &optional setup)
   "Evaluate CALLBACK in a temporary buffer with the relative
-FIXTURE. A teardown callback is passed to CALLBACK for it to
-invoke when it is done. An optional SETUP callback can be passed
+FIXTURE.  A teardown callback is passed to CALLBACK for it to
+invoke when it is done.  An optional SETUP callback can be passed
 to run arbitrary code before the mode is invoked."
   (context-coloring-test-with-temp-buffer-async
    (lambda (done-with-temp-buffer)
@@ -65,9 +66,12 @@ to run arbitrary code before the mode is invoked."
         (funcall done-with-temp-buffer))))))
 
 
-;;; Test defining
+;;; Test defining utilities
 
 (defun context-coloring-test-js-mode (fixture callback &optional setup)
+  "Use FIXTURE as the subject matter for test logic in CALLBACK.
+Optionally, provide setup code to run before the mode is
+instantiated in SETUP."
   (context-coloring-test-with-fixture-async
    fixture
    (lambda (done-with-test)
@@ -79,6 +83,7 @@ to run arbitrary code before the mode is invoked."
    setup))
 
 (defmacro context-coloring-test-js2-mode (fixture &rest body)
+  "Use FIXTURE as the subject matter for test logic in BODY."
   `(context-coloring-test-with-fixture
     ,fixture
     (require 'js2-mode)
@@ -89,6 +94,8 @@ to run arbitrary code before the mode is invoked."
     ,@body))
 
 (defmacro context-coloring-test-deftest-js-mode (name)
+  "Define an asynchronous test for `js-mode' in the typical
+format."
   (let ((test-name (intern (format "context-coloring-test-js-mode-%s" name)))
         (fixture (format "./fixtures/%s.js" name))
         (function-name (intern-soft (format "context-coloring-test-js-%s" name))))
@@ -102,6 +109,7 @@ to run arbitrary code before the mode is invoked."
                            (funcall done))))))
 
 (defmacro context-coloring-test-deftest-js2-mode (name)
+    "Define a test for `js2-mode' in the typical format."
   (let ((test-name (intern (format "context-coloring-test-js2-mode-%s" name)))
         (fixture (format "./fixtures/%s.js" name))
         (function-name (intern-soft (format "context-coloring-test-js-%s" name))))
@@ -114,6 +122,9 @@ to run arbitrary code before the mode is invoked."
 ;;; Assertion functions
 
 (defmacro context-coloring-test-assert-region (&rest body)
+  "Skeleton for asserting something about the face of points in a
+region.  Provides the free variables `i', `length', `point',
+`face' and `actual-level'."
   `(let ((i 0)
          (length (- end start)))
      (while (< i length)
@@ -124,9 +135,12 @@ to run arbitrary code before the mode is invoked."
        (setq i (+ i 1)))))
 
 (defconst context-coloring-test-level-regexp
-  "context-coloring-level-\\([[:digit:]]+\\)-face")
+  "context-coloring-level-\\([[:digit:]]+\\)-face"
+  "Regular expression for extracting a level from a face.")
 
 (defun context-coloring-test-assert-region-level (start end level)
+  "Assert that all points in the range [START, END) are of level
+LEVEL."
   (context-coloring-test-assert-region
    (when (not (when face
                 (let* ((face-string (symbol-name face))
@@ -147,6 +161,8 @@ to run arbitrary code before the mode is invoked."
                        point actual-level)))))
 
 (defun context-coloring-test-assert-region-face (start end expected-face)
+  "Assert that all points in the range [START, END) have the face
+EXPECTED-FACE."
   (context-coloring-test-assert-region
    (when (not (eq face expected-face))
      (ert-fail (format (concat "Expected face in region [%s, %s), "
@@ -157,18 +173,25 @@ to run arbitrary code before the mode is invoked."
                        point face)))))
 
 (defun context-coloring-test-assert-region-comment-delimiter (start end)
+  "Assert that all points in the range [START, END) have
+`font-lock-comment-delimiter-face'."
   (context-coloring-test-assert-region-face
    start end 'font-lock-comment-delimiter-face))
 
 (defun context-coloring-test-assert-region-comment (start end)
+    "Assert that all points in the range [START, END) have
+`font-lock-comment-face'."
   (context-coloring-test-assert-region-face
    start end 'font-lock-comment-face))
 
 (defun context-coloring-test-assert-region-string (start end)
+    "Assert that all points in the range [START, END) have
+`font-lock-string-face'."
   (context-coloring-test-assert-region-face
    start end 'font-lock-string-face))
 
 (defun context-coloring-test-assert-message (expected)
+  "Assert that the *Messages* buffer has message EXPECTED."
   (with-current-buffer "*Messages*"
     (let ((messages (split-string
                      (buffer-substring-no-properties
@@ -179,6 +202,8 @@ to run arbitrary code before the mode is invoked."
         (should (equal message expected))))))
 
 (defun context-coloring-test-assert-face (level foreground)
+  "Assert that a face for LEVEL exists and that its `:foreground'
+is FOREGROUND."
   (let* ((face (context-coloring-face-symbol level))
          actual-foreground)
     (when (not face)
@@ -327,3 +352,5 @@ to run arbitrary code before the mode is invoked."
    (context-coloring-test-js-comments-and-strings)))
 
 (provide 'context-coloring-test)
+
+;;; context-coloring-test.el ends here
