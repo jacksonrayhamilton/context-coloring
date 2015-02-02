@@ -34,12 +34,19 @@ code*.
 - Light and dark (customizable) color schemes.
 - Very fast for files under 1000 lines.
 
-## Usage
+## Installation
 
 Requires Emacs 24+.
 
 JavaScript language support requires either [js2-mode][] or
 [Node.js 0.10+][node], respectively.
+
+### ELPA
+
+- `M-x package-refresh-contents RET`
+- `M-x package-install RET context-coloring RET`
+
+### Git
 
 - Clone this repository.
 
@@ -65,28 +72,30 @@ make compile
 
 ## Customizing
 
-You can adjust the colors to your liking using `context-coloring-set-colors`.
-
-I like to take the colors from an existing theme and use those to create a
-rainbow that matches that theme. Here's an example for [`zenburn`][zenburn] (which is the
-theme used in the screenshot above).
+Built-in themes are accessible via `context-coloring-load-theme`.  Available
+themes are: `monokai`, `solarized`, `tango` and `zenburn`.
 
 ```lisp
-;; ~/.emacs
-(load-theme 'zenburn t)
 (require 'context-coloring)
-(context-coloring-set-colors
- "#DCDCCC"
- "#93E0E3"
- "#BFEBBF"
- "#F0DFAF"
- "#DFAF8F"
- "#CC9393"
- "#DC8CC3"
- "#94BFF3"
- "#9FC59F"
- "#D0BF8F"
- "#DCA3A3")
+(context-coloring-load-theme 'zenburn)
+```
+
+You can define your own themes, too:
+
+```lisp
+(context-coloring-define-theme
+ 'zenburn
+ :colors '("#DCDCCC"
+           "#93E0E3"
+           "#BFEBBF"
+           "#F0DFAF"
+           "#DFAF8F"
+           "#CC9393"
+           "#DC8CC3"
+           "#94BFF3"
+           "#9FC59F"
+           "#D0BF8F"
+           "#DCA3A3"))
 ```
 
 ## Extending
@@ -127,10 +136,11 @@ into an array like the one above.
 For example, a Ruby scopifier might be defined and implemented like this:
 
 ```lisp
-(context-coloring-define-dispatch 'ruby
-  :modes '(ruby-mode)
-  :executable "ruby"
-  :command "/home/username/scopifier")
+(context-coloring-define-dispatch
+ 'ruby
+ :modes '(ruby-mode)
+ :executable "ruby"
+ :command "/home/username/scopifier")
 ```
 
 ```ruby

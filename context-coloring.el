@@ -1,11 +1,14 @@
 ;;; context-coloring.el --- Syntax highlighting, except not for syntax. -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2014 Jackson Ray Hamilton
+;; Copyright (C) 2014-2015  Free Software Foundation, Inc.
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
+;; URL: https://github.com/jacksonrayhamilton/context-coloring
 ;; Keywords: context coloring syntax highlighting
-;; Version: 3.0.0
-;; Package-Requires: ((emacs "24") (js2-mode "20141228"))
+;; Version: 3.1.0
+;; Package-Requires: ((emacs "24") (js2-mode "20150126"))
+
+;; This file is part of GNU Emacs.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,6 +27,20 @@
 
 ;; Highlights code according to function context.
 
+;; - Code in the global scope is one color.  Code in functions within the global
+;;   scope is a different color, and code within such functions is another
+;;   color, and so on.
+;; - Identifiers retain the color of the scope in which they are declared.
+
+;; Lexical scope information at-a-glance can assist a programmer in
+;; understanding the overall structure of a program.  It can help to curb nasty
+;; bugs like name shadowing.  A rainbow can indicate excessive complexity. State
+;; change within a closure is easily monitored.
+
+;; By default, Context Coloring still highlights comments and strings
+;; syntactically.  It is still easy to differentiate code from non-code, and
+;; strings cannot be confused for variables.
+
 ;; To use, add the following to your ~/.emacs:
 
 ;; (require 'context-coloring)
@@ -31,6 +48,7 @@
 
 ;;; Code:
 
+(require 'context-coloring-themes)
 (require 'js2-mode)
 
 
@@ -377,16 +395,18 @@ level data returned via stdout."
       (when (null (gethash mode context-coloring-mode-hash-table))
         (puthash mode properties context-coloring-mode-hash-table)))))
 
-(context-coloring-define-dispatch 'javascript-node
-  :modes '(js-mode js3-mode)
-  :executable "node"
-  :command (expand-file-name
-            "./languages/javascript/binaries/scopifier"
-            context-coloring-path))
+(context-coloring-define-dispatch
+ 'javascript-node
+ :modes '(js-mode js3-mode)
+ :executable "node"
+ :command (expand-file-name
+           "./languages/javascript/binaries/scopifier"
+           context-coloring-path))
 
-(context-coloring-define-dispatch 'javascript-js2
-  :modes '(js2-mode)
-  :colorizer 'context-coloring-js2-colorize)
+(context-coloring-define-dispatch
+ 'javascript-js2
+ :modes '(js2-mode)
+ :colorizer 'context-coloring-js2-colorize)
 
 (defun context-coloring-dispatch (&optional callback)
   "Determines the optimal track for scopification / colorization
