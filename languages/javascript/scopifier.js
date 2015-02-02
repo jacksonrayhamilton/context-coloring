@@ -1,4 +1,6 @@
-// Copyright (C) 2014 Jackson Ray Hamilton
+// Copyright (C) 2014-2015  Free Software Foundation, Inc.
+
+// This file is part of GNU Emacs.
 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,9 +23,6 @@ var escope = require('./libraries/escope'),
 // Given code, returns an array of tokens for context-coloring.
 function scopifier(code) {
 
-    // Strip BOM.
-    code = code.replace(/^\ufeff/g, '');
-
     var analyzedScopes,
         ast,
         definition,
@@ -40,6 +39,9 @@ function scopifier(code) {
         scopes,
         tokens,
         variable;
+
+    // Strip BOM.
+    code = code.replace(/^\ufeff/g, '');
 
     // Gracefully handle parse errors by doing nothing.
     try {
@@ -69,7 +71,7 @@ function scopifier(code) {
                 // Base case.
                 scope.level = 0;
             }
-            // We've only given the scope a level for posterity's sake. We're
+            // We've only given the scope a level for posterity's sake.  We're
             // done now.
             if (!scope.functionExpressionScope) {
                 range = scope.block.range;
@@ -97,10 +99,9 @@ function scopifier(code) {
                     reference = scope.references[j];
                     range = reference.identifier.range;
                     isDefined = false;
-                    // Determine if a definition already exists for the
-                    // range. (escope detects variables twice if they are
-                    // declared and initialized simultaneously; this filters
-                    // them.)
+                    // Determine if a definition already exists for the range.
+                    // (escope detects variables twice if they are declared and
+                    // initialized simultaneously; this filters them.)
                     for (k = 0; k < definitionsCount; k += 1) {
                         pointer = definitionsIndex + (k * 3);
                         if (tokens[pointer] === range[0] + 1 &&
