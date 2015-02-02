@@ -248,7 +248,7 @@ is FOREGROUND."
 
 (ert-deftest context-coloring-test-set-colors ()
   ;; This test has an irreversible side-effect in that it defines faces beyond
-  ;; 7. Faces 0 through 7 are reset to their default states, so it might not
+  ;; 7.  Faces 0 through 7 are reset to their default states, so it might not
   ;; matter, but be aware anyway.
   (context-coloring-set-colors
    "#000000"
