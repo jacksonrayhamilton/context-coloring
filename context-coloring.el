@@ -5,7 +5,7 @@
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; URL: https://github.com/jacksonrayhamilton/context-coloring
 ;; Keywords: context coloring syntax highlighting
-;; Version: 3.1.0
+;; Version: 3.1.1
 ;; Package-Requires: ((emacs "24") (js2-mode "20150126"))
 
 ;; This file is part of GNU Emacs.
