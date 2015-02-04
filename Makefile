@@ -12,6 +12,7 @@ bench:
 
 compile:
 	${EMACS} -Q -batch \
+	-L . \
 	-L libraries \
 	-f batch-byte-compile *.el libraries/*.el
 
