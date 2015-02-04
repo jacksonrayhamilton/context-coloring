@@ -32,5 +32,6 @@ process.stdin.on('readable', function () {
 });
 
 process.stdin.on('end', function () {
+    whole = whole.replace(/\r\n/g, '\n'); // Windows
     console.log(JSON.stringify(scopifier(whole)));
 });
