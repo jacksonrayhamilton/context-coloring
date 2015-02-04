@@ -430,9 +430,12 @@ elisp tracks, and asynchronously for shell command tracks."
         (if callback (funcall callback)))
        ((setq command (plist-get dispatch :command))
         (setq executable (plist-get dispatch :executable))
-        (if (and (not (null executable))
+        (if (and executable
                  (null (executable-find executable)))
             (message "Executable \"%s\" not found" executable)
+          (if (and executable
+                   (eq system-type 'windows-nt))
+              (setq command (concat executable " " command)))
           (context-coloring-scopify-shell-command command callback)))))))
 
 
