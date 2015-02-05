@@ -22,6 +22,12 @@
 (defun resolve-path (path)
   (expand-file-name path directory))
 
+(defun strip-headers ()
+  (goto-char 1)
+  (kill-paragraph 1) ; The headers are 1 paragraph. I hope.
+  (kill-line)        ; A line separates the headers from the file's content.
+  )
+
 (let ((files '("https://raw.githubusercontent.com/mooz/js2-mode/master/js2-mode.el"
                "https://raw.githubusercontent.com/rejeep/ert-async.el/master/ert-async.el")))
   (make-directory (resolve-path "../libraries") t)
@@ -30,4 +36,5 @@
            (destination (resolve-path (concat "../libraries/" basename))))
       (when (null (file-exists-p destination))
         (with-current-buffer (url-retrieve-synchronously file)
+          (strip-headers)
           (write-file destination))))))
