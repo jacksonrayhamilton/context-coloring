@@ -162,4 +162,5 @@ print scopifier ARGF.read
 [point]: http://www.gnu.org/software/emacs/manual/html_node/elisp/Point.html
 [js2-mode]: https://github.com/mooz/js2-mode
 [node]: http://nodejs.org/download/
+[scopifier]: https://github.com/jacksonrayhamilton/scopifier
 [load path]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Lisp-Libraries.html
