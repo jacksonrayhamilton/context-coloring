@@ -90,8 +90,12 @@ Add the following to your `~/.emacs` file:
 
 ## Customizing
 
-Built-in themes are accessible via `context-coloring-load-theme`.  Available
-themes are: `monokai`, `solarized`, `tango` and `zenburn`.
+You can enable different color schemes via `context-coloring-load-theme`. (The
+screenshot above pairs the [zenburn][] color theme with the similarly-named
+context-coloring theme.)
+
+Built-in available themes are: `monokai`, `solarized`, `tango` and
+`zenburn`. Contributions are welcome.
 
 ```lisp
 (require 'context-coloring)
