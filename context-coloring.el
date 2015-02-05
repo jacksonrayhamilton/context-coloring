@@ -398,10 +398,8 @@ level data returned via stdout."
 (context-coloring-define-dispatch
  'javascript-node
  :modes '(js-mode js3-mode)
- :executable "node"
- :command (expand-file-name
-           "./languages/javascript/binaries/scopifier"
-           context-coloring-path))
+ :executable "scopifier"
+ :command "scopifier")
 
 (context-coloring-define-dispatch
  'javascript-js2
@@ -433,9 +431,6 @@ elisp tracks, and asynchronously for shell command tracks."
         (if (and executable
                  (null (executable-find executable)))
             (message "Executable \"%s\" not found" executable)
-          (if (and executable
-                   (eq system-type 'windows-nt))
-              (setq command (concat executable " " command)))
           (context-coloring-scopify-shell-command command callback)))))))
 
 
