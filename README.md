@@ -156,6 +156,10 @@ end
 print scopifier ARGF.read
 ```
 
+When a `--version` argument is passed, a scopifier should print its version
+number and exit. For installable scopifiers, this allows context-coloring to
+check for updates as needed.
+
 [linter]: http://jshint.com/about/
 [flycheck]: http://www.flycheck.org/
 [zenburn]: http://github.com/bbatsov/zenburn-emacs
