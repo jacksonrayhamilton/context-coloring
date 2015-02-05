@@ -41,10 +41,6 @@ Requires Emacs 24+.
 JavaScript language support requires either [js2-mode][], or
 [Node.js 0.10+][node] and the [scopifier][] executable.
 
-```bash
-npm install -g scopifier
-```
-
 ### ELPA
 
 - `M-x package-refresh-contents RET`
@@ -71,6 +67,24 @@ make compile
 ```lisp
 (add-to-list 'load-path "~/.emacs.d/context-coloring")
 (require 'context-coloring)
+```
+
+### scopifier (for non-js2-mode users)
+
+```bash
+npm install -g scopifier
+```
+
+## Usage
+
+Add the following to your `~/.emacs` file:
+
+```lisp
+;; non-js2-mode users:
+(add-hook 'js-mode-hook 'context-coloring-mode)
+
+;; js2-mode users:
+(add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
 (add-hook 'js2-mode-hook 'context-coloring-mode)
 ```
 
