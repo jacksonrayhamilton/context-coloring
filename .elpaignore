@@ -1,13 +1,10 @@
 .elpaignore
 .gitignore
-.jshintrc
 .travis.yml
 Makefile
 README.md
 benchmark
-libraries/.dir-locals.el
-libraries/ert-async.el
-libraries/js2-mode.el
+libraries
 scopifier.png
 screenshot.png
 test
