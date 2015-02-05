@@ -19,6 +19,10 @@ compile:
 clean:
 	rm -f *.elc libraries/*.elc
 
+deps:
+	${EMACS} -Q -batch \
+	-l scripts/download-dependencies.el
+
 test:
 	${EMACS} -Q -batch \
 	-L . \
@@ -29,4 +33,4 @@ test:
 	-l test/context-coloring-test.el \
 	-f ert-run-tests-batch-and-exit
 
-.PHONY: all bench compile clean test
+.PHONY: all bench compile clean deps test
