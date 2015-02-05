@@ -44,7 +44,12 @@
 ;; To use, add the following to your ~/.emacs:
 
 ;; (require 'context-coloring)
-;; (add-hook 'js-mode-hook 'context-coloring-mode)
+;; (add-hook 'js2-mode-hook 'context-coloring-mode)
+
+;; js-mode or js3-mode support requires Node.js 0.10+ and the scopifier
+;; executable.
+
+;; $ npm install -g scopifier
 
 ;;; Code:
 
