@@ -98,7 +98,6 @@ Built-in available themes are: `monokai`, `solarized`, `tango` and
 `zenburn`. Contributions are welcome.
 
 ```lisp
-(require 'context-coloring)
 (context-coloring-load-theme 'zenburn)
 ```
 
