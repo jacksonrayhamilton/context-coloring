@@ -499,6 +499,18 @@ coloring."
     (funcall function)))
 
 (context-coloring-define-theme
+ 'leuven
+ :colors '("#333333"
+           "#0000FF"
+           "#6434A3"
+           "#BA36A5"
+           "#D0372D"
+           "#036A07"
+           "#006699"
+           "#006FE0"
+           "#808080"))
+
+(context-coloring-define-theme
  'monokai
  :colors '("#F8F8F2"
            "#66D9EF"

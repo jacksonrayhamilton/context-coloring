@@ -94,7 +94,7 @@ You can enable different color schemes via `context-coloring-load-theme`. (The
 screenshot above pairs the [zenburn][] color theme with the similarly-named
 context-coloring theme.)
 
-Built-in available themes are: `monokai`, `solarized`, `tango` and
+Built-in available themes are: `leuven`, `monokai`, `solarized`, `tango` and
 `zenburn`. Contributions are welcome.
 
 ```lisp
