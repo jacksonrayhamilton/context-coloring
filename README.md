@@ -16,7 +16,7 @@ the overall structure of a program. It can help to curb nasty bugs like name
 shadowing. A rainbow can indicate excessive complexity. State change within a
 closure is easily monitored.
 
-By default, Context Coloring still highlights comments and strings
+By default, context-coloring still highlights comments and strings
 syntactically. It is still easy to differentiate code from non-code, and strings
 cannot be confused for variables.
 
@@ -25,7 +25,7 @@ highlighting. Highlighting keywords can help one to detect spelling errors, but
 a [linter][] could also spot those errors, and if integrated with [flycheck][],
 an extra spot opens up in your editing toolbelt.
 
-Give context coloring a try; you may find that it *changes the way you write
+Give context-coloring a try; you may find that it *changes the way you write
 code*.
 
 ## Features
@@ -43,7 +43,6 @@ JavaScript language support requires either [js2-mode][], or
 
 ### ELPA
 
-- `M-x package-refresh-contents RET`
 - `M-x package-install RET context-coloring RET`
 
 ### Git
@@ -90,18 +89,11 @@ Add the following to your `~/.emacs` file:
 
 ## Customizing
 
-You can enable different color schemes via `context-coloring-load-theme`. (The
-screenshot above pairs the [zenburn][] color theme with the similarly-named
-context-coloring theme.)
+Color schemes for custom themes are automatically applied when those themes are
+active. Built-in theme support is available for: `leuven`, `monokai`,
+`solarized`, `tango` and `zenburn`.
 
-Built-in available themes are: `leuven`, `monokai`, `solarized`, `tango` and
-`zenburn`. Contributions are welcome.
-
-```lisp
-(context-coloring-load-theme 'zenburn)
-```
-
-You can define your own themes, too:
+You can define your own theme colors too:
 
 ```lisp
 (context-coloring-define-theme
@@ -174,8 +166,8 @@ print scopifier ARGF.read
 ```
 
 When a `--version` argument is passed, a scopifier should print its version
-number and exit. For installable scopifiers, this allows context-coloring to
-check for updates as needed.
+number and exit. This allows context-coloring to determine if an update is
+required.
 
 [linter]: http://jshint.com/about/
 [flycheck]: http://www.flycheck.org/
