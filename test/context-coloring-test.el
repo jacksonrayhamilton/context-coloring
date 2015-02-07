@@ -153,10 +153,6 @@ region.  Provides the free variables `i', `length', `point',
          ,@body)
        (setq i (+ i 1)))))
 
-(defconst context-coloring-test-level-regexp
-  "context-coloring-level-\\([[:digit:]]+\\)-face"
-  "Regular expression for extracting a level from a face.")
-
 (defun context-coloring-test-assert-region-level (start end level)
   "Assert that all points in the range [START, END) are of level
 LEVEL."
@@ -164,7 +160,7 @@ LEVEL."
    (when (not (when face
                 (let* ((face-string (symbol-name face))
                        (matches (string-match
-                                 context-coloring-test-level-regexp
+                                 context-coloring-level-face-regexp
                                  face-string)))
                   (when matches
                     (setq actual-level (string-to-number
@@ -271,6 +267,38 @@ is FOREGROUND."
   (context-coloring-test-assert-face 7 "#777777")
   (context-coloring-test-assert-face 8 "#888888")
   (context-coloring-test-assert-face 9 "#999999"))
+
+(defun context-coloring-test-assert-theme-highest-level (settings expected-level)
+  (let (theme)
+    (put theme 'theme-settings settings)
+    (let ((highest-level (context-coloring-theme-highest-level theme)))
+      (when (not (eq highest-level expected-level))
+        (ert-fail (format (concat "Expected theme with settings `%s' "
+                                  "to have a highest level of `%s', "
+                                  "but it was %s.")
+                          settings
+                          expected-level
+                          highest-level))))))
+
+(ert-deftest context-coloring-test-theme-highest-level ()
+  (context-coloring-test-assert-theme-highest-level
+   '((theme-face foo))
+   -1)
+  (context-coloring-test-assert-theme-highest-level
+   '((theme-face context-coloring-level-0-face))
+   0)
+  (context-coloring-test-assert-theme-highest-level
+   '((theme-face context-coloring-level-1-face))
+   1)
+  (context-coloring-test-assert-theme-highest-level
+   '((theme-face context-coloring-level-1-face)
+     (theme-face context-coloring-level-0-face))
+   1)
+  (context-coloring-test-assert-theme-highest-level
+   '((theme-face context-coloring-level-0-face)
+     (theme-face context-coloring-level-1-face))
+   1)
+  )
 
 (defun context-coloring-test-js-function-scopes ()
   (context-coloring-test-assert-region-level 1 9 0)

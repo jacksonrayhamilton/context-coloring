@@ -108,23 +108,28 @@ used.")
 ;;; Faces
 
 (defun context-coloring-defface (level tty light dark)
+  "Dynamically define a face for LEVEL with colors for TTY, LIGHT
+and DARK backgrounds."
   (let ((face (intern (format "context-coloring-level-%s-face" level)))
         (doc (format "Context coloring face, level %s." level)))
-    (eval (macroexpand `(defface ,face
-                          '((((type tty)) (:foreground ,tty))
-                            (((background light)) (:foreground ,light))
-                            (((background dark)) (:foreground ,dark)))
-                          ,doc
-                          :group 'context-coloring)))))
+    (eval
+     (macroexpand
+      `(defface ,face
+         '((((type tty)) (:foreground ,tty))
+           (((background light)) (:foreground ,light))
+           (((background dark)) (:foreground ,dark)))
+         ,doc
+         :group 'context-coloring)))))
 
 (defvar context-coloring-face-count nil
-  "Number of faces available for context coloring.")
+  "Number of faces available for coloring.")
 
 (defun context-coloring-defface-default (level)
-  (context-coloring-defface level "white" "#3f3f3f" "#cdcdcd"))
+  "Define a face for LEVEL with the default neutral colors."
+  (context-coloring-defface level nil "#3f3f3f" "#cdcdcd"))
 
 (defun context-coloring-set-colors-default ()
-  (context-coloring-defface 0 "white"   "#000000" "#ffffff")
+  (context-coloring-defface 0 nil       "#000000" "#ffffff")
   (context-coloring-defface 1 "yellow"  "#007f80" "#ffff80")
   (context-coloring-defface 2 "green"   "#001580" "#cdfacd")
   (context-coloring-defface 3 "cyan"    "#550080" "#d8d8ff")
@@ -472,25 +477,70 @@ would be redundant."
 (defvar context-coloring-theme-hash-table (make-hash-table :test 'eq)
   "Mapping of theme names to theme properties.")
 
+(defun context-coloring-themep (theme)
+  "Return t if THEME is defined, nil otherwise."
+  (and (gethash theme context-coloring-theme-hash-table)))
+
+(defun context-coloring-check-theme (theme)
+  "Signal error if THEME is undefined."
+  (when (not (context-coloring-themep theme))
+    (error (format "No such theme `%s'" theme))))
+
+(defconst context-coloring-level-face-regexp
+  "context-coloring-level-\\([[:digit:]]+\\)-face"
+  "Regular expression for extracting a level from a face.")
+
+(defun context-coloring-theme-highest-level (theme)
+  "Return the highest level N of a face like
+`context-coloring-level-N-face' defined for THEME, or -1 if there
+is none."
+  (let* ((settings (get theme 'theme-settings))
+         (tail settings)
+         face-string
+         number
+         (found -1))
+    (while tail
+      (and (eq (nth 0 (car tail)) 'theme-face)
+           (setq face-string (symbol-name (nth 1 (car tail))))
+           (string-match
+            context-coloring-level-face-regexp
+            face-string)
+           (setq number (string-to-number
+                         (substring face-string
+                                    (match-beginning 1)
+                                    (match-end 1))))
+           (> number found)
+           (setq found number))
+      (setq tail (cdr tail)))
+    found))
+
+(defun context-coloring-setup-theme (theme)
+  "Sets up THEME if its colors are not already defined, else just
+sets `context-coloring-face-count' to the correct value for
+THEME."
+  (context-coloring-check-theme theme)
+  (let ((highest-level (context-coloring-theme-highest-level theme)))
+    (cond
+     ((> highest-level -1)
+      (setq context-coloring-face-count (+ highest-level 1)))
+     (t
+      (context-coloring-apply-theme theme)))))
+
 (defun context-coloring-apply-theme (theme)
   "Applies THEME's properties to its respective custom theme,
 which must already exist and which *should* already be enabled."
-  (let ((properties (gethash theme context-coloring-theme-hash-table)))
-    (when (null properties)
-      (error (format "No such theme `%s'" theme)))
-    (let ((colors (plist-get properties :colors)))
-      (setq context-coloring-face-count (length colors)) ; Side-effect?
-      (let ((level -1))
-        ;; AFAIK, no way to know if a theme already has a face set, so just
-        ;; override blindly for now.
-        (apply
-         'custom-theme-set-faces
-         theme
-         (mapcar
-          (lambda (color)
-            (setq level (+ level 1))
-            `(,(context-coloring-face-symbol level) ((t (:foreground ,color)))))
-          colors))))))
+  (let* ((properties (gethash theme context-coloring-theme-hash-table))
+         (colors (plist-get properties :colors))
+         (level -1))
+    (setq context-coloring-face-count (length colors))
+    (apply
+     'custom-theme-set-faces
+     theme
+     (mapcar
+      (lambda (color)
+        (setq level (+ level 1))
+        `(,(context-coloring-face-symbol level) ((t (:foreground ,color)))))
+      colors))))
 
 (defun context-coloring-define-theme (theme &rest properties)
   "Define a theme named THEME for coloring scope levels.
@@ -502,7 +552,7 @@ PROPERTIES is a property list specifiying the following details:
       (puthash name properties context-coloring-theme-hash-table)
       ;; Compensate for already-enabled themes by applying their colors now.
       (when (custom-theme-enabled-p name)
-        (context-coloring-apply-theme name)))))
+        (context-coloring-setup-theme name)))))
 
 (defun context-coloring-load-theme (&optional rest)
   (declare (obsolete
@@ -511,9 +561,10 @@ PROPERTIES is a property list specifiying the following details:
 
 (defadvice enable-theme (after context-coloring-enable-theme (theme) activate)
   "Add colors to themes just-in-time."
-  (when (and (not (eq theme 'user))  ; Called internally.
-             (custom-theme-p theme)) ; Guard against non-existent themes.
-    (context-coloring-apply-theme theme)))
+  (when (and (not (eq theme 'user))          ; Called internally by `enable-theme'.
+             (context-coloring-themep theme)
+             (custom-theme-p theme))         ; Guard against non-existent themes.
+    (context-coloring-setup-theme theme)))
 
 (context-coloring-define-theme
  'leuven
