@@ -505,7 +505,7 @@ PROPERTIES is a property list specifiying the following details:
 
 `:colors': List of colors that this theme uses."
   (let ((aliases (plist-get properties :aliases)))
-    (dolist (name (append '(theme) aliases))
+    (dolist (name (append `(,theme) aliases))
       (puthash name properties context-coloring-theme-hash-table)
       ;; Compensate for already-enabled themes by applying their colors now.
       (when (custom-theme-enabled-p name)
