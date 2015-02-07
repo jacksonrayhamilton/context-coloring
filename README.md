@@ -171,9 +171,7 @@ required.
 
 [linter]: http://jshint.com/about/
 [flycheck]: http://www.flycheck.org/
-[zenburn]: http://github.com/bbatsov/zenburn-emacs
 [point]: http://www.gnu.org/software/emacs/manual/html_node/elisp/Point.html
 [js2-mode]: https://github.com/mooz/js2-mode
 [node]: http://nodejs.org/download/
 [scopifier]: https://github.com/jacksonrayhamilton/scopifier
-[load path]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Lisp-Libraries.html

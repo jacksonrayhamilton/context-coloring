@@ -56,13 +56,6 @@
 (require 'js2-mode)
 
 
-;;; Constants
-
-(defconst context-coloring-path
-  (file-name-directory (or load-file-name buffer-file-name))
-  "This file's directory.")
-
-
 ;;; Customizable options
 
 (defcustom context-coloring-delay 0.25
@@ -81,8 +74,8 @@ Supported modes: `js-mode', `js3-mode'"
 (defcustom context-coloring-js-block-scopes nil
   "If non-nil, also color block scopes in the scope hierarchy in JavaScript.
 
-The block-scope-inducing `let' and `const' are introduced in ES6.
-If you are writing ES6 code, enable this; otherwise, don't.
+The block-scoped `let' and `const' are introduced in ES6.  If you
+are writing ES6 code, enable this; otherwise, don't.
 
 Supported modes: `js2-mode'"
   :group 'context-coloring)
