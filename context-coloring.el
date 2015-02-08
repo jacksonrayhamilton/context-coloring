@@ -477,7 +477,7 @@ would be redundant."
 (defvar context-coloring-theme-hash-table (make-hash-table :test 'eq)
   "Mapping of theme names to theme properties.")
 
-(defun context-coloring-themep (theme)
+(defun context-coloring-theme-p (theme)
   "Return t if THEME is defined, nil otherwise."
   (and (gethash theme context-coloring-theme-hash-table)))
 
@@ -661,7 +661,7 @@ THEME."
   "Enable colors for context themes just-in-time.  We can't set
 faces for custom themes that might not exist yet."
   (when (and (not (eq theme 'user))          ; Called internally by `enable-theme'.
-             (context-coloring-themep theme)
+             (context-coloring-theme-p theme)
              (custom-theme-p theme))         ; Guard against non-existent themes.
     (context-coloring-enable-theme theme)))
 
