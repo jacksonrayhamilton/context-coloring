@@ -565,32 +565,33 @@ which must already exist and which *should* already be enabled."
       colors))))
 
 (defun context-coloring-define-theme (theme &rest properties)
-  "Define a theme named THEME for coloring scope levels.
+  "Define a context theme named THEME for coloring scope levels.
 
 PROPERTIES is a property list specifiying the following details:
 
 `:aliases': List of symbols of other custom themes that these
 colors are applicable to.
 
-`:colors': List of colors that this theme uses.
+`:colors': List of colors that this context theme uses.
 
-`:override': If non-nil, this theme is intentionally overriding
-colors set by a custom theme.  Don't set this non-nil unless
-there is a theme you want to use which sets
+`:override': If non-nil, this context theme is intentionally
+overriding colors set by a custom theme.  Don't set this non-nil
+unless there is a custom theme you want to use which sets
 `context-coloring-level-N-face' faces that you want to replace.
 
-`:recede': If non-nil, this theme should not apply its colors if
-a custom theme already sets `context-coloring-level-N-face'
-faces.  This option is optimistic; set this non-nil if you would
-rather confer the duty of picking colors to a theme author (if /
-when he ever gets around to it).
+`:recede': If non-nil, this context theme should not apply its
+colors if a custom theme already sets
+`context-coloring-level-N-face' faces.  This option is
+optimistic; set this non-nil if you would rather confer the duty
+of picking colors to a custom theme author (if / when he ever
+gets around to it).
 
-By default, themes will always override custom themes, even if
-those custom themes set `context-coloring-level-N-face' faces.
-If a theme does override a custom theme, a warning will be
-raised, at which point you may want to enable the `:override'
-option, or just delete your theme and opt to use your custom
-theme's author's colors instead."
+By default, context themes will always override custom themes,
+even if those custom themes set `context-coloring-level-N-face'
+faces.  If a context theme does override a custom theme, a
+warning will be raised, at which point you may want to enable the
+`:override' option, or just delete your context theme and opt to
+use your custom theme's author's colors instead."
   (let ((aliases (plist-get properties :aliases))
         (override (plist-get properties :override))
         (recede (plist-get properties :recede)))
@@ -599,6 +600,10 @@ theme's author's colors instead."
       (when (custom-theme-p name)
         (let ((defined (context-coloring-theme-definedp name)))
           (context-coloring-cache-defined name defined)
+          ;; In the particular case when you innocently define colors that a
+          ;; custom theme already sets, warn.  Arguably this only has to be done
+          ;; at enable time, but it is probably more useful to do it at
+          ;; definition time for prompter feedback.
           (when (and defined
                      (not recede)
                      (not override))
@@ -611,7 +616,7 @@ theme's author's colors instead."
 (defun context-coloring-load-theme (&optional rest)
   (declare
    (obsolete
-    "themes are now loaded alongside custom themes automatically."
+    "context themes are now loaded alongside custom themes automatically."
     "4.1.0")))
 
 (defun context-coloring-enable-theme (theme)
@@ -625,13 +630,21 @@ THEME."
      (recede
       (let ((highest-level (context-coloring-theme-highest-level theme)))
         (cond
+         ;; This can be true whether originally set by a custom theme or by a
+         ;; context theme.
          ((> highest-level -1)
           (setq context-coloring-face-count (+ highest-level 1)))
+         ;; It is possible that the corresponding custom theme did not exist at
+         ;; the time of defining this context theme, and in that case the above
+         ;; condition proves the custom theme did not originally set any faces,
+         ;; so we have license to apply the context theme for the first time
+         ;; here.
          (t
           (context-coloring-apply-theme theme)))))
      (t
       (let ((defined (context-coloring-theme-definedp theme)))
-        ;; Cache now in case the theme was defined after.
+        ;; Cache now in case the context theme was defined after the custom
+        ;; theme.
         (context-coloring-cache-defined theme defined)
         (when (and defined
                    (not override))
@@ -639,8 +652,8 @@ THEME."
         (context-coloring-apply-theme theme))))))
 
 (defadvice enable-theme (after context-coloring-enable-theme (theme) activate)
-  "Enable colors for themes just-in-time.  We can't set faces for
-themes that might not exist yet."
+  "Enable colors for context themes just-in-time.  We can't set
+faces for custom themes that might not exist yet."
   (when (and (not (eq theme 'user))          ; Called internally by `enable-theme'.
              (context-coloring-themep theme)
              (custom-theme-p theme))         ; Guard against non-existent themes.
