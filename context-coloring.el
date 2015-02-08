@@ -734,6 +734,18 @@ faces for custom themes that might not exist yet."
            "#9EA0E5"))
 
 (context-coloring-define-theme
+ 'spacegray
+ :recede t
+ :colors '("#ffffff"
+           "#89AAEB"
+           "#C189EB"
+           "#bf616a"
+           "#DCA432"
+           "#ebcb8b"
+           "#B4EB89"
+           "#89EBCA"))
+
+(context-coloring-define-theme
  'tango
  :recede t
  :colors '("#2e3436"
