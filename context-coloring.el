@@ -602,10 +602,11 @@ theme's author's colors instead."
           (when (and defined
                      (not recede)
                      (not override))
-            (context-coloring-warn-theme-defined name)))
-        ;; Set (or overwrite) colors.
-        (when (not recede)
-          (context-coloring-apply-theme name))))))
+            (context-coloring-warn-theme-defined name))
+          ;; Set (or overwrite) colors.
+          (when (not (and defined
+                          recede))
+            (context-coloring-apply-theme name)))))))
 
 (defun context-coloring-load-theme (&optional rest)
   (declare

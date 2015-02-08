@@ -470,6 +470,26 @@ t for a theme with SETTINGS."
    :colors '("#cccccc"
              "#dddddd"))
   (context-coloring-test-assert-no-message "*Warnings*")
+  (context-coloring-test-assert-face 0 "#aaaaaa")
+  (context-coloring-test-assert-face 1 "#bbbbbb")
+  (enable-theme theme)
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (context-coloring-test-assert-face 0 "#aaaaaa")
+  (context-coloring-test-assert-face 1 "#bbbbbb"))
+
+(context-coloring-test-deftest-define-theme post-recede-not-defined
+  (context-coloring-test-deftheme theme)
+  (custom-theme-set-faces
+   theme
+   '(foo-face ((t (:foreground "#ffffff")))))
+  (context-coloring-define-theme
+   theme
+   :recede t
+   :colors '("#aaaaaa"
+             "#bbbbbb"))
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (context-coloring-test-assert-face 0 "#aaaaaa")
+  (context-coloring-test-assert-face 1 "#bbbbbb")
   (enable-theme theme)
   (context-coloring-test-assert-no-message "*Warnings*")
   (context-coloring-test-assert-face 0 "#aaaaaa")
