@@ -310,12 +310,14 @@ is FOREGROUND."
     (setq context-coloring-test-theme-index
           (+ context-coloring-test-theme-index 1))))
 
-(defun context-coloring-test-assert-theme-definedp (settings &optional negate)
-  "Assert that `context-coloring-theme-definedp' returns t for a
-theme with SETTINGS (or the inverse if NEGATE is non-nil)."
+(defun context-coloring-test-assert-theme-originally-set-p (settings &optional negate)
+  "Assert that `context-coloring-theme-originally-set-p' returns
+t for a theme with SETTINGS (or the inverse if NEGATE is
+non-nil)."
   (let ((theme (context-coloring-test-get-next-theme)))
     (put theme 'theme-settings settings)
-    (when (funcall (if negate 'identity 'not) (context-coloring-theme-definedp theme))
+    (when (funcall (if negate 'identity 'not)
+                   (context-coloring-theme-originally-set-p theme))
       (ert-fail (format (concat "Expected theme `%s' with settings `%s' "
                                 "%sto be considered to have defined a level, "
                                 "but it %s.")
@@ -323,21 +325,21 @@ theme with SETTINGS (or the inverse if NEGATE is non-nil)."
                         (if negate "not " "")
                         (if negate "was" "wasn't"))))))
 
-(defun context-coloring-test-assert-not-theme-definedp (&rest arguments)
-  "Assert that `context-coloring-theme-definedp' does not return
-t for a theme with SETTINGS."
-  (apply 'context-coloring-test-assert-theme-definedp (append arguments '(t))))
+(defun context-coloring-test-assert-not-theme-originally-set-p (&rest arguments)
+  "Assert that `context-coloring-theme-originally-set-p' does not
+return t for a theme with SETTINGS."
+  (apply 'context-coloring-test-assert-theme-originally-set-p (append arguments '(t))))
 
-(ert-deftest context-coloring-test-theme-definedp ()
-  (context-coloring-test-assert-theme-definedp
+(ert-deftest context-coloring-test-theme-originally-set-p ()
+  (context-coloring-test-assert-theme-originally-set-p
    '((theme-face context-coloring-level-0-face)))
-  (context-coloring-test-assert-theme-definedp
+  (context-coloring-test-assert-theme-originally-set-p
    '((theme-face face)
      (theme-face context-coloring-level-0-face)))
-  (context-coloring-test-assert-theme-definedp
+  (context-coloring-test-assert-theme-originally-set-p
    '((theme-face context-coloring-level-0-face)
      (theme-face face)))
-  (context-coloring-test-assert-not-theme-definedp
+  (context-coloring-test-assert-not-theme-originally-set-p
    '((theme-face face)))
   )
 

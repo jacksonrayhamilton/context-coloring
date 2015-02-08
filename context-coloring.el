@@ -485,17 +485,22 @@ would be redundant."
   "context-coloring-level-\\([[:digit:]]+\\)-face"
   "Regular expression for extracting a level from a face.")
 
-(defvar context-coloring-defined-theme-hash-table (make-hash-table :test 'eq)
+(defvar context-coloring-originally-set-theme-hash-table (make-hash-table :test 'eq)
   "Cache of custom themes who originally set their own
   `context-coloring-level-N-face' faces.")
 
-(defun context-coloring-theme-definedp (theme)
-  "Return t if there is a `context-coloring-level-N-face' defined
-for THEME, nil otherwise."
-  (let (defined)
+(defun context-coloring-theme-originally-set-p (theme)
+  "Return t if there is a `context-coloring-level-N-face'
+originally set for THEME, nil otherwise."
+  (let (originally-set)
     (cond
-     ((setq defined (gethash theme context-coloring-defined-theme-hash-table))
-      (eq defined 'defined))
+     ;; `setq' might return a non-nil value for the sake of this `cond'.
+     ((setq
+       originally-set
+       (gethash
+        theme
+        context-coloring-originally-set-theme-hash-table))
+      (eq originally-set 'yes))
      (t
       (let* ((settings (get theme 'theme-settings))
              (tail settings)
@@ -509,25 +514,26 @@ for THEME, nil otherwise."
           (setq tail (cdr tail)))
         found)))))
 
-(defun context-coloring-cache-defined (theme defined)
-  "Remember if THEME had colors defined for it; if DEFINED is
-non-nil, it did, otherwise it didn't."
-  ;; Caching the definededness of a theme is kind of dirty, but we have to do it
-  ;; to remember the past state of the theme. There are probably some edge cases
-  ;; where caching will be an issue, but they are probably rare.
+(defun context-coloring-cache-originally-set (theme originally-set)
+  "Remember if THEME had colors originally set for it; if
+ORIGINALLY-SET is non-nil, it did, otherwise it didn't."
+  ;; Caching whether a theme was originally set is kind of dirty, but we have to
+  ;; do it to remember the past state of the theme.  There are probably some
+  ;; edge cases where caching will be an issue, but they are probably rare.
   (puthash
    theme
-   (if defined 'defined 'undefined)
-   context-coloring-defined-theme-hash-table))
+   (if originally-set 'yes 'no)
+   context-coloring-originally-set-theme-hash-table))
 
-(defun context-coloring-warn-theme-defined (theme)
-  "Warns the user that the colors for a theme are already defined."
+(defun context-coloring-warn-theme-originally-set (theme)
+  "Warns the user that the colors for a theme are already
+originally set."
   (warn "Context coloring colors for theme `%s' are already defined" theme))
 
 (defun context-coloring-theme-highest-level (theme)
   "Return the highest level N of a face like
-`context-coloring-level-N-face' defined for THEME, or -1 if there
-is none."
+`context-coloring-level-N-face' set for THEME, or -1 if there is
+none."
   (let* ((settings (get theme 'theme-settings))
          (tail settings)
          face-string
@@ -598,18 +604,18 @@ use your custom theme's author's colors instead."
     (dolist (name (append `(,theme) aliases))
       (puthash name properties context-coloring-theme-hash-table)
       (when (custom-theme-p name)
-        (let ((defined (context-coloring-theme-definedp name)))
-          (context-coloring-cache-defined name defined)
+        (let ((originally-set (context-coloring-theme-originally-set-p name)))
+          (context-coloring-cache-originally-set name originally-set)
           ;; In the particular case when you innocently define colors that a
-          ;; custom theme already sets, warn.  Arguably this only has to be done
-          ;; at enable time, but it is probably more useful to do it at
+          ;; custom theme originally set, warn.  Arguably this only has to be
+          ;; done at enable time, but it is probably more useful to do it at
           ;; definition time for prompter feedback.
-          (when (and defined
+          (when (and originally-set
                      (not recede)
                      (not override))
-            (context-coloring-warn-theme-defined name))
+            (context-coloring-warn-theme-originally-set name))
           ;; Set (or overwrite) colors.
-          (when (not (and defined
+          (when (not (and originally-set
                           recede))
             (context-coloring-apply-theme name)))))))
 
@@ -620,7 +626,7 @@ use your custom theme's author's colors instead."
     "4.1.0")))
 
 (defun context-coloring-enable-theme (theme)
-  "Applies THEME if its colors are not already defined, else just
+  "Applies THEME if its colors are not already set, else just
 sets `context-coloring-face-count' to the correct value for
 THEME."
   (let* ((properties (gethash theme context-coloring-theme-hash-table))
@@ -642,13 +648,13 @@ THEME."
          (t
           (context-coloring-apply-theme theme)))))
      (t
-      (let ((defined (context-coloring-theme-definedp theme)))
+      (let ((originally-set (context-coloring-theme-originally-set-p theme)))
         ;; Cache now in case the context theme was defined after the custom
         ;; theme.
-        (context-coloring-cache-defined theme defined)
-        (when (and defined
+        (context-coloring-cache-originally-set theme originally-set)
+        (when (and originally-set
                    (not override))
-          (context-coloring-warn-theme-defined theme))
+          (context-coloring-warn-theme-originally-set theme))
         (context-coloring-apply-theme theme))))))
 
 (defadvice enable-theme (after context-coloring-enable-theme (theme) activate)
