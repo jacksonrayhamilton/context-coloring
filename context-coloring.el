@@ -485,20 +485,40 @@ would be redundant."
   "context-coloring-level-\\([[:digit:]]+\\)-face"
   "Regular expression for extracting a level from a face.")
 
+(defvar context-coloring-defined-theme-hash-table (make-hash-table :test 'eq)
+  "Cache of custom themes who originally set their own
+  `context-coloring-level-N-face' faces.")
+
 (defun context-coloring-theme-definedp (theme)
   "Return t if there is a `context-coloring-level-N-face' defined
 for THEME, nil otherwise."
-  (let* ((settings (get theme 'theme-settings))
-         (tail settings)
-         found)
-    (while (and tail (not found))
-      (and (eq (nth 0 (car tail)) 'theme-face)
-           (string-match
-            context-coloring-level-face-regexp
-            (symbol-name (nth 1 (car tail))))
-           (setq found t))
-      (setq tail (cdr tail)))
-    found))
+  (let (defined)
+    (cond
+     ((setq defined (gethash theme context-coloring-defined-theme-hash-table))
+      (eq defined 'defined))
+     (t
+      (let* ((settings (get theme 'theme-settings))
+             (tail settings)
+             found)
+        (while (and tail (not found))
+          (and (eq (nth 0 (car tail)) 'theme-face)
+               (string-match
+                context-coloring-level-face-regexp
+                (symbol-name (nth 1 (car tail))))
+               (setq found t))
+          (setq tail (cdr tail)))
+        found)))))
+
+(defun context-coloring-cache-defined (theme defined)
+  "Remember if THEME had colors defined for it; if DEFINED is
+non-nil, it did, otherwise it didn't."
+  ;; Caching the definededness of a theme is kind of dirty, but we have to do it
+  ;; to remember the past state of the theme. There are probably some edge cases
+  ;; where caching will be an issue, but they are probably rare.
+  (puthash
+   theme
+   (if defined 'defined 'undefined)
+   context-coloring-defined-theme-hash-table))
 
 (defun context-coloring-warn-theme-defined (theme)
   "Warns the user that the colors for a theme are already defined."
@@ -575,14 +595,17 @@ theme's author's colors instead."
         (override (plist-get properties :override))
         (recede (plist-get properties :recede)))
     (dolist (name (append `(,theme) aliases))
-      (when (and (not override)
-                 (context-coloring-theme-definedp name))
-        (context-coloring-warn-theme-defined name))
       (puthash name properties context-coloring-theme-hash-table)
-      ;; Set (or overwrite) colors.
-      (when (and (custom-theme-p name)
-                 (not recede))
-        (context-coloring-apply-theme name)))))
+      (when (custom-theme-p name)
+        (let ((defined (context-coloring-theme-definedp name)))
+          (context-coloring-cache-defined name defined)
+          (when (and defined
+                     (not recede)
+                     (not override))
+            (context-coloring-warn-theme-defined name)))
+        ;; Set (or overwrite) colors.
+        (when (not recede)
+          (context-coloring-apply-theme name))))))
 
 (defun context-coloring-load-theme (&optional rest)
   (declare
@@ -607,6 +630,8 @@ THEME."
           (context-coloring-apply-theme theme)))))
      (t
       (let ((defined (context-coloring-theme-definedp theme)))
+        ;; Cache now in case the theme was defined after.
+        (context-coloring-cache-defined theme defined)
         (when (and defined
                    (not override))
           (context-coloring-warn-theme-defined theme))

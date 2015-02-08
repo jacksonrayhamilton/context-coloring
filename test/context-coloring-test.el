@@ -210,6 +210,13 @@ EXPECTED-FACE."
 
 (defun context-coloring-test-assert-message (expected buffer)
   "Assert that BUFFER has message EXPECTED."
+  (when (null (get-buffer buffer))
+    (ert-fail
+     (format
+      (concat
+       "Expected buffer `%s' to have message \"%s\", "
+       "but the buffer did not have any messages.")
+      buffer expected)))
   (with-current-buffer buffer
     (let ((messages (split-string
                      (buffer-substring-no-properties
@@ -292,16 +299,27 @@ is FOREGROUND."
   (context-coloring-test-assert-face 8 "#888888")
   (context-coloring-test-assert-face 9 "#999999"))
 
+(defvar context-coloring-test-theme-index 0
+  "Unique index for unique theme names.")
+
+(defun context-coloring-test-get-next-theme ()
+  "Return a unique symbol for a throwaway theme."
+  (prog1
+      (intern (format "context-coloring-test-theme-%s"
+                      context-coloring-test-theme-index))
+    (setq context-coloring-test-theme-index
+          (+ context-coloring-test-theme-index 1))))
+
 (defun context-coloring-test-assert-theme-definedp (settings &optional negate)
   "Assert that `context-coloring-theme-definedp' returns t for a
 theme with SETTINGS (or the inverse if NEGATE is non-nil)."
-  (let (theme)
+  (let ((theme (context-coloring-test-get-next-theme)))
     (put theme 'theme-settings settings)
     (when (funcall (if negate 'identity 'not) (context-coloring-theme-definedp theme))
-      (ert-fail (format (concat "Expected theme with settings `%s' "
+      (ert-fail (format (concat "Expected theme `%s' with settings `%s' "
                                 "%sto be considered to have defined a level, "
                                 "but it %s.")
-                        settings
+                        theme settings
                         (if negate "not " "")
                         (if negate "was" "wasn't"))))))
 
@@ -355,20 +373,6 @@ t for a theme with SETTINGS."
    1)
   )
 
-(defvar context-coloring-test-theme-index 0
-  "Unique index for unique theme names.")
-
-(defun context-coloring-test-get-next-theme ()
-  "Return a unique symbol for a throwaway theme."
-  (prog1
-      (intern (format "context-coloring-test-theme-%s"
-                      context-coloring-test-theme-index))
-    (setq context-coloring-test-theme-index
-          (+ context-coloring-test-theme-index 1))))
-
-(defun context-coloring-test-deftheme (theme)
-  (eval (macroexpand `(deftheme ,theme))))
-
 (defmacro context-coloring-test-deftest-define-theme (name &rest body)
   (declare (indent defun))
   (let ((deftest-name (intern (format "context-coloring-test-define-theme-%s" name))))
@@ -381,6 +385,9 @@ t for a theme with SETTINGS."
            ;; Always cleanup.
            (disable-theme theme)
            (context-coloring-set-colors-default))))))
+
+(defun context-coloring-test-deftheme (theme)
+  (eval (macroexpand `(deftheme ,theme))))
 
 (context-coloring-test-deftest-define-theme additive
   (context-coloring-test-deftheme theme)
@@ -414,7 +421,7 @@ t for a theme with SETTINGS."
   (context-coloring-test-assert-defined-warning theme)
   (context-coloring-test-kill-buffer "*Warnings*")
   (enable-theme theme)
-  (context-coloring-test-assert-no-message "*Warnings*")
+  (context-coloring-test-assert-defined-warning theme)
   (context-coloring-test-assert-face 0 "#cccccc")
   (context-coloring-test-assert-face 1 "#dddddd"))
 
