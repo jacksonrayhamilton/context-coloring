@@ -665,10 +665,19 @@ THEME."
 (defadvice enable-theme (after context-coloring-enable-theme (theme) activate)
   "Enable colors for context themes just-in-time.  We can't set
 faces for custom themes that might not exist yet."
-  (when (and (not (eq theme 'user))  ; Called internally by `enable-theme'.
-             (context-coloring-theme-p theme)
-             (custom-theme-p theme)) ; Guard against non-existent themes.
+  (when (and (not (eq theme 'user)) ; Called internally by `enable-theme'.
+             (custom-theme-p theme) ; Guard against non-existent themes.
+             (context-coloring-theme-p theme))
     (context-coloring-enable-theme theme)))
+
+(defadvice disable-theme (after context-coloring-disable-theme (theme) activate)
+  "Colors are disabled normally, but
+`context-coloring-face-count' isn't.  Update it here."
+  (when (custom-theme-p theme) ; Guard against non-existent themes.
+    (let ((enabled-theme (car custom-enabled-themes)))
+      (if (context-coloring-theme-p enabled-theme)
+          (context-coloring-enable-theme enabled-theme)
+        (context-coloring-set-colors-default)))))
 
 (context-coloring-define-theme
  'leuven

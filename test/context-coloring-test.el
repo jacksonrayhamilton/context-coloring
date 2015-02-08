@@ -568,21 +568,36 @@ return t for a theme with SETTINGS."
   (apply 'context-coloring-test-assert-face-count
          (append arguments '(t))))
 
-(context-coloring-test-deftest-define-theme disable
+(context-coloring-test-deftest-define-theme disable-cascade
   (context-coloring-test-deftheme theme)
   (context-coloring-define-theme
    theme
    :colors '("#aaaaaa"
              "#bbbbbb"))
-  (let ((other-theme (context-coloring-test-get-next-theme)))
-    (context-coloring-test-deftheme other-theme)
+  (let ((second-theme (context-coloring-test-get-next-theme)))
+    (context-coloring-test-deftheme second-theme)
     (context-coloring-define-theme
-     other-theme
+     second-theme
      :colors '("#cccccc"
-               "#dddddd"))
-    (enable-theme theme)
-    (enable-theme other-theme)
-    (disable-theme other-theme)
+               "#dddddd"
+               "#eeeeee"))
+    (let ((third-theme (context-coloring-test-get-next-theme)))
+      (context-coloring-test-deftheme third-theme)
+      (context-coloring-define-theme
+       third-theme
+       :colors '("#111111"
+                 "#222222"
+                 "#333333"
+                 "#444444"))
+      (enable-theme theme)
+      (enable-theme second-theme)
+      (enable-theme third-theme)
+      (disable-theme third-theme)
+      (context-coloring-test-assert-face 0 "#cccccc")
+      (context-coloring-test-assert-face 1 "#dddddd")
+      (context-coloring-test-assert-face 2 "#eeeeee")
+      (context-coloring-test-assert-face-count 3))
+    (disable-theme second-theme)
     (context-coloring-test-assert-face 0 "#aaaaaa")
     (context-coloring-test-assert-face 1 "#bbbbbb")
     (context-coloring-test-assert-face-count 2))
