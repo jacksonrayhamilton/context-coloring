@@ -477,7 +477,7 @@ t for a theme with SETTINGS."
   (context-coloring-test-assert-face 0 "#aaaaaa")
   (context-coloring-test-assert-face 1 "#bbbbbb"))
 
-(context-coloring-test-deftest-define-theme post-recede-not-defined
+(context-coloring-test-deftest-define-theme recede-not-defined
   (context-coloring-test-deftheme theme)
   (custom-theme-set-faces
    theme
