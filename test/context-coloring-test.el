@@ -71,7 +71,8 @@ is done."
               (kill-buffer temp-buffer))
          (set-buffer previous-buffer))))))
 
-(defun context-coloring-test-with-fixture-async (fixture callback &optional setup)
+(defun context-coloring-test-with-fixture-async
+    (fixture callback &optional setup)
   "Evaluate CALLBACK in a temporary buffer with the relative
 FIXTURE.  A teardown callback is passed to CALLBACK for it to
 invoke when it is done.  An optional SETUP callback can be passed
@@ -120,7 +121,8 @@ instantiated in SETUP."
 format."
   (let ((test-name (intern (format "context-coloring-test-js-mode-%s" name)))
         (fixture (format "./fixtures/%s.js" name))
-        (function-name (intern-soft (format "context-coloring-test-js-%s" name))))
+        (function-name (intern-soft
+                        (format "context-coloring-test-js-%s" name))))
     `(ert-deftest-async ,test-name (done)
                         (context-coloring-test-js-mode
                          ,fixture
@@ -134,7 +136,8 @@ format."
     "Define a test for `js2-mode' in the typical format."
   (let ((test-name (intern (format "context-coloring-test-js2-mode-%s" name)))
         (fixture (format "./fixtures/%s.js" name))
-        (function-name (intern-soft (format "context-coloring-test-js-%s" name))))
+        (function-name (intern-soft
+                        (format "context-coloring-test-js-%s" name))))
     `(ert-deftest ,test-name ()
        (context-coloring-test-js2-mode
         ,fixture
@@ -310,7 +313,8 @@ is FOREGROUND."
     (setq context-coloring-test-theme-index
           (+ context-coloring-test-theme-index 1))))
 
-(defun context-coloring-test-assert-theme-originally-set-p (settings &optional negate)
+(defun context-coloring-test-assert-theme-originally-set-p
+    (settings &optional negate)
   "Assert that `context-coloring-theme-originally-set-p' returns
 t for a theme with SETTINGS (or the inverse if NEGATE is
 non-nil)."
@@ -328,7 +332,8 @@ non-nil)."
 (defun context-coloring-test-assert-not-theme-originally-set-p (&rest arguments)
   "Assert that `context-coloring-theme-originally-set-p' does not
 return t for a theme with SETTINGS."
-  (apply 'context-coloring-test-assert-theme-originally-set-p (append arguments '(t))))
+  (apply 'context-coloring-test-assert-theme-originally-set-p
+         (append arguments '(t))))
 
 (ert-deftest context-coloring-test-theme-originally-set-p ()
   (context-coloring-test-assert-theme-originally-set-p
@@ -377,7 +382,8 @@ return t for a theme with SETTINGS."
 
 (defmacro context-coloring-test-deftest-define-theme (name &rest body)
   (declare (indent defun))
-  (let ((deftest-name (intern (format "context-coloring-test-define-theme-%s" name))))
+  (let ((deftest-name (intern
+                       (format "context-coloring-test-define-theme-%s" name))))
     `(ert-deftest ,deftest-name ()
        (context-coloring-test-kill-buffer "*Warnings*")
        (let ((theme (context-coloring-test-get-next-theme)))

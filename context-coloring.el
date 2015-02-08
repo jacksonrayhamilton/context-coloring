@@ -290,7 +290,8 @@ element."
 
 (defun context-coloring-parse-array (input)
   "Specialized JSON parser for a flat array of numbers."
-  (vconcat (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
+  (vconcat
+   (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
 
 (defun context-coloring-kill-scopifier ()
   "Kills the currently-running scopifier process for this
@@ -337,8 +338,11 @@ Invokes CALLBACK when complete."
            (if callback (funcall callback)))))))
 
   ;; Give the process its input so it can begin.
-  (process-send-region context-coloring-scopifier-process (point-min) (point-max))
-  (process-send-eof context-coloring-scopifier-process))
+  (process-send-region
+   context-coloring-scopifier-process
+   (point-min) (point-max))
+  (process-send-eof
+   context-coloring-scopifier-process))
 
 
 ;;; Dispatch
@@ -485,7 +489,8 @@ would be redundant."
   "context-coloring-level-\\([[:digit:]]+\\)-face"
   "Regular expression for extracting a level from a face.")
 
-(defvar context-coloring-originally-set-theme-hash-table (make-hash-table :test 'eq)
+(defvar context-coloring-originally-set-theme-hash-table
+  (make-hash-table :test 'eq)
   "Cache of custom themes who originally set their own
   `context-coloring-level-N-face' faces.")
 
@@ -660,9 +665,9 @@ THEME."
 (defadvice enable-theme (after context-coloring-enable-theme (theme) activate)
   "Enable colors for context themes just-in-time.  We can't set
 faces for custom themes that might not exist yet."
-  (when (and (not (eq theme 'user))          ; Called internally by `enable-theme'.
+  (when (and (not (eq theme 'user))  ; Called internally by `enable-theme'.
              (context-coloring-theme-p theme)
-             (custom-theme-p theme))         ; Guard against non-existent themes.
+             (custom-theme-p theme)) ; Guard against non-existent themes.
     (context-coloring-enable-theme theme)))
 
 (context-coloring-define-theme
@@ -760,8 +765,10 @@ faces for custom themes that might not exist yet."
         (context-coloring-kill-scopifier)
         (when context-coloring-colorize-idle-timer
           (cancel-timer context-coloring-colorize-idle-timer))
-        (remove-hook 'js2-post-parse-callbacks 'context-coloring-colorize t)
-        (remove-hook 'after-change-functions 'context-coloring-change-function t)
+        (remove-hook
+         'js2-post-parse-callbacks 'context-coloring-colorize t)
+        (remove-hook
+         'after-change-functions 'context-coloring-change-function t)
         (font-lock-mode)
         (jit-lock-mode t))
 
