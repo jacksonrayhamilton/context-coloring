@@ -430,7 +430,7 @@ t for a theme with SETTINGS."
   (context-coloring-test-assert-face 0 "#cccccc")
   (context-coloring-test-assert-face 1 "#dddddd"))
 
-(context-coloring-test-deftest-define-theme preexisting-recede
+(context-coloring-test-deftest-define-theme pre-recede
   (context-coloring-define-theme
    theme
    :recede t
@@ -445,6 +445,23 @@ t for a theme with SETTINGS."
   (context-coloring-test-assert-no-message "*Warnings*")
   (context-coloring-test-assert-face 0 "#cccccc")
   (context-coloring-test-assert-face 1 "#dddddd"))
+
+(context-coloring-test-deftest-define-theme post-recede
+  (context-coloring-test-deftheme theme)
+  (custom-theme-set-faces
+   theme
+   '(context-coloring-level-0-face ((t (:foreground "#aaaaaa"))))
+   '(context-coloring-level-1-face ((t (:foreground "#bbbbbb")))))
+  (context-coloring-define-theme
+   theme
+   :recede t
+   :colors '("#cccccc"
+             "#dddddd"))
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (enable-theme theme)
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (context-coloring-test-assert-face 0 "#aaaaaa")
+  (context-coloring-test-assert-face 1 "#bbbbbb"))
 
 (context-coloring-test-deftest-define-theme preexisting-unintentional-obstinance
   (context-coloring-define-theme

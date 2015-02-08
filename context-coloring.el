@@ -572,14 +572,16 @@ raised, at which point you may want to enable the `:override'
 option, or just delete your theme and opt to use your custom
 theme's author's colors instead."
   (let ((aliases (plist-get properties :aliases))
-        (override (plist-get properties :override)))
+        (override (plist-get properties :override))
+        (recede (plist-get properties :recede)))
     (dolist (name (append `(,theme) aliases))
       (when (and (not override)
                  (context-coloring-theme-definedp name))
         (context-coloring-warn-theme-defined name))
       (puthash name properties context-coloring-theme-hash-table)
       ;; Set (or overwrite) colors.
-      (when (custom-theme-p name)
+      (when (and (custom-theme-p name)
+                 (not recede))
         (context-coloring-apply-theme name)))))
 
 (defun context-coloring-load-theme (&optional rest)
@@ -605,7 +607,8 @@ THEME."
           (context-coloring-apply-theme theme)))))
      (t
       (let ((defined (context-coloring-theme-definedp theme)))
-        (when (and defined (not override))
+        (when (and defined
+                   (not override))
           (context-coloring-warn-theme-defined theme))
         (context-coloring-apply-theme theme))))))
 
