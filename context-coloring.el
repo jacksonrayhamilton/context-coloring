@@ -602,7 +602,10 @@ even if those custom themes set `context-coloring-level-N-face'
 faces.  If a context theme does override a custom theme, a
 warning will be raised, at which point you may want to enable the
 `:override' option, or just delete your context theme and opt to
-use your custom theme's author's colors instead."
+use your custom theme's author's colors instead.
+
+Context themes only work for the custom theme with the highest
+precedence, i.e. the car of `custom-enabled-themes'."
   (let ((aliases (plist-get properties :aliases))
         (override (plist-get properties :override))
         (recede (plist-get properties :recede)))
