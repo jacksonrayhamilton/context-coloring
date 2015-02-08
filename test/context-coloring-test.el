@@ -249,21 +249,31 @@ EXPECTED-FACE."
   "Kill BUFFER if it exists."
   (if (get-buffer buffer) (kill-buffer buffer)))
 
-(defun context-coloring-test-assert-face (level foreground)
+(defun context-coloring-test-assert-face (level foreground &optional negate)
   "Assert that a face for LEVEL exists and that its `:foreground'
 is FOREGROUND."
   (let* ((face (context-coloring-face-symbol level))
          actual-foreground)
-    (when (not face)
+    (when (not (or negate
+                   face))
       (ert-fail (format (concat "Expected face for level `%s' to exist; "
                                 "but it didn't")
                         level)))
     (setq actual-foreground (face-attribute face :foreground))
-    (when (not (string-equal foreground actual-foreground))
+    (when (funcall (if negate 'identity 'not)
+                   (string-equal foreground actual-foreground))
       (ert-fail (format (concat "Expected face for level `%s' "
-                                "to have foreground `%s'; but it was `%s'")
+                                "%sto have foreground `%s'; "
+                                "but it %s.")
                         level
-                        foreground actual-foreground)))))
+                        (if negate "not " "") foreground
+                        (if negate "did" (format "was `%s'" actual-foreground)))))))
+
+(defun context-coloring-test-assert-not-face (&rest arguments)
+  "Assert that LEVEL does not have a face with `:foreground'
+FOREGROUND."
+  (apply 'context-coloring-test-assert-face
+         (append arguments '(t))))
 
 
 ;;; The tests
@@ -348,33 +358,42 @@ return t for a theme with SETTINGS."
    '((theme-face face)))
   )
 
-(defun context-coloring-test-assert-theme-highest-level (settings expected-level)
-  (let (theme)
+(defun context-coloring-test-assert-theme-settings-highest-level
+    (settings expected-level)
+  (let ((theme (context-coloring-test-get-next-theme)))
     (put theme 'theme-settings settings)
-    (let ((highest-level (context-coloring-theme-highest-level theme)))
-      (when (not (eq highest-level expected-level))
-        (ert-fail (format (concat "Expected theme with settings `%s' "
-                                  "to have a highest level of `%s', "
-                                  "but it was %s.")
-                          settings
-                          expected-level
-                          highest-level))))))
+    (context-coloring-test-assert-theme-highest-level theme expected-level)))
+
+(defun context-coloring-test-assert-theme-highest-level
+    (theme expected-level &optional negate)
+  (let ((highest-level (context-coloring-theme-highest-level theme)))
+    (when (funcall (if negate 'identity 'not) (eq highest-level expected-level))
+      (ert-fail (format (concat "Expected theme with settings `%s' "
+                                "%sto have a highest level of `%s', "
+                                "but it %s.")
+                        (get theme 'theme-settings)
+                        (if negate "not " "") expected-level
+                        (if negate "did" (format "was %s" highest-level)))))))
+
+(defun context-coloring-test-assert-theme-not-highest-level (&rest arguments)
+  (apply 'context-coloring-test-assert-theme-highest-level
+         (append arguments '(t))))
 
 (ert-deftest context-coloring-test-theme-highest-level ()
-  (context-coloring-test-assert-theme-highest-level
+  (context-coloring-test-assert-theme-settings-highest-level
    '((theme-face foo))
    -1)
-  (context-coloring-test-assert-theme-highest-level
+  (context-coloring-test-assert-theme-settings-highest-level
    '((theme-face context-coloring-level-0-face))
    0)
-  (context-coloring-test-assert-theme-highest-level
+  (context-coloring-test-assert-theme-settings-highest-level
    '((theme-face context-coloring-level-1-face))
    1)
-  (context-coloring-test-assert-theme-highest-level
+  (context-coloring-test-assert-theme-settings-highest-level
    '((theme-face context-coloring-level-1-face)
      (theme-face context-coloring-level-0-face))
    1)
-  (context-coloring-test-assert-theme-highest-level
+  (context-coloring-test-assert-theme-settings-highest-level
    '((theme-face context-coloring-level-0-face)
      (theme-face context-coloring-level-1-face))
    1)
@@ -533,6 +552,44 @@ return t for a theme with SETTINGS."
   (context-coloring-test-assert-no-message "*Warnings*")
   (context-coloring-test-assert-face 0 "#aaaaaa")
   (context-coloring-test-assert-face 1 "#bbbbbb"))
+
+(defun context-coloring-test-assert-face-count (count &optional negate)
+  (when (funcall (if negate 'identity 'not)
+                 (eq context-coloring-face-count count))
+    (ert-fail (format (concat "Expected `context-coloring-face-count' "
+                              "%sto be `%s', "
+                              "but it %s.")
+                      (if negate "not " "") count
+                      (if negate
+                          "was"
+                        (format "was `%s'" context-coloring-face-count))))))
+
+(defun context-coloring-test-assert-not-face-count (&rest arguments)
+  (apply 'context-coloring-test-assert-face-count
+         (append arguments '(t))))
+
+(context-coloring-test-deftest-define-theme disable
+  (context-coloring-test-deftheme theme)
+  (context-coloring-define-theme
+   theme
+   :colors '("#aaaaaa"
+             "#bbbbbb"))
+  (let ((other-theme (context-coloring-test-get-next-theme)))
+    (context-coloring-test-deftheme other-theme)
+    (context-coloring-define-theme
+     other-theme
+     :colors '("#cccccc"
+               "#dddddd"))
+    (enable-theme theme)
+    (enable-theme other-theme)
+    (disable-theme other-theme)
+    (context-coloring-test-assert-face 0 "#aaaaaa")
+    (context-coloring-test-assert-face 1 "#bbbbbb")
+    (context-coloring-test-assert-face-count 2))
+  (disable-theme theme)
+  (context-coloring-test-assert-not-face 0 "#aaaaaa")
+  (context-coloring-test-assert-not-face 1 "#bbbbbb")
+  (context-coloring-test-assert-not-face-count 2))
 
 (defun context-coloring-test-js-function-scopes ()
   (context-coloring-test-assert-region-level 1 9 0)
