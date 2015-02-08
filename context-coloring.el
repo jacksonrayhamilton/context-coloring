@@ -546,9 +546,31 @@ which must already exist and which *should* already be enabled."
 
 (defun context-coloring-define-theme (theme &rest properties)
   "Define a theme named THEME for coloring scope levels.
+
 PROPERTIES is a property list specifiying the following details:
 
-`:colors': List of colors that this theme uses."
+`:aliases': List of symbols of other custom themes that these
+colors are applicable to.
+
+`:colors': List of colors that this theme uses.
+
+`:override': If non-nil, this theme is intentionally overriding
+colors set by a custom theme. Don't set this non-nil unless there
+is a theme you want to use which sets
+`context-coloring-level-N-face' faces that you want to replace.
+
+`:recede': If non-nil, this theme should not apply its colors if
+a custom theme already sets `context-coloring-level-N-face'
+faces. This option is optimistic; set this non-nil if you would
+rather confer the duty of picking colors to a theme author (if /
+when he ever gets around to it).
+
+By default, themes will always override custom themes, even if
+those custom themes set `context-coloring-level-N-face' faces.
+If a theme does override a custom theme, a warning will be
+raised, at which point you may want to enable the `:override'
+option, or just delete your theme and opt to use your custom
+theme's author's colors instead."
   (let ((aliases (plist-get properties :aliases))
         (override (plist-get properties :override)))
     (dolist (name (append `(,theme) aliases))
