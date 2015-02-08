@@ -268,6 +268,37 @@ is FOREGROUND."
   (context-coloring-test-assert-face 8 "#888888")
   (context-coloring-test-assert-face 9 "#999999"))
 
+(defun context-coloring-test-assert-theme-definedp (settings &optional negate)
+  "Assert that `context-coloring-theme-definedp' returns t for a
+theme with SETTINGS (or the inverse if NEGATE is non-nil)."
+  (let (theme)
+    (put theme 'theme-settings settings)
+    (when (funcall (if negate 'identity 'not) (context-coloring-theme-definedp theme))
+      (ert-fail (format (concat "Expected theme with settings `%s' "
+                                "%sto be considered to have defined a level, "
+                                "but it %s.")
+                        settings
+                        (if negate "not " "")
+                        (if negate "was" "wasn't"))))))
+
+(defun context-coloring-test-assert-not-theme-definedp (&rest arguments)
+  "Assert that `context-coloring-theme-definedp' does not return
+t for a theme with SETTINGS."
+  (apply 'context-coloring-test-assert-theme-definedp (append arguments '(t))))
+
+(ert-deftest context-coloring-test-theme-definedp ()
+  (context-coloring-test-assert-theme-definedp
+   '((theme-face context-coloring-level-0-face)))
+  (context-coloring-test-assert-theme-definedp
+   '((theme-face face)
+     (theme-face context-coloring-level-0-face)))
+  (context-coloring-test-assert-theme-definedp
+   '((theme-face context-coloring-level-0-face)
+     (theme-face face)))
+  (context-coloring-test-assert-not-theme-definedp
+   '((theme-face face)))
+  )
+
 (defun context-coloring-test-assert-theme-highest-level (settings expected-level)
   (let (theme)
     (put theme 'theme-settings settings)

@@ -481,14 +481,24 @@ would be redundant."
   "Return t if THEME is defined, nil otherwise."
   (and (gethash theme context-coloring-theme-hash-table)))
 
-(defun context-coloring-check-theme (theme)
-  "Signal error if THEME is undefined."
-  (when (not (context-coloring-themep theme))
-    (error (format "No such theme `%s'" theme))))
-
 (defconst context-coloring-level-face-regexp
   "context-coloring-level-\\([[:digit:]]+\\)-face"
   "Regular expression for extracting a level from a face.")
+
+(defun context-coloring-theme-definedp (theme)
+  "Return t if there is a `context-coloring-level-N-face' defined
+for THEME, nil otherwise."
+  (let* ((settings (get theme 'theme-settings))
+         (tail settings)
+         found)
+    (while (and tail (not found))
+      (and (eq (nth 0 (car tail)) 'theme-face)
+           (string-match
+            context-coloring-level-face-regexp
+            (symbol-name (nth 1 (car tail))))
+           (setq found t))
+      (setq tail (cdr tail)))
+    found))
 
 (defun context-coloring-theme-highest-level (theme)
   "Return the highest level N of a face like
@@ -514,18 +524,6 @@ is none."
       (setq tail (cdr tail)))
     found))
 
-(defun context-coloring-setup-theme (theme)
-  "Sets up THEME if its colors are not already defined, else just
-sets `context-coloring-face-count' to the correct value for
-THEME."
-  (context-coloring-check-theme theme)
-  (let ((highest-level (context-coloring-theme-highest-level theme)))
-    (cond
-     ((> highest-level -1)
-      (setq context-coloring-face-count (+ highest-level 1)))
-     (t
-      (context-coloring-apply-theme theme)))))
-
 (defun context-coloring-apply-theme (theme)
   "Applies THEME's properties to its respective custom theme,
 which must already exist and which *should* already be enabled."
@@ -549,22 +547,37 @@ PROPERTIES is a property list specifiying the following details:
 `:colors': List of colors that this theme uses."
   (let ((aliases (plist-get properties :aliases)))
     (dolist (name (append `(,theme) aliases))
+      (when (context-coloring-theme-definedp name)
+        (warn "Colors for `%s' are already defined" name))
       (puthash name properties context-coloring-theme-hash-table)
-      ;; Compensate for already-enabled themes by applying their colors now.
-      (when (custom-theme-enabled-p name)
-        (context-coloring-setup-theme name)))))
+      ;; Set (or overwrite) colors.
+      (when (custom-theme-p name)
+        (context-coloring-apply-theme name)))))
 
 (defun context-coloring-load-theme (&optional rest)
-  (declare (obsolete
-            "themes are now loaded alongside custom themes automatically."
-            "4.1.0")))
+  (declare
+   (obsolete
+    "themes are now loaded alongside custom themes automatically."
+    "4.1.0")))
+
+(defun context-coloring-enable-theme (theme)
+  "Applies THEME if its colors are not already defined, else just
+sets `context-coloring-face-count' to the correct value for
+THEME."
+  (let ((highest-level (context-coloring-theme-highest-level theme)))
+    (cond
+     ((> highest-level -1)
+      (setq context-coloring-face-count (+ highest-level 1)))
+     (t
+      (context-coloring-apply-theme theme)))))
 
 (defadvice enable-theme (after context-coloring-enable-theme (theme) activate)
-  "Add colors to themes just-in-time."
+  "Enable colors for themes just-in-time.  We can't set faces for
+themes that might not exist yet."
   (when (and (not (eq theme 'user))          ; Called internally by `enable-theme'.
              (context-coloring-themep theme)
              (custom-theme-p theme))         ; Guard against non-existent themes.
-    (context-coloring-setup-theme theme)))
+    (context-coloring-enable-theme theme)))
 
 (context-coloring-define-theme
  'leuven
