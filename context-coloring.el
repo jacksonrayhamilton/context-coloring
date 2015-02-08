@@ -555,13 +555,13 @@ colors are applicable to.
 `:colors': List of colors that this theme uses.
 
 `:override': If non-nil, this theme is intentionally overriding
-colors set by a custom theme. Don't set this non-nil unless there
-is a theme you want to use which sets
+colors set by a custom theme.  Don't set this non-nil unless
+there is a theme you want to use which sets
 `context-coloring-level-N-face' faces that you want to replace.
 
 `:recede': If non-nil, this theme should not apply its colors if
 a custom theme already sets `context-coloring-level-N-face'
-faces. This option is optimistic; set this non-nil if you would
+faces.  This option is optimistic; set this non-nil if you would
 rather confer the duty of picking colors to a theme author (if /
 when he ever gets around to it).
 
