@@ -377,7 +377,7 @@ t for a theme with SETTINGS."
            (disable-theme theme)
            (context-coloring-set-colors-default))))))
 
-(context-coloring-test-deftest-define-theme preexisting-set
+(context-coloring-test-deftest-define-theme additive
   (context-coloring-test-deftheme theme)
   (context-coloring-define-theme
    theme
@@ -396,7 +396,7 @@ t for a theme with SETTINGS."
            theme)
    "*Warnings*"))
 
-(context-coloring-test-deftest-define-theme preexisting-unintentional-override
+(context-coloring-test-deftest-define-theme unintentional-override
   (context-coloring-test-deftheme theme)
   (custom-theme-set-faces
    theme
@@ -413,7 +413,7 @@ t for a theme with SETTINGS."
   (context-coloring-test-assert-face 0 "#cccccc")
   (context-coloring-test-assert-face 1 "#dddddd"))
 
-(context-coloring-test-deftest-define-theme preexisting-intentional-override
+(context-coloring-test-deftest-define-theme intentional-override
   (context-coloring-test-deftheme theme)
   (custom-theme-set-faces
    theme
@@ -463,7 +463,7 @@ t for a theme with SETTINGS."
   (context-coloring-test-assert-face 0 "#aaaaaa")
   (context-coloring-test-assert-face 1 "#bbbbbb"))
 
-(context-coloring-test-deftest-define-theme preexisting-unintentional-obstinance
+(context-coloring-test-deftest-define-theme unintentional-obstinance
   (context-coloring-define-theme
    theme
    :colors '("#aaaaaa"
@@ -478,7 +478,7 @@ t for a theme with SETTINGS."
   (context-coloring-test-assert-face 0 "#aaaaaa")
   (context-coloring-test-assert-face 1 "#bbbbbb"))
 
-(context-coloring-test-deftest-define-theme preexisting-intentional-obstinance
+(context-coloring-test-deftest-define-theme intentional-obstinance
   (context-coloring-define-theme
    theme
    :override t
