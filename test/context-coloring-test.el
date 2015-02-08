@@ -19,6 +19,9 @@
 
 ;;; Code:
 
+(require 'ert-async)
+
+
 ;;; Test running utilities
 
 (defconst context-coloring-test-path
@@ -205,16 +208,31 @@ EXPECTED-FACE."
   (context-coloring-test-assert-region-face
    start end 'font-lock-string-face))
 
-(defun context-coloring-test-assert-message (expected)
-  "Assert that the *Messages* buffer has message EXPECTED."
-  (with-current-buffer "*Messages*"
+(defun context-coloring-test-assert-message (expected buffer)
+  "Assert that BUFFER has message EXPECTED."
+  (with-current-buffer buffer
     (let ((messages (split-string
                      (buffer-substring-no-properties
                       (point-min)
                       (point-max))
                      "\n")))
       (let ((message (car (nthcdr (- (length messages) 2) messages))))
-        (should (equal message expected))))))
+        (when (not (equal message expected))
+          (ert-fail
+           (format
+            (concat
+             "Expected buffer `%s' to have message \"%s\", "
+             "but instead it was \"%s\"")
+            buffer expected
+            message)))))))
+
+(defun context-coloring-test-assert-no-message (buffer)
+  "Assert that BUFFER has no message."
+  (null (get-buffer buffer)))
+
+(defun context-coloring-test-kill-buffer (buffer)
+  "Kill BUFFER if it exists."
+  (if (get-buffer buffer) (kill-buffer buffer)))
 
 (defun context-coloring-test-assert-face (level foreground)
   "Assert that a face for LEVEL exists and that its `:foreground'
@@ -240,7 +258,8 @@ is FOREGROUND."
    "./fixtures/function-scopes.js"
    (context-coloring-mode)
    (context-coloring-test-assert-message
-    "Context coloring is not available for this major mode")))
+    "Context coloring is not available for this major mode"
+    "*Messages*")))
 
 (ert-deftest context-coloring-test-set-colors ()
   ;; This test has an irreversible side-effect in that it defines faces beyond
@@ -330,6 +349,133 @@ t for a theme with SETTINGS."
      (theme-face context-coloring-level-1-face))
    1)
   )
+
+(defvar context-coloring-test-theme-index 0
+  "Unique index for unique theme names.")
+
+(defun context-coloring-test-get-next-theme ()
+  "Return a unique symbol for a throwaway theme."
+  (prog1
+      (intern (format "context-coloring-test-theme-%s"
+                      context-coloring-test-theme-index))
+    (setq context-coloring-test-theme-index
+          (+ context-coloring-test-theme-index 1))))
+
+(defun context-coloring-test-deftheme (theme)
+  (eval (macroexpand `(deftheme ,theme))))
+
+(defmacro context-coloring-test-deftest-define-theme (name &rest body)
+  (declare (indent defun))
+  (let ((deftest-name (intern (format "context-coloring-test-define-theme-%s" name))))
+    `(ert-deftest ,deftest-name ()
+       (context-coloring-test-kill-buffer "*Warnings*")
+       (let ((theme (context-coloring-test-get-next-theme)))
+         (unwind-protect
+             (progn
+               ,@body)
+           ;; Always cleanup.
+           (disable-theme theme)
+           (context-coloring-set-colors-default))))))
+
+(context-coloring-test-deftest-define-theme preexisting-set
+  (context-coloring-test-deftheme theme)
+  (context-coloring-define-theme
+   theme
+   :colors '("#aaaaaa"
+             "#bbbbbb"))
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (enable-theme theme)
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (context-coloring-test-assert-face 0 "#aaaaaa")
+  (context-coloring-test-assert-face 1 "#bbbbbb"))
+
+(defun context-coloring-test-assert-defined-warning (theme)
+  (context-coloring-test-assert-message
+   (format (concat "Warning (emacs): Context coloring colors for theme "
+                   "`%s' are already defined")
+           theme)
+   "*Warnings*"))
+
+(context-coloring-test-deftest-define-theme preexisting-unintentional-override
+  (context-coloring-test-deftheme theme)
+  (custom-theme-set-faces
+   theme
+   '(context-coloring-level-0-face ((t (:foreground "#aaaaaa"))))
+   '(context-coloring-level-1-face ((t (:foreground "#bbbbbb")))))
+  (context-coloring-define-theme
+   theme
+   :colors '("#cccccc"
+             "#dddddd"))
+  (context-coloring-test-assert-defined-warning theme)
+  (context-coloring-test-kill-buffer "*Warnings*")
+  (enable-theme theme)
+  (context-coloring-test-assert-defined-warning theme)
+  (context-coloring-test-assert-face 0 "#cccccc")
+  (context-coloring-test-assert-face 1 "#dddddd"))
+
+(context-coloring-test-deftest-define-theme preexisting-intentional-override
+  (context-coloring-test-deftheme theme)
+  (custom-theme-set-faces
+   theme
+   '(context-coloring-level-0-face ((t (:foreground "#aaaaaa"))))
+   '(context-coloring-level-1-face ((t (:foreground "#bbbbbb")))))
+  (context-coloring-define-theme
+   theme
+   :override t
+   :colors '("#cccccc"
+             "#dddddd"))
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (enable-theme theme)
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (context-coloring-test-assert-face 0 "#cccccc")
+  (context-coloring-test-assert-face 1 "#dddddd"))
+
+(context-coloring-test-deftest-define-theme preexisting-recede
+  (context-coloring-define-theme
+   theme
+   :recede t
+   :colors '("#aaaaaa"
+             "#bbbbbb"))
+  (context-coloring-test-deftheme theme)
+  (custom-theme-set-faces
+   theme
+   '(context-coloring-level-0-face ((t (:foreground "#cccccc"))))
+   '(context-coloring-level-1-face ((t (:foreground "#dddddd")))))
+  (enable-theme theme)
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (context-coloring-test-assert-face 0 "#cccccc")
+  (context-coloring-test-assert-face 1 "#dddddd"))
+
+(context-coloring-test-deftest-define-theme preexisting-unintentional-obstinance
+  (context-coloring-define-theme
+   theme
+   :colors '("#aaaaaa"
+             "#bbbbbb"))
+  (context-coloring-test-deftheme theme)
+  (custom-theme-set-faces
+   theme
+   '(context-coloring-level-0-face ((t (:foreground "#cccccc"))))
+   '(context-coloring-level-1-face ((t (:foreground "#dddddd")))))
+  (enable-theme theme)
+  (context-coloring-test-assert-defined-warning theme)
+  (context-coloring-test-assert-face 0 "#aaaaaa")
+  (context-coloring-test-assert-face 1 "#bbbbbb"))
+
+(context-coloring-test-deftest-define-theme preexisting-intentional-obstinance
+  (context-coloring-define-theme
+   theme
+   :override t
+   :colors '("#aaaaaa"
+             "#bbbbbb"))
+  (context-coloring-test-deftheme theme)
+  (custom-theme-set-faces
+   theme
+   '(context-coloring-level-0-face ((t (:foreground "#cccccc"))))
+   '(context-coloring-level-1-face ((t (:foreground "#dddddd")))))
+  (enable-theme theme)
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (context-coloring-test-assert-face 0 "#aaaaaa")
+  (context-coloring-test-assert-face 1 "#bbbbbb"))
 
 (defun context-coloring-test-js-function-scopes ()
   (context-coloring-test-assert-region-level 1 9 0)

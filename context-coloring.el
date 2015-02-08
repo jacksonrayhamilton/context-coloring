@@ -500,6 +500,10 @@ for THEME, nil otherwise."
       (setq tail (cdr tail)))
     found))
 
+(defun context-coloring-warn-theme-defined (theme)
+  "Warns the user that the colors for a theme are already defined."
+  (warn "Context coloring colors for theme `%s' are already defined" theme))
+
 (defun context-coloring-theme-highest-level (theme)
   "Return the highest level N of a face like
 `context-coloring-level-N-face' defined for THEME, or -1 if there
@@ -545,10 +549,12 @@ which must already exist and which *should* already be enabled."
 PROPERTIES is a property list specifiying the following details:
 
 `:colors': List of colors that this theme uses."
-  (let ((aliases (plist-get properties :aliases)))
+  (let ((aliases (plist-get properties :aliases))
+        (override (plist-get properties :override)))
     (dolist (name (append `(,theme) aliases))
-      (when (context-coloring-theme-definedp name)
-        (warn "Colors for `%s' are already defined" name))
+      (when (and (not override)
+                 (context-coloring-theme-definedp name))
+        (context-coloring-warn-theme-defined name))
       (puthash name properties context-coloring-theme-hash-table)
       ;; Set (or overwrite) colors.
       (when (custom-theme-p name)
@@ -564,12 +570,22 @@ PROPERTIES is a property list specifiying the following details:
   "Applies THEME if its colors are not already defined, else just
 sets `context-coloring-face-count' to the correct value for
 THEME."
-  (let ((highest-level (context-coloring-theme-highest-level theme)))
+  (let* ((properties (gethash theme context-coloring-theme-hash-table))
+         (recede (plist-get properties :recede))
+         (override (plist-get properties :override)))
     (cond
-     ((> highest-level -1)
-      (setq context-coloring-face-count (+ highest-level 1)))
+     (recede
+      (let ((highest-level (context-coloring-theme-highest-level theme)))
+        (cond
+         ((> highest-level -1)
+          (setq context-coloring-face-count (+ highest-level 1)))
+         (t
+          (context-coloring-apply-theme theme)))))
      (t
-      (context-coloring-apply-theme theme)))))
+      (let ((defined (context-coloring-theme-definedp theme)))
+        (when (and defined (not override))
+          (context-coloring-warn-theme-defined theme))
+        (context-coloring-apply-theme theme))))))
 
 (defadvice enable-theme (after context-coloring-enable-theme (theme) activate)
   "Enable colors for themes just-in-time.  We can't set faces for
@@ -581,6 +597,7 @@ themes that might not exist yet."
 
 (context-coloring-define-theme
  'leuven
+ :recede t
  :colors '("#333333"
            "#0000FF"
            "#6434A3"
@@ -593,6 +610,7 @@ themes that might not exist yet."
 
 (context-coloring-define-theme
  'monokai
+ :recede t
  :colors '("#F8F8F2"
            "#66D9EF"
            "#A1EFE4"
@@ -605,6 +623,7 @@ themes that might not exist yet."
 
 (context-coloring-define-theme
  'solarized
+ :recede t
  :aliases '(solarized-light
             solarized-dark
             sanityinc-solarized-light
@@ -629,6 +648,7 @@ themes that might not exist yet."
 
 (context-coloring-define-theme
  'tango
+ :recede t
  :colors '("#2e3436"
            "#346604"
            "#204a87"
@@ -645,6 +665,7 @@ themes that might not exist yet."
 
 (context-coloring-define-theme
  'zenburn
+ :recede t
  :colors '("#DCDCCC"
            "#93E0E3"
            "#BFEBBF"
