@@ -228,7 +228,12 @@ EXPECTED-FACE."
 
 (defun context-coloring-test-assert-no-message (buffer)
   "Assert that BUFFER has no message."
-  (null (get-buffer buffer)))
+  (when (get-buffer buffer)
+    (ert-fail (format (concat "Expected buffer `%s' to have no messages, "
+                              "but it did: `%s'")
+                      buffer
+                      (with-current-buffer buffer
+                        (buffer-string))))))
 
 (defun context-coloring-test-kill-buffer (buffer)
   "Kill BUFFER if it exists."
@@ -409,7 +414,7 @@ t for a theme with SETTINGS."
   (context-coloring-test-assert-defined-warning theme)
   (context-coloring-test-kill-buffer "*Warnings*")
   (enable-theme theme)
-  (context-coloring-test-assert-defined-warning theme)
+  (context-coloring-test-assert-no-message "*Warnings*")
   (context-coloring-test-assert-face 0 "#cccccc")
   (context-coloring-test-assert-face 1 "#dddddd"))
 
