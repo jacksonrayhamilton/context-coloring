@@ -765,7 +765,7 @@ faces for custom themes that might not exist yet."
         (font-lock-mode)
         (jit-lock-mode t))
 
-    ;; Remember this buffer. This value should not be dynamically-bound.
+    ;; Remember this buffer.  This value should not be dynamically-bound.
     (setq context-coloring-buffer (current-buffer))
 
     ;; Font lock is incompatible with this mode; the converse is also true.
@@ -780,16 +780,13 @@ faces for custom themes that might not exist yet."
       ;; Only recolor on reparse.
       (add-hook 'js2-post-parse-callbacks 'context-coloring-colorize nil t))
      (t
-      ;; Only recolor on change.
-      (add-hook 'after-change-functions 'context-coloring-change-function nil t)))
-
-    (when (not (equal major-mode 'js2-mode))
-      ;; Only recolor idly.
+      ;; Only recolor on change, idly.
+      (add-hook 'after-change-functions 'context-coloring-change-function nil t)
       (setq context-coloring-colorize-idle-timer
             (run-with-idle-timer
              context-coloring-delay
              t
-             'context-coloring-maybe-colorize)))))
+             'context-coloring-maybe-colorize))))))
 
 (provide 'context-coloring)
 
