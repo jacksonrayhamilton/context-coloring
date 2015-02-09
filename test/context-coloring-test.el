@@ -360,12 +360,15 @@ return t for a theme with SETTINGS."
 
 (defun context-coloring-test-assert-theme-settings-highest-level
     (settings expected-level)
+  "Assert that a theme with SETTINGS has the highest level
+EXPECTED-LEVEL."
   (let ((theme (context-coloring-test-get-next-theme)))
     (put theme 'theme-settings settings)
     (context-coloring-test-assert-theme-highest-level theme expected-level)))
 
 (defun context-coloring-test-assert-theme-highest-level
     (theme expected-level &optional negate)
+  "Assert that THEME has the highest level EXPECTED-LEVEL."
   (let ((highest-level (context-coloring-theme-highest-level theme)))
     (when (funcall (if negate 'identity 'not) (eq highest-level expected-level))
       (ert-fail (format (concat "Expected theme with settings `%s' "
@@ -376,6 +379,7 @@ return t for a theme with SETTINGS."
                         (if negate "did" (format "was %s" highest-level)))))))
 
 (defun context-coloring-test-assert-theme-not-highest-level (&rest arguments)
+  "Assert that THEME's highest level is not EXPECTED-LEVEL."
   (apply 'context-coloring-test-assert-theme-highest-level
          (append arguments '(t))))
 
@@ -400,6 +404,9 @@ return t for a theme with SETTINGS."
   )
 
 (defmacro context-coloring-test-deftest-define-theme (name &rest body)
+  "Define a test with an automatically-generated theme symbol
+available as a free variable `theme'.  Side-effects from enabling
+themes are reversed after the test completes."
   (declare (indent defun))
   (let ((deftest-name (intern
                        (format "context-coloring-test-define-theme-%s" name))))
@@ -414,6 +421,7 @@ return t for a theme with SETTINGS."
            (context-coloring-set-colors-default))))))
 
 (defun context-coloring-test-deftheme (theme)
+  "Dynamically define theme THEME."
   (eval (macroexpand `(deftheme ,theme))))
 
 (context-coloring-test-deftest-define-theme additive
@@ -429,6 +437,8 @@ return t for a theme with SETTINGS."
   (context-coloring-test-assert-face 1 "#bbbbbb"))
 
 (defun context-coloring-test-assert-defined-warning (theme)
+  "Assert that a warning about colors already being defined for
+theme THEME is signaled."
   (context-coloring-test-assert-message
    (format (concat "Warning (emacs): Context coloring colors for theme "
                    "`%s' are already defined")
@@ -554,6 +564,7 @@ return t for a theme with SETTINGS."
   (context-coloring-test-assert-face 1 "#bbbbbb"))
 
 (defun context-coloring-test-assert-face-count (count &optional negate)
+  "Assert that `context-coloring-face-count' is COUNT."
   (when (funcall (if negate 'identity 'not)
                  (eq context-coloring-face-count count))
     (ert-fail (format (concat "Expected `context-coloring-face-count' "
@@ -565,6 +576,7 @@ return t for a theme with SETTINGS."
                         (format "was `%s'" context-coloring-face-count))))))
 
 (defun context-coloring-test-assert-not-face-count (&rest arguments)
+  "Assert that `context-coloring-face-count' is not COUNT."
   (apply 'context-coloring-test-assert-face-count
          (append arguments '(t))))
 
