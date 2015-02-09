@@ -683,6 +683,18 @@ faces for custom themes that might not exist yet."
         (context-coloring-set-colors-default)))))
 
 (context-coloring-define-theme
+ 'ample
+ :recede t
+ :colors '("#bdbdb3"
+           "#baba36"
+           "#6aaf50"
+           "#5180b3"
+           "#ab75c3"
+           "#cd7542"
+           "#dF9522"
+           "#454545"))
+
+(context-coloring-define-theme
  'anti-zenburn
  :recede t
  :colors '("#232333"
