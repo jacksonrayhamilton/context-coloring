@@ -90,8 +90,9 @@ Add the following to your `~/.emacs` file:
 ## Customizing
 
 Color schemes for custom themes are automatically applied when those themes are
-active. Built-in theme support is available for: `leuven`, `monokai`,
-`solarized`, `tango` and `zenburn`.
+active. Built-in theme support is available for: `ample`, `anti-zenburn`,
+`grandshell`, `leuven`, `monokai`, `solarized`, `spacegray`, `tango` and
+`zenburn`.
 
 You can define your own theme colors too:
 
@@ -111,11 +112,14 @@ You can define your own theme colors too:
            "#DCA3A3"))
 ```
 
+See `C-h f context-coloring-define-theme` for more info.
+
 ## Extending
 
 To add support for a new language, write a "scopifier" for it, and define a new
 coloring dispatch strategy with `context-coloring-define-dispatch`. Then the
-plugin should handle the rest.
+plugin should handle the rest. See `C-h f context-coloring-define-dispatch` for
+more info.
 
 A "scopifier" is a CLI program that reads a buffer's contents from stdin and
 writes a JSON array of numbers to stdout. Every three numbers in the array
