@@ -683,6 +683,21 @@ faces for custom themes that might not exist yet."
         (context-coloring-set-colors-default)))))
 
 (context-coloring-define-theme
+ 'anti-zenburn
+ :recede t
+ :colors '("#232333"
+           "#6c1f1c"
+           "#401440"
+           "#0f2050"
+           "#205070"
+           "#336c6c"
+           "#23733c"
+           "#6b400c"
+           "#603a60"
+           "#2f4070"
+           "#235c5c"))
+
+(context-coloring-define-theme
  'leuven
  :recede t
  :colors '("#333333"
