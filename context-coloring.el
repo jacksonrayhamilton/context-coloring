@@ -674,6 +674,9 @@ faces for custom themes that might not exist yet."
     (let ((enabled-theme (car custom-enabled-themes)))
       (if (context-coloring-theme-p enabled-theme)
           (context-coloring-enable-theme enabled-theme)
+        ;; TODO: This kinda works, though it overrides user-defined colors, so
+        ;; we should figure out the highest level deffaced face instead and set
+        ;; the `context-coloring-level-count' to that face's level.
         (context-coloring-set-colors-default)))))
 
 (context-coloring-define-theme
