@@ -710,6 +710,18 @@ faces for custom themes that might not exist yet."
            "#235c5c"))
 
 (context-coloring-define-theme
+ 'grandshell
+ :recede t
+ :colors '("#bebebe"
+           "#5af2ee"
+           "#b2baf6"
+           "#f09fff"
+           "#efc334"
+           "#f6df92"
+           "#acfb5a"
+           "#888888"))
+
+(context-coloring-define-theme
  'leuven
  :recede t
  :colors '("#333333"
