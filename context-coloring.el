@@ -627,12 +627,6 @@ precedence, i.e. the car of `custom-enabled-themes'."
                           recede))
             (context-coloring-apply-theme name)))))))
 
-(defun context-coloring-load-theme (&optional _rest)
-  (declare
-   (obsolete
-    "context themes are now loaded alongside custom themes automatically."
-    "4.1.0")))
-
 (defun context-coloring-enable-theme (theme)
   "Applies THEME if its colors are not already set, else just
 sets `context-coloring-face-count' to the correct value for
