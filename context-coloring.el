@@ -627,7 +627,7 @@ precedence, i.e. the car of `custom-enabled-themes'."
                           recede))
             (context-coloring-apply-theme name)))))))
 
-(defun context-coloring-load-theme (&optional rest)
+(defun context-coloring-load-theme (&optional _rest)
   (declare
    (obsolete
     "context themes are now loaded alongside custom themes automatically."
