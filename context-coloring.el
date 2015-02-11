@@ -870,8 +870,4 @@ faces for custom themes that might not exist yet."
 
 (provide 'context-coloring)
 
-;; Local Variables:
-;; eval: (when (fboundp 'rainbow-mode) (rainbow-mode 1))
-;; End:
-
 ;;; context-coloring.el ends here
