@@ -141,8 +141,8 @@ and DARK backgrounds."
 
 (context-coloring-set-colors-default)
 
-;; Color theme authors can have up to 26 levels: 1 (0th) for globals, 24
-;; (1st-24th) for in-betweens, and 1 (25th) for infinity.
+;; Theme authors can have up to 26 levels: 1 (0th) for globals, 24 (1st-24th)
+;; for in-betweens, and 1 (25th) for infinity.
 (dotimes (number 18)
   (context-coloring-defface-default (+ number context-coloring-maximum-face 1)))
 
