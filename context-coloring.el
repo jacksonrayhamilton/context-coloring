@@ -34,8 +34,8 @@
 
 ;; Lexical scope information at-a-glance can assist a programmer in
 ;; understanding the overall structure of a program.  It can help to curb nasty
-;; bugs like name shadowing.  A rainbow can indicate excessive complexity. State
-;; change within a closure is easily monitored.
+;; bugs like name shadowing.  A rainbow can indicate excessive complexity.
+;; State change within a closure is easily monitored.
 
 ;; By default, Context Coloring still highlights comments and strings
 ;; syntactically.  It is still easy to differentiate code from non-code, and
