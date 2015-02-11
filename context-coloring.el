@@ -122,7 +122,7 @@ and DARK backgrounds."
          :group 'context-coloring)))))
 
 (defvar context-coloring-maximum-face nil
-  "Number of faces available for coloring.")
+  "The highest face available for coloring.")
 
 (defun context-coloring-defface-default (level)
   "Define a face for LEVEL with the default neutral colors."
