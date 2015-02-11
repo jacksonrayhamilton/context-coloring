@@ -339,7 +339,7 @@ Invokes CALLBACK when complete."
            (with-current-buffer buffer
              (context-coloring-apply-tokens tokens))
            (setq context-coloring-scopifier-process nil)
-           (if callback (funcall callback)))))))
+           (when callback (funcall callback)))))))
 
   ;; Give the process its input so it can begin.
   (process-send-region
@@ -428,8 +428,8 @@ of the current buffer, then executes it.
 Invokes CALLBACK when complete.  It is invoked synchronously for
 elisp tracks, and asynchronously for shell command tracks."
   (let ((dispatch (gethash major-mode context-coloring-mode-hash-table)))
-    (if (null dispatch)
-        (message "%s" "Context coloring is not available for this major mode"))
+    (when (null dispatch)
+      (message "%s" "Context coloring is not available for this major mode"))
     (let (colorizer
           scopifier
           command
@@ -437,15 +437,16 @@ elisp tracks, and asynchronously for shell command tracks."
       (cond
        ((setq colorizer (plist-get dispatch :colorizer))
         (funcall colorizer)
-        (if callback (funcall callback)))
+        (when callback (funcall callback)))
        ((setq scopifier (plist-get dispatch :scopifier))
         (context-coloring-apply-tokens (funcall scopifier))
-        (if callback (funcall callback)))
+        (when callback (funcall callback)))
        ((setq command (plist-get dispatch :command))
         (setq executable (plist-get dispatch :executable))
         (if (and executable
                  (null (executable-find executable)))
-            (message "Executable \"%s\" not found" executable)
+            (progn
+              (message "Executable \"%s\" not found" executable))
           (context-coloring-scopify-shell-command command callback)))))))
 
 
@@ -461,7 +462,7 @@ Invokes CALLBACK when complete; see `context-coloring-dispatch'."
      (lambda ()
        (when context-coloring-benchmark-colorization
          (message "Colorization took %.3f seconds" (- (float-time) start-time)))
-       (if callback (funcall callback))))))
+       (when callback (funcall callback))))))
 
 (defun context-coloring-change-function (_start _end _length)
   "Registers a change so that a buffer can be colorized soon."
@@ -685,7 +686,8 @@ faces for custom themes that might not exist yet."
   (when (custom-theme-p theme) ; Guard against non-existent themes.
     (let ((enabled-theme (car custom-enabled-themes)))
       (if (context-coloring-theme-p enabled-theme)
-          (context-coloring-enable-theme enabled-theme)
+          (progn
+            (context-coloring-enable-theme enabled-theme))
         ;; Assume we are back to no theme; act as if nothing ever happened.
         ;; This is still prone to intervention, but rather extraordinarily.
         (setq context-coloring-maximum-face

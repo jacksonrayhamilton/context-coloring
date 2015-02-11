@@ -80,7 +80,7 @@ to run arbitrary code before the mode is invoked."
   (context-coloring-test-with-temp-buffer-async
    (lambda (done-with-temp-buffer)
      (context-coloring-test-setup)
-     (if setup (funcall setup))
+     (when setup (funcall setup))
      (insert (context-coloring-test-read-file fixture))
      (funcall
       callback
@@ -247,7 +247,7 @@ EXPECTED-FACE."
 
 (defun context-coloring-test-kill-buffer (buffer)
   "Kill BUFFER if it exists."
-  (if (get-buffer buffer) (kill-buffer buffer)))
+  (when (get-buffer buffer) (kill-buffer buffer)))
 
 (defun context-coloring-test-assert-face (level foreground &optional negate)
   "Assert that a face for LEVEL exists and that its `:foreground'

@@ -49,7 +49,8 @@ asynchrony."
   "Run the next test in LIST by calling CONTINUE.  When LIST is
 exhausted, call STOP instead."
   (if (null list)
-      (context-coloring-benchmark-next-tick stop)
+      (progn
+        (context-coloring-benchmark-next-tick stop))
     (context-coloring-benchmark-next-tick
      (lambda ()
        (funcall
@@ -92,7 +93,7 @@ all are done."
          (find-file fixture)))
      (lambda ()
        (funcall teardown)
-       (if callback (funcall callback))))))
+       (when callback (funcall callback))))))
 
 (defconst context-coloring-benchmark-js-fixtures
   '("./fixtures/jquery-2.1.1.js"
