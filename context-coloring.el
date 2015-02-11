@@ -137,7 +137,9 @@ and DARK backgrounds."
   (context-coloring-defface 5 "magenta" "#6a8000" "#ffcdcd")
   (context-coloring-defface 6 "red"     "#008000" "#ffe390")
   (context-coloring-defface-default 7)
-  (setq context-coloring-maximum-face 7))
+  (setq context-coloring-maximum-face 7)
+  (setq context-coloring-original-maximum-face
+        context-coloring-maximum-face))
 
 (context-coloring-set-colors-default)
 
@@ -160,6 +162,8 @@ and DARK backgrounds."
   "Set context coloring's levels' coloring to COLORS, where the
 Nth element of COLORS is level N's color."
   (setq context-coloring-maximum-face (- (length colors) 1))
+  (setq context-coloring-original-maximum-face
+        context-coloring-maximum-face)
   (let ((level 0))
     (dolist (color colors)
       ;; Ensure there are available faces to contain new colors.
@@ -659,12 +663,20 @@ THEME."
           (context-coloring-warn-theme-originally-set theme))
         (context-coloring-apply-theme theme))))))
 
+(defvar context-coloring-original-maximum-face nil
+  "Value for `context-coloring-maximum-face' to fall back to
+  when all themes have been disabled.")
+
 (defadvice enable-theme (after context-coloring-enable-theme (theme) activate)
   "Enable colors for context themes just-in-time.  We can't set
 faces for custom themes that might not exist yet."
   (when (and (not (eq theme 'user)) ; Called internally by `enable-theme'.
              (custom-theme-p theme) ; Guard against non-existent themes.
              (context-coloring-theme-p theme))
+    (when (> (length custom-enabled-themes) 0)
+      ;; Cache because we can't reliably figure it out in reverse.
+      (setq context-coloring-original-maximum-face
+            context-coloring-maximum-face))
     (context-coloring-enable-theme theme)))
 
 (defadvice disable-theme (after context-coloring-disable-theme (theme) activate)
@@ -674,10 +686,10 @@ faces for custom themes that might not exist yet."
     (let ((enabled-theme (car custom-enabled-themes)))
       (if (context-coloring-theme-p enabled-theme)
           (context-coloring-enable-theme enabled-theme)
-        ;; TODO: This kinda works, though it overrides user-defined colors, so
-        ;; we should figure out the highest level deffaced face instead and set
-        ;; the `context-coloring-level-count' to that face's level.
-        (context-coloring-set-colors-default)))))
+        ;; Assume we are back to no theme; act as if nothing ever happened.
+        ;; This is still prone to intervention, but rather extraordinarily.
+        (setq context-coloring-maximum-face
+              context-coloring-original-maximum-face)))))
 
 (context-coloring-define-theme
  'ample
