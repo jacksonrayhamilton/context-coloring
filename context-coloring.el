@@ -121,7 +121,7 @@ and DARK backgrounds."
          ,doc
          :group 'context-coloring)))))
 
-(defvar context-coloring-face-count nil
+(defvar context-coloring-maximum-face nil
   "Number of faces available for coloring.")
 
 (defun context-coloring-defface-default (level)
@@ -137,14 +137,14 @@ and DARK backgrounds."
   (context-coloring-defface 5 "magenta" "#6a8000" "#ffcdcd")
   (context-coloring-defface 6 "red"     "#008000" "#ffe390")
   (context-coloring-defface-default 7)
-  (setq context-coloring-face-count 8))
+  (setq context-coloring-maximum-face 7))
 
 (context-coloring-set-colors-default)
 
 ;; Color theme authors can have up to 26 levels: 1 (0th) for globals, 24
 ;; (1st-24th) for in-betweens, and 1 (25th) for infinity.
 (dotimes (number 18)
-  (context-coloring-defface-default (+ number context-coloring-face-count)))
+  (context-coloring-defface-default (+ number context-coloring-maximum-face 1)))
 
 
 ;;; Face functions
@@ -159,7 +159,7 @@ and DARK backgrounds."
 (defun context-coloring-set-colors (&rest colors)
   "Set context coloring's levels' coloring to COLORS, where the
 Nth element of COLORS is level N's color."
-  (setq context-coloring-face-count (length colors))
+  (setq context-coloring-maximum-face (- (length colors) 1))
   (let ((level 0))
     (dolist (color colors)
       ;; Ensure there are available faces to contain new colors.
@@ -170,7 +170,7 @@ Nth element of COLORS is level N's color."
 
 (defsubst context-coloring-level-face (level)
   "Returns the face name for LEVEL."
-  (context-coloring-face-symbol (min level context-coloring-face-count)))
+  (context-coloring-face-symbol (min level context-coloring-maximum-face)))
 
 
 ;;; Colorization utilities
@@ -565,7 +565,7 @@ which must already exist and which *should* already be enabled."
   (let* ((properties (gethash theme context-coloring-theme-hash-table))
          (colors (plist-get properties :colors))
          (level -1))
-    (setq context-coloring-face-count (length colors))
+    (setq context-coloring-maximum-face (- (length colors) 1))
     (apply
      'custom-theme-set-faces
      theme
@@ -629,7 +629,7 @@ precedence, i.e. the car of `custom-enabled-themes'."
 
 (defun context-coloring-enable-theme (theme)
   "Applies THEME if its colors are not already set, else just
-sets `context-coloring-face-count' to the correct value for
+sets `context-coloring-maximum-face' to the correct value for
 THEME."
   (let* ((properties (gethash theme context-coloring-theme-hash-table))
          (recede (plist-get properties :recede))
@@ -641,7 +641,7 @@ THEME."
          ;; This can be true whether originally set by a custom theme or by a
          ;; context theme.
          ((> highest-level -1)
-          (setq context-coloring-face-count (+ highest-level 1)))
+          (setq context-coloring-maximum-face highest-level))
          ;; It is possible that the corresponding custom theme did not exist at
          ;; the time of defining this context theme, and in that case the above
          ;; condition proves the custom theme did not originally set any faces,
@@ -669,7 +669,7 @@ faces for custom themes that might not exist yet."
 
 (defadvice disable-theme (after context-coloring-disable-theme (theme) activate)
   "Colors are disabled normally, but
-`context-coloring-face-count' isn't.  Update it here."
+`context-coloring-maximum-face' isn't.  Update it here."
   (when (custom-theme-p theme) ; Guard against non-existent themes.
     (let ((enabled-theme (car custom-enabled-themes)))
       (if (context-coloring-theme-p enabled-theme)

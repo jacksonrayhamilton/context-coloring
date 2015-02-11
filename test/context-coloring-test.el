@@ -563,21 +563,21 @@ theme THEME is signaled."
   (context-coloring-test-assert-face 0 "#aaaaaa")
   (context-coloring-test-assert-face 1 "#bbbbbb"))
 
-(defun context-coloring-test-assert-face-count (count &optional negate)
-  "Assert that `context-coloring-face-count' is COUNT."
+(defun context-coloring-test-assert-maximum-face (maximum &optional negate)
+  "Assert that `context-coloring-maximum-face' is MAXIMUM."
   (when (funcall (if negate 'identity 'not)
-                 (eq context-coloring-face-count count))
-    (ert-fail (format (concat "Expected `context-coloring-face-count' "
+                 (eq context-coloring-maximum-face maximum))
+    (ert-fail (format (concat "Expected `context-coloring-maximum-face' "
                               "%sto be `%s', "
                               "but it %s.")
-                      (if negate "not " "") count
+                      (if negate "not " "") maximum
                       (if negate
                           "was"
-                        (format "was `%s'" context-coloring-face-count))))))
+                        (format "was `%s'" context-coloring-maximum-face))))))
 
-(defun context-coloring-test-assert-not-face-count (&rest arguments)
-  "Assert that `context-coloring-face-count' is not COUNT."
-  (apply 'context-coloring-test-assert-face-count
+(defun context-coloring-test-assert-not-maximum-face (&rest arguments)
+  "Assert that `context-coloring-maximum-face' is not MAXIMUM."
+  (apply 'context-coloring-test-assert-maximum-face
          (append arguments '(t))))
 
 (context-coloring-test-deftest-define-theme disable-cascade
@@ -608,15 +608,15 @@ theme THEME is signaled."
       (context-coloring-test-assert-face 0 "#cccccc")
       (context-coloring-test-assert-face 1 "#dddddd")
       (context-coloring-test-assert-face 2 "#eeeeee")
-      (context-coloring-test-assert-face-count 3))
+      (context-coloring-test-assert-maximum-face 2))
     (disable-theme second-theme)
     (context-coloring-test-assert-face 0 "#aaaaaa")
     (context-coloring-test-assert-face 1 "#bbbbbb")
-    (context-coloring-test-assert-face-count 2))
+    (context-coloring-test-assert-maximum-face 1))
   (disable-theme theme)
   (context-coloring-test-assert-not-face 0 "#aaaaaa")
   (context-coloring-test-assert-not-face 1 "#bbbbbb")
-  (context-coloring-test-assert-not-face-count 2))
+  (context-coloring-test-assert-not-maximum-face 1))
 
 (defun context-coloring-test-js-function-scopes ()
   (context-coloring-test-assert-region-level 1 9 0)
