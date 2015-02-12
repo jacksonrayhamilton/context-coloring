@@ -56,53 +56,10 @@
 (require 'js2-mode)
 
 
-;;; Customizable options
-
-(defcustom context-coloring-delay 0.25
-  "Delay between a buffer update and colorization.
-
-Increase this if your machine is high-performing.  Decrease it if
-it ain't.
-
-Supported modes: `js-mode', `js3-mode'"
-  :group 'context-coloring)
-
-(defcustom context-coloring-comments-and-strings t
-  "If non-nil, also color comments and strings using `font-lock'."
-  :group 'context-coloring)
-
-(defcustom context-coloring-js-block-scopes nil
-  "If non-nil, also color block scopes in the scope hierarchy in JavaScript.
-
-The block-scoped `let' and `const' are introduced in ES6.  If you
-are writing ES6 code, enable this; otherwise, don't.
-
-Supported modes: `js2-mode'"
-  :group 'context-coloring)
-
-(defcustom context-coloring-benchmark-colorization nil
-  "If non-nil, track how long colorization takes and print
-messages with the colorization duration."
-  :group 'context-coloring)
-
-
 ;;; Local variables
 
 (defvar-local context-coloring-buffer nil
   "Reference to this buffer (for timers).")
-
-(defvar-local context-coloring-scopifier-process nil
-  "Reference to the single scopifier process that can be
-  running.")
-
-(defvar-local context-coloring-colorize-idle-timer nil
-  "Reference to the currently-running idle timer.")
-
-(defvar-local context-coloring-changed nil
-  "Indication that the buffer has changed recently, which would
-imply that it should be colorized again by
-`context-coloring-colorize-idle-timer' if that timer is being
-used.")
 
 
 ;;; Faces
@@ -186,6 +143,10 @@ END (exclusive) with the face corresponding to LEVEL."
    end
    `(face ,(context-coloring-level-face level))))
 
+(defcustom context-coloring-comments-and-strings t
+  "If non-nil, also color comments and strings using `font-lock'."
+  :group 'context-coloring)
+
 (defsubst context-coloring-maybe-colorize-comments-and-strings ()
   "Colorizes the current buffer's comments and strings if
 `context-coloring-comments-and-strings' is non-nil."
@@ -199,6 +160,15 @@ END (exclusive) with the face corresponding to LEVEL."
 (defvar-local context-coloring-js2-scope-level-hash-table nil
   "Associates `js2-scope' structures and with their scope
   levels.")
+
+(defcustom context-coloring-js-block-scopes nil
+  "If non-nil, also color block scopes in the scope hierarchy in JavaScript.
+
+The block-scoped `let' and `const' are introduced in ES6.  If you
+are writing ES6 code, enable this; otherwise, don't.
+
+Supported modes: `js2-mode'"
+  :group 'context-coloring)
 
 (defsubst context-coloring-js2-scope-level (scope)
   "Gets the level of SCOPE."
@@ -295,6 +265,10 @@ element."
   "Specialized JSON parser for a flat array of numbers."
   (vconcat
    (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
+
+(defvar-local context-coloring-scopifier-process nil
+  "Reference to the single scopifier process that can be
+  running.")
 
 (defun context-coloring-kill-scopifier ()
   "Kills the currently-running scopifier process for this
@@ -451,6 +425,11 @@ elisp tracks, and asynchronously for shell command tracks."
 
 ;;; Colorization
 
+(defcustom context-coloring-benchmark-colorization nil
+  "If non-nil, track how long colorization takes and print
+messages with the colorization duration."
+  :group 'context-coloring)
+
 (defun context-coloring-colorize (&optional callback)
   "Colors the current buffer by function context.
 
@@ -462,6 +441,12 @@ Invokes CALLBACK when complete; see `context-coloring-dispatch'."
        (when context-coloring-benchmark-colorization
          (message "Colorization took %.3f seconds" (- (float-time) start-time)))
        (when callback (funcall callback))))))
+
+(defvar-local context-coloring-changed nil
+  "Indication that the buffer has changed recently, which would
+imply that it should be colorized again by
+`context-coloring-colorize-idle-timer' if that timer is being
+used.")
 
 (defun context-coloring-change-function (_start _end _length)
   "Registers a change so that a buffer can be colorized soon."
@@ -828,6 +813,18 @@ faces for custom themes that might not exist yet."
 
 
 ;;; Minor mode
+
+(defvar-local context-coloring-colorize-idle-timer nil
+  "Reference to the currently-running idle timer.")
+
+(defcustom context-coloring-delay 0.25
+  "Delay between a buffer update and colorization.
+
+Increase this if your machine is high-performing.  Decrease it if
+it ain't.
+
+Supported modes: `js-mode', `js3-mode'"
+  :group 'context-coloring)
 
 ;;;###autoload
 (define-minor-mode context-coloring-mode
