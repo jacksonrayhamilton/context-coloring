@@ -85,24 +85,23 @@ and DARK backgrounds."
   "Define a face for LEVEL with the default neutral colors."
   (context-coloring-defface level nil "#3f3f3f" "#cdcdcd"))
 
-(defun context-coloring-set-colors-default ()
-  (context-coloring-defface 0 nil       "#000000" "#ffffff")
-  (context-coloring-defface 1 "yellow"  "#007f80" "#ffff80")
-  (context-coloring-defface 2 "green"   "#001580" "#cdfacd")
-  (context-coloring-defface 3 "cyan"    "#550080" "#d8d8ff")
-  (context-coloring-defface 4 "blue"    "#802b00" "#e7c7ff")
-  (context-coloring-defface 5 "magenta" "#6a8000" "#ffcdcd")
-  (context-coloring-defface 6 "red"     "#008000" "#ffe390")
-  (context-coloring-defface-default 7)
-  (setq context-coloring-maximum-face 7)
-  (setq context-coloring-original-maximum-face
-        context-coloring-maximum-face)
-  ;; Theme authors can have up to 26 levels: 1 (0th) for globals, 24 (1st-24th)
-  ;; for in-betweens, and 1 (25th) for infinity.
-  (dotimes (number 18)
-    (context-coloring-defface-default (+ number context-coloring-maximum-face 1))))
+(context-coloring-defface 0 nil       "#000000" "#ffffff")
+(context-coloring-defface 1 "yellow"  "#007f80" "#ffff80")
+(context-coloring-defface 2 "green"   "#001580" "#cdfacd")
+(context-coloring-defface 3 "cyan"    "#550080" "#d8d8ff")
+(context-coloring-defface 4 "blue"    "#802b00" "#e7c7ff")
+(context-coloring-defface 5 "magenta" "#6a8000" "#ffcdcd")
+(context-coloring-defface 6 "red"     "#008000" "#ffe390")
+(context-coloring-defface-default 7)
 
-(context-coloring-set-colors-default)
+(setq context-coloring-maximum-face 7)
+(setq context-coloring-original-maximum-face
+      context-coloring-maximum-face)
+
+;; Theme authors can have up to 26 levels: 1 (0th) for globals, 24 (1st-24th)
+;; for in-betweens, and 1 (25th) for infinity.
+(dotimes (number 18)
+  (context-coloring-defface-default (+ number context-coloring-maximum-face 1)))
 
 
 ;;; Face functions
@@ -113,20 +112,6 @@ and DARK backgrounds."
   (intern-soft (concat "context-coloring-level-"
                        (number-to-string level)
                        "-face")))
-
-(defun context-coloring-set-colors (&rest colors)
-  "Set context coloring's levels' coloring to COLORS, where the
-Nth element of COLORS is level N's color."
-  (setq context-coloring-maximum-face (- (length colors) 1))
-  (setq context-coloring-original-maximum-face
-        context-coloring-maximum-face)
-  (let ((level 0))
-    (dolist (color colors)
-      ;; Ensure there are available faces to contain new colors.
-      (when (not (context-coloring-face-symbol level))
-        (context-coloring-defface-default level))
-      (set-face-foreground (context-coloring-face-symbol level) color)
-      (setq level (+ level 1)))))
 
 (defsubst context-coloring-level-face (level)
   "Returns the face name for LEVEL."
@@ -658,7 +643,7 @@ faces for custom themes that might not exist yet."
   (when (and (not (eq theme 'user)) ; Called internally by `enable-theme'.
              (custom-theme-p theme) ; Guard against non-existent themes.
              (context-coloring-theme-p theme))
-    (when (> (length custom-enabled-themes) 0)
+    (when (= (length custom-enabled-themes) 0)
       ;; Cache because we can't reliably figure it out in reverse.
       (setq context-coloring-original-maximum-face
             context-coloring-maximum-face))

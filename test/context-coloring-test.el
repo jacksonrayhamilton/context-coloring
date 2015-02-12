@@ -42,8 +42,7 @@
   "Cleanup code to run after all tests."
   (setq context-coloring-comments-and-strings t)
   (setq context-coloring-after-colorize-hook nil)
-  (setq context-coloring-js-block-scopes nil)
-  (context-coloring-set-colors-default))
+  (setq context-coloring-js-block-scopes nil))
 
 (defmacro context-coloring-test-with-fixture (fixture &rest body)
   "Evaluate BODY in a temporary buffer with the relative
@@ -286,32 +285,6 @@ FOREGROUND."
     "Context coloring is not available for this major mode"
     "*Messages*")))
 
-(ert-deftest context-coloring-test-set-colors ()
-  ;; This test has an irreversible side-effect in that it defines faces beyond
-  ;; 7.  Faces 0 through 7 are reset to their default states, so it might not
-  ;; matter, but be aware anyway.
-  (context-coloring-set-colors
-   "#000000"
-   "#111111"
-   "#222222"
-   "#333333"
-   "#444444"
-   "#555555"
-   "#666666"
-   "#777777"
-   "#888888"
-   "#999999")
-  (context-coloring-test-assert-face 0 "#000000")
-  (context-coloring-test-assert-face 1 "#111111")
-  (context-coloring-test-assert-face 2 "#222222")
-  (context-coloring-test-assert-face 3 "#333333")
-  (context-coloring-test-assert-face 4 "#444444")
-  (context-coloring-test-assert-face 5 "#555555")
-  (context-coloring-test-assert-face 6 "#666666")
-  (context-coloring-test-assert-face 7 "#777777")
-  (context-coloring-test-assert-face 8 "#888888")
-  (context-coloring-test-assert-face 9 "#999999"))
-
 (defvar context-coloring-test-theme-index 0
   "Unique index for unique theme names.")
 
@@ -417,8 +390,7 @@ themes are reversed after the test completes."
              (progn
                ,@body)
            ;; Always cleanup.
-           (disable-theme theme)
-           (context-coloring-set-colors-default))))))
+           (disable-theme theme))))))
 
 (defun context-coloring-test-deftheme (theme)
   "Dynamically define theme THEME."
