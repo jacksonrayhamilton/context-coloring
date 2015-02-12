@@ -69,17 +69,13 @@
 and DARK backgrounds."
   (let ((face (intern (format "context-coloring-level-%s-face" level)))
         (doc (format "Context coloring face, level %s." level)))
-    (eval
-     (macroexpand
-      `(defface ,face
-         '((((type tty)) (:foreground ,tty))
-           (((background light)) (:foreground ,light))
-           (((background dark)) (:foreground ,dark)))
-         ,doc
-         :group 'context-coloring)))))
-
-(defvar context-coloring-maximum-face nil
-  "The highest face available for coloring.")
+    (custom-declare-face
+     face
+     `((((type tty)) (:foreground ,tty))
+       (((background light)) (:foreground ,light))
+       (((background dark)) (:foreground ,dark)))
+     doc
+     :group 'context-coloring)))
 
 (defun context-coloring-defface-default (level)
   "Define a face for LEVEL with the default neutral colors."
@@ -94,12 +90,20 @@ and DARK backgrounds."
 (context-coloring-defface 6 "red"     "#008000" "#ffe390")
 (context-coloring-defface-default 7)
 
+(defvar context-coloring-maximum-face nil
+  "The highest face available for coloring.")
+
+(defvar context-coloring-original-maximum-face nil
+  "Value for `context-coloring-maximum-face' to fall back to
+  when all themes have been disabled.")
+
 (setq context-coloring-maximum-face 7)
+
 (setq context-coloring-original-maximum-face
       context-coloring-maximum-face)
 
 ;; Theme authors can have up to 26 levels: 1 (0th) for globals, 24 (1st-24th)
-;; for in-betweens, and 1 (25th) for infinity.
+;; for nested levels, and 1 (25th) for infinity.
 (dotimes (number 18)
   (context-coloring-defface-default (+ number context-coloring-maximum-face 1)))
 
@@ -632,10 +636,6 @@ THEME."
                    (not override))
           (context-coloring-warn-theme-originally-set theme))
         (context-coloring-apply-theme theme))))))
-
-(defvar context-coloring-original-maximum-face nil
-  "Value for `context-coloring-maximum-face' to fall back to
-  when all themes have been disabled.")
 
 (defadvice enable-theme (after context-coloring-enable-theme (theme) activate)
   "Enable colors for context themes just-in-time.  We can't set
