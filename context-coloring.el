@@ -498,7 +498,7 @@ originally set for THEME, nil otherwise."
         found)))))
 
 (defun context-coloring-cache-originally-set (theme originally-set)
-  "Remember if THEME had colors originally set for it; if
+  "Remember if THEME had colors originally set for it.  If
 ORIGINALLY-SET is non-nil, it did, otherwise it didn't."
   ;; Caching whether a theme was originally set is kind of dirty, but we have to
   ;; do it to remember the past state of the theme.  There are probably some
