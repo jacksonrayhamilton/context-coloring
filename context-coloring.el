@@ -412,22 +412,14 @@ elisp tracks, and asynchronously for shell command tracks."
 
 ;;; Colorization
 
-(defcustom context-coloring-benchmark-colorization nil
-  "If non-nil, track how long colorization takes and print
-messages with the colorization duration."
-  :group 'context-coloring)
-
 (defun context-coloring-colorize (&optional callback)
   "Color the current buffer by function context.
 
 Invoke CALLBACK when complete; see `context-coloring-dispatch'."
   (interactive)
-  (let ((start-time (float-time)))
-    (context-coloring-dispatch
-     (lambda ()
-       (when context-coloring-benchmark-colorization
-         (message "Colorization took %.3f seconds" (- (float-time) start-time)))
-       (when callback (funcall callback))))))
+  (context-coloring-dispatch
+   (lambda ()
+     (when callback (funcall callback)))))
 
 (defvar-local context-coloring-changed nil
   "Indication that the buffer has changed recently, which implies
