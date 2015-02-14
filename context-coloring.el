@@ -110,16 +110,16 @@ backgrounds."
 
 ;;; Face functions
 
-(defsubst context-coloring-face-symbol (level)
-  "Returns a symbol for a face with LEVEL."
-  ;; `concat' is faster than `format' here.
-  (intern-soft (concat "context-coloring-level-"
-                       (number-to-string level)
-                       "-face")))
-
 (defsubst context-coloring-level-face (level)
-  "Returns the face name for LEVEL."
-  (context-coloring-face-symbol (min level context-coloring-maximum-face)))
+  "Return the symbol for a face with LEVEL."
+  ;; `concat' is faster than `format' here.
+  (intern-soft
+   (concat "context-coloring-level-" (number-to-string level) "-face")))
+
+(defsubst context-coloring-bounded-level-face (level)
+  "Return the symbol for a face with LEVEL, bounded by
+`context-coloring-maximum-face'."
+  (context-coloring-level-face (min level context-coloring-maximum-face)))
 
 
 ;;; Colorization utilities
@@ -130,7 +130,7 @@ END (exclusive) with the face corresponding to LEVEL."
   (add-text-properties
    start
    end
-   `(face ,(context-coloring-level-face level))))
+   `(face ,(context-coloring-bounded-level-face level))))
 
 (defcustom context-coloring-comments-and-strings t
   "If non-nil, also color comments and strings using `font-lock'."
@@ -550,7 +550,7 @@ which must already exist and which *should* already be enabled."
      (mapcar
       (lambda (color)
         (setq level (+ level 1))
-        `(,(context-coloring-face-symbol level) ((t (:foreground ,color)))))
+        `(,(context-coloring-level-face level) ((t (:foreground ,color)))))
       colors))))
 
 (defun context-coloring-define-theme (theme &rest properties)

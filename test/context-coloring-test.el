@@ -251,7 +251,7 @@ EXPECTED-FACE."
 (defun context-coloring-test-assert-face (level foreground &optional negate)
   "Assert that a face for LEVEL exists and that its `:foreground'
 is FOREGROUND."
-  (let* ((face (context-coloring-face-symbol level))
+  (let* ((face (context-coloring-level-face level))
          actual-foreground)
     (when (not (or negate
                    face))
