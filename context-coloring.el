@@ -77,7 +77,7 @@ backgrounds."
      doc
      :group 'context-coloring)))
 
-(defun context-coloring-defface-default (level)
+(defun context-coloring-defface-neutral (level)
   "Define a face for LEVEL with the default neutral colors."
   (context-coloring-defface level nil "#3f3f3f" "#cdcdcd"))
 
@@ -88,7 +88,7 @@ backgrounds."
 (context-coloring-defface 4 "blue"    "#802b00" "#e7c7ff")
 (context-coloring-defface 5 "magenta" "#6a8000" "#ffcdcd")
 (context-coloring-defface 6 "red"     "#008000" "#ffe390")
-(context-coloring-defface-default 7)
+(context-coloring-defface-neutral 7)
 
 (defvar context-coloring-maximum-face nil
   "Index of the highest face available for coloring.")
@@ -105,7 +105,7 @@ backgrounds."
 ;; Theme authors can have up to 26 levels: 1 (0th) for globals, 24 (1st-24th)
 ;; for nested levels, and 1 (25th) for infinity.
 (dotimes (number 18)
-  (context-coloring-defface-default (+ number context-coloring-maximum-face 1)))
+  (context-coloring-defface-neutral (+ number context-coloring-maximum-face 1)))
 
 
 ;;; Face functions
