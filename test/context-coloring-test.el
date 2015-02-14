@@ -132,7 +132,7 @@ format."
                            (funcall done))))))
 
 (defmacro context-coloring-test-deftest-js2-mode (name)
-    "Define a test for `js2-mode' in the typical format."
+  "Define a test for `js2-mode' in the typical format."
   (let ((test-name (intern (format "context-coloring-test-js2-mode-%s" name)))
         (fixture (format "./fixtures/%s.js" name))
         (function-name (intern-soft
@@ -146,9 +146,9 @@ format."
 ;;; Assertion functions
 
 (defmacro context-coloring-test-assert-region (&rest body)
-  "Skeleton for asserting something about the face of points in a
-region.  Provides the free variables `i', `length', `point',
-`face' and `actual-level'."
+  "Assert something about the face of points in a region.
+Provides the free variables `i', `length', `point', `face' and
+`actual-level'."
   `(let ((i 0)
          (length (- end start)))
      (while (< i length)
@@ -199,7 +199,7 @@ EXPECTED-FACE."
    start end 'font-lock-comment-delimiter-face))
 
 (defun context-coloring-test-assert-region-comment (start end)
-    "Assert that all points in the range [START, END) have
+  "Assert that all points in the range [START, END) have
 `font-lock-comment-face'."
   (context-coloring-test-assert-region-face
    start end 'font-lock-comment-face))
@@ -299,7 +299,7 @@ FOREGROUND."
 (defun context-coloring-test-assert-theme-originally-set-p
     (settings &optional negate)
   "Assert that `context-coloring-theme-originally-set-p' returns
-t for a theme with SETTINGS (or the inverse if NEGATE is
+`t' for a theme with SETTINGS (or the inverse if NEGATE is
 non-nil)."
   (let ((theme (context-coloring-test-get-next-theme)))
     (put theme 'theme-settings settings)
@@ -314,7 +314,7 @@ non-nil)."
 
 (defun context-coloring-test-assert-not-theme-originally-set-p (&rest arguments)
   "Assert that `context-coloring-theme-originally-set-p' does not
-return t for a theme with SETTINGS."
+return `t' for a theme with SETTINGS."
   (apply 'context-coloring-test-assert-theme-originally-set-p
          (append arguments '(t))))
 
