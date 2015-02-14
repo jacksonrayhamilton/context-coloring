@@ -17,6 +17,15 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Commentary:
+
+;; Tests for context-coloring.
+
+;; Tests for both synchronous (elisp) and asynchronous (shell command) coloring
+;; are available.  Basic plugin functionality is also tested.
+
+;; To run, execute `make test' from the project root.
+
 ;;; Code:
 
 (require 'ert-async)
@@ -29,24 +38,24 @@
   "This file's directory.")
 
 (defun context-coloring-test-read-file (path)
-  "Read a file's contents into a string."
+  "Read a file's contents from PATH into a string."
   (with-temp-buffer
     (insert-file-contents (expand-file-name path context-coloring-test-path))
     (buffer-string)))
 
 (defun context-coloring-test-setup ()
-  "Preparation code to run before all tests."
+  "Prepare before all tests."
   (setq context-coloring-comments-and-strings nil))
 
 (defun context-coloring-test-cleanup ()
-  "Cleanup code to run after all tests."
+  "Cleanup after all tests."
   (setq context-coloring-comments-and-strings t)
   (setq context-coloring-after-colorize-hook nil)
   (setq context-coloring-js-block-scopes nil))
 
 (defmacro context-coloring-test-with-fixture (fixture &rest body)
-  "Evaluate BODY in a temporary buffer with the relative
-FIXTURE."
+  "With the relative FIXTURE, evaluate BODY in a temporary
+buffer."
   `(with-temp-buffer
      (unwind-protect
          (progn
@@ -72,10 +81,10 @@ is done."
 
 (defun context-coloring-test-with-fixture-async
     (fixture callback &optional setup)
-  "Evaluate CALLBACK in a temporary buffer with the relative
-FIXTURE.  A teardown callback is passed to CALLBACK for it to
-invoke when it is done.  An optional SETUP callback can be passed
-to run arbitrary code before the mode is invoked."
+  "With the relative FIXTURE, evaluate CALLBACK in a temporary
+buffer.  A teardown callback is passed to CALLBACK for it to
+invoke when it is done.  An optional SETUP callback can run
+arbitrary code before the mode is invoked."
   (context-coloring-test-with-temp-buffer-async
    (lambda (done-with-temp-buffer)
      (context-coloring-test-setup)
@@ -116,8 +125,8 @@ instantiated in SETUP."
     ,@body))
 
 (defmacro context-coloring-test-deftest-js-mode (name)
-  "Define an asynchronous test for `js-mode' in the typical
-format."
+  "Define an asynchronous test for `js-mode' with the name NAME
+in the typical format."
   (let ((test-name (intern (format "context-coloring-test-js-mode-%s" name)))
         (fixture (format "./fixtures/%s.js" name))
         (function-name (intern-soft
@@ -132,7 +141,8 @@ format."
                            (funcall done))))))
 
 (defmacro context-coloring-test-deftest-js2-mode (name)
-  "Define a test for `js2-mode' in the typical format."
+  "Define a test for `js2-mode' with the name NAME in the typical
+format."
   (let ((test-name (intern (format "context-coloring-test-js2-mode-%s" name)))
         (fixture (format "./fixtures/%s.js" name))
         (function-name (intern-soft
@@ -148,7 +158,7 @@ format."
 (defmacro context-coloring-test-assert-region (&rest body)
   "Assert something about the face of points in a region.
 Provides the free variables `i', `length', `point', `face' and
-`actual-level'."
+`actual-level' to the code in BODY."
   `(let ((i 0)
          (length (- end start)))
      (while (< i length)
@@ -205,13 +215,13 @@ EXPECTED-FACE."
    start end 'font-lock-comment-face))
 
 (defun context-coloring-test-assert-region-string (start end)
-    "Assert that all points in the range [START, END) have
+  "Assert that all points in the range [START, END) have
 `font-lock-string-face'."
   (context-coloring-test-assert-region-face
    start end 'font-lock-string-face))
 
 (defun context-coloring-test-assert-message (expected buffer)
-  "Assert that BUFFER has message EXPECTED."
+  "Assert that message EXPECTED exists in BUFFER."
   (when (null (get-buffer buffer))
     (ert-fail
      (format
@@ -250,7 +260,7 @@ EXPECTED-FACE."
 
 (defun context-coloring-test-assert-face (level foreground &optional negate)
   "Assert that a face for LEVEL exists and that its `:foreground'
-is FOREGROUND."
+is FOREGROUND, or the inverse if NEGATE is non-nil."
   (let* ((face (context-coloring-level-face level))
          actual-foreground)
     (when (not (or negate
@@ -270,7 +280,8 @@ is FOREGROUND."
 
 (defun context-coloring-test-assert-not-face (&rest arguments)
   "Assert that LEVEL does not have a face with `:foreground'
-FOREGROUND."
+FOREGROUND.  Apply ARGUMENTS to
+`context-coloring-test-assert-face', see that function."
   (apply 'context-coloring-test-assert-face
          (append arguments '(t))))
 
@@ -299,8 +310,8 @@ FOREGROUND."
 (defun context-coloring-test-assert-theme-originally-set-p
     (settings &optional negate)
   "Assert that `context-coloring-theme-originally-set-p' returns
-`t' for a theme with SETTINGS (or the inverse if NEGATE is
-non-nil)."
+t for a theme with SETTINGS, or the inverse if NEGATE is
+non-nil."
   (let ((theme (context-coloring-test-get-next-theme)))
     (put theme 'theme-settings settings)
     (when (funcall (if negate 'identity 'not)
@@ -314,7 +325,9 @@ non-nil)."
 
 (defun context-coloring-test-assert-not-theme-originally-set-p (&rest arguments)
   "Assert that `context-coloring-theme-originally-set-p' does not
-return `t' for a theme with SETTINGS."
+return t for a theme with SETTINGS.  Apply ARGUMENTS to
+`context-coloring-test-assert-theme-originally-set-p', see that
+function."
   (apply 'context-coloring-test-assert-theme-originally-set-p
          (append arguments '(t))))
 
@@ -341,7 +354,8 @@ EXPECTED-LEVEL."
 
 (defun context-coloring-test-assert-theme-highest-level
     (theme expected-level &optional negate)
-  "Assert that THEME has the highest level EXPECTED-LEVEL."
+  "Assert that THEME has the highest level EXPECTED-LEVEL, or the
+inverse if NEGATE is non-nil."
   (let ((highest-level (context-coloring-theme-highest-level theme)))
     (when (funcall (if negate 'identity 'not) (eq highest-level expected-level))
       (ert-fail (format (concat "Expected theme with settings `%s' "
@@ -352,7 +366,10 @@ EXPECTED-LEVEL."
                         (if negate "did" (format "was %s" highest-level)))))))
 
 (defun context-coloring-test-assert-theme-not-highest-level (&rest arguments)
-  "Assert that THEME's highest level is not EXPECTED-LEVEL."
+  "Assert that THEME's highest level is not EXPECTED-LEVEL.
+Apply ARGUMENTS to
+`context-coloring-test-assert-theme-highest-level', see that
+function."
   (apply 'context-coloring-test-assert-theme-highest-level
          (append arguments '(t))))
 
@@ -377,9 +394,10 @@ EXPECTED-LEVEL."
   )
 
 (defmacro context-coloring-test-deftest-define-theme (name &rest body)
-  "Define a test with an automatically-generated theme symbol
-available as a free variable `theme'.  Side-effects from enabling
-themes are reversed after the test completes."
+  "Define a test with name NAME and an automatically-generated
+theme symbol available as a free variable `theme'.  Side-effects
+from enabling themes are reversed after BODY is executed and the
+test completes."
   (declare (indent defun))
   (let ((deftest-name (intern
                        (format "context-coloring-test-define-theme-%s" name))))
@@ -536,7 +554,8 @@ theme THEME is signaled."
   (context-coloring-test-assert-face 1 "#bbbbbb"))
 
 (defun context-coloring-test-assert-maximum-face (maximum &optional negate)
-  "Assert that `context-coloring-maximum-face' is MAXIMUM."
+  "Assert that `context-coloring-maximum-face' is MAXIMUM, or the
+inverse if NEGATE is non-nil."
   (when (funcall (if negate 'identity 'not)
                  (eq context-coloring-maximum-face maximum))
     (ert-fail (format (concat "Expected `context-coloring-maximum-face' "
@@ -548,7 +567,9 @@ theme THEME is signaled."
                         (format "was `%s'" context-coloring-maximum-face))))))
 
 (defun context-coloring-test-assert-not-maximum-face (&rest arguments)
-  "Assert that `context-coloring-maximum-face' is not MAXIMUM."
+  "Assert that `context-coloring-maximum-face' is not MAXIMUM.
+Apply ARGUMENTS to `context-coloring-test-assert-maximum-face',
+see that function."
   (apply 'context-coloring-test-assert-maximum-face
          (append arguments '(t))))
 
@@ -591,6 +612,7 @@ theme THEME is signaled."
   (context-coloring-test-assert-not-maximum-face 1))
 
 (defun context-coloring-test-js-function-scopes ()
+  "Test fixtures/functions-scopes.js."
   (context-coloring-test-assert-region-level 1 9 0)
   (context-coloring-test-assert-region-level 9 23 1)
   (context-coloring-test-assert-region-level 23 25 0)
@@ -608,6 +630,7 @@ theme THEME is signaled."
 (context-coloring-test-deftest-js2-mode function-scopes)
 
 (defun context-coloring-test-js-global ()
+  "Test fixtures/global.js."
   (context-coloring-test-assert-region-level 20 28 1)
   (context-coloring-test-assert-region-level 28 35 0)
   (context-coloring-test-assert-region-level 35 41 1))
@@ -616,6 +639,7 @@ theme THEME is signaled."
 (context-coloring-test-deftest-js2-mode global)
 
 (defun context-coloring-test-js-block-scopes ()
+  "Test fixtures/block-scopes.js."
   (context-coloring-test-assert-region-level 20 64 1)
    (setq context-coloring-js-block-scopes t)
    (context-coloring-colorize)
@@ -627,6 +651,7 @@ theme THEME is signaled."
 (context-coloring-test-deftest-js2-mode block-scopes)
 
 (defun context-coloring-test-js-catch ()
+  "Test fixtures/js-catch.js."
   (context-coloring-test-assert-region-level 20 27 1)
   (context-coloring-test-assert-region-level 27 51 2)
   (context-coloring-test-assert-region-level 51 52 1)
@@ -640,12 +665,14 @@ theme THEME is signaled."
 (context-coloring-test-deftest-js2-mode catch)
 
 (defun context-coloring-test-js-key-names ()
+  "Test fixtures/key-names.js."
   (context-coloring-test-assert-region-level 20 63 1))
 
 (context-coloring-test-deftest-js-mode key-names)
 (context-coloring-test-deftest-js2-mode key-names)
 
 (defun context-coloring-test-js-property-lookup ()
+  "Test fixtures/property-lookup.js."
   (context-coloring-test-assert-region-level 20 26 0)
   (context-coloring-test-assert-region-level 26 38 1)
   (context-coloring-test-assert-region-level 38 44 0)
@@ -657,12 +684,14 @@ theme THEME is signaled."
 (context-coloring-test-deftest-js2-mode property-lookup)
 
 (defun context-coloring-test-js-key-values ()
+  "Test fixtures/key-values.js."
   (context-coloring-test-assert-region-level 78 79 1))
 
 (context-coloring-test-deftest-js-mode key-values)
 (context-coloring-test-deftest-js2-mode key-values)
 
 (defun context-coloring-test-js-comments-and-strings ()
+  "Test fixtures/comments-and-strings.js."
   (context-coloring-test-assert-region-comment-delimiter 1 4)
   (context-coloring-test-assert-region-comment 4 8)
   (context-coloring-test-assert-region-comment-delimiter 9 12)

@@ -250,10 +250,10 @@ element."
         (setq i (+ i 3))))
     (context-coloring-maybe-colorize-comments-and-strings)))
 
-(defun context-coloring-parse-array (input)
-  "Parse a flat JSON array of numbers."
+(defun context-coloring-parse-array (array)
+  "Parse ARRAY as a flat JSON array of numbers."
   (vconcat
-   (mapcar 'string-to-number (split-string (substring input 1 -1) ","))))
+   (mapcar 'string-to-number (split-string (substring array 1 -1) ","))))
 
 (defvar-local context-coloring-scopifier-process nil
   "The single scopifier process that can be running.")
@@ -265,7 +265,7 @@ element."
     (setq context-coloring-scopifier-process nil)))
 
 (defun context-coloring-scopify-shell-command (command &optional callback)
-  "Invoke a scopifier with the current buffer's contents,
+  "Invoke a scopifier via COMMAND with the current buffer's contents,
 read the scopifier's response asynchronously and apply a parsed
 list of tokens to `context-coloring-apply-tokens'.
 
@@ -455,7 +455,7 @@ used.")
   "Map theme names to theme properties.")
 
 (defun context-coloring-theme-p (theme)
-  "Return `t' if THEME is defined, `nil' otherwise."
+  "Return t if THEME is defined, nil otherwise."
   (and (gethash theme context-coloring-theme-hash-table)))
 
 (defconst context-coloring-level-face-regexp
@@ -468,8 +468,8 @@ used.")
   `context-coloring-level-N-face' faces.")
 
 (defun context-coloring-theme-originally-set-p (theme)
-  "Return `t' if there is a `context-coloring-level-N-face'
-originally set for THEME, `nil' otherwise."
+  "Return t if there is a `context-coloring-level-N-face'
+originally set for THEME, nil otherwise."
   (let (originally-set)
     (cond
      ;; `setq' might return a non-nil value for the sake of this `cond'.
@@ -504,8 +504,8 @@ ORIGINALLY-SET is non-nil, it did, otherwise it didn't."
    context-coloring-originally-set-theme-hash-table))
 
 (defun context-coloring-warn-theme-originally-set (theme)
-  "Warn the user that the colors for a theme are already
-originally set."
+  "Warn the user that the colors for THEME are already originally
+set."
   (warn "Context coloring colors for theme `%s' are already defined" theme))
 
 (defun context-coloring-theme-highest-level (theme)

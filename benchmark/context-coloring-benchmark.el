@@ -17,7 +17,18 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Commentary:
+
+;; Benchmarks for context-coloring.
+
+;; `ert' instruments and benchmarks the package's functions, and the results are
+;; logged to `benchmark/logs'.
+
+;; To run, execute `make bench' from the project root.
+
 ;;; Code:
+
+(require 'js2-mode)
 
 (defconst context-coloring-benchmark-path
   (file-name-directory (or load-file-name buffer-file-name))
@@ -28,7 +39,7 @@
   (expand-file-name path context-coloring-benchmark-path))
 
 (defun context-coloring-benchmark-log-results (result-file fixture)
-  "Log benchmarking results for FIXTURE to RESULT-FILE."
+  "Log benchmarking results to RESULT-FILE for fixture FIXTURE."
   (elp-results)
   (let ((results-buffer (current-buffer)))
     (with-temp-buffer
@@ -60,8 +71,9 @@ exhausted, call STOP instead."
           (context-coloring-benchmark-next (cdr list) continue stop)))))))
 
 (defun context-coloring-benchmark-async (title setup teardown fixtures callback)
-  "Measure the performance of all FIXTURES, calling CALLBACK when
-all are done."
+  "Execute a benchmark titled TITLE with SETUP and TEARDOWN
+callbacks.  Measure the performance of all FIXTURES, calling
+CALLBACK when all are done."
   (funcall setup)
   (let ((result-file (context-coloring-benchmark-resolve-path
                       (format "./logs/results-%s-%s.log"
@@ -122,7 +134,6 @@ all are done."
 
 (defun context-coloring-benchmark-js2-mode-setup ()
   "Preparation logic for `js2-mode'."
-  (require 'js2-mode)
   (setq js2-mode-show-parse-errors nil)
   (setq js2-mode-show-strict-warnings nil)
   (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
