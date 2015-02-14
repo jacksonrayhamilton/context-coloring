@@ -354,7 +354,13 @@ buffer a returns a flat vector of start, end and level data.
 
 `:command' - Shell command to execute with the current buffer
 sent via stdin, and with a flat JSON array of start, end and
-level data returned via stdout."
+level data returned via stdout.
+
+`:setup' - Arbitrary code to set up this dispatch when
+`context-coloring-mode' is enabled.
+
+`:teardown' - Arbitrary code to tear down this dispatch when
+`context-coloring-mode' is disabled."
   (let ((modes (plist-get properties :modes))
         (colorizer (plist-get properties :colorizer))
         (scopifier (plist-get properties :scopifier))
@@ -379,7 +385,13 @@ level data returned via stdout."
 (context-coloring-define-dispatch
  'javascript-js2
  :modes '(js2-mode)
- :colorizer 'context-coloring-js2-colorize)
+ :colorizer 'context-coloring-js2-colorize
+ :setup
+ (lambda ()
+   (add-hook 'js2-post-parse-callbacks 'context-coloring-colorize nil t))
+ :teardown
+ (lambda ()
+   (remove-hook 'js2-post-parse-callbacks 'context-coloring-colorize t)))
 
 (defun context-coloring-dispatch (&optional callback)
   "Determine the optimal track for scopification / coloring of
@@ -804,10 +816,15 @@ Supported modes: `js-mode', `js3-mode'"
         (context-coloring-kill-scopifier)
         (when context-coloring-colorize-idle-timer
           (cancel-timer context-coloring-colorize-idle-timer))
-        (remove-hook
-         'js2-post-parse-callbacks 'context-coloring-colorize t)
-        (remove-hook
-         'after-change-functions 'context-coloring-change-function t)
+        (let ((dispatch (gethash major-mode context-coloring-mode-hash-table)))
+          (when dispatch
+            (let ((command (plist-get dispatch :command))
+                  (teardown (plist-get dispatch :teardown)))
+              (when command
+                (remove-hook
+                 'after-change-functions 'context-coloring-change-function t))
+              (when teardown
+                (funcall teardown)))))
         (font-lock-mode)
         (jit-lock-mode t))
 
@@ -818,21 +835,24 @@ Supported modes: `js-mode', `js3-mode'"
     (font-lock-mode 0)
     (jit-lock-mode nil)
 
-    ;; Colorize once initially.
-    (context-coloring-colorize)
+    (let ((dispatch (gethash major-mode context-coloring-mode-hash-table)))
+      (when dispatch
+        (let ((command (plist-get dispatch :command))
+              (setup (plist-get dispatch :setup)))
+          (when command
+            ;; Shell commands recolor on change, idly.
+            (add-hook
+             'after-change-functions 'context-coloring-change-function nil t)
+            (setq context-coloring-colorize-idle-timer
+                  (run-with-idle-timer
+                   context-coloring-delay
+                   t
+                   'context-coloring-maybe-colorize)))
+          (when setup
+            (funcall setup)))))
 
-    (cond
-     ((equal major-mode 'js2-mode)
-      ;; Only recolor on reparse.
-      (add-hook 'js2-post-parse-callbacks 'context-coloring-colorize nil t))
-     (t
-      ;; Only recolor on change, idly.
-      (add-hook 'after-change-functions 'context-coloring-change-function nil t)
-      (setq context-coloring-colorize-idle-timer
-            (run-with-idle-timer
-             context-coloring-delay
-             t
-             'context-coloring-maybe-colorize))))))
+    ;; Colorize once initially.
+    (context-coloring-colorize)))
 
 (provide 'context-coloring)
 
