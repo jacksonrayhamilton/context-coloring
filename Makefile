@@ -1,7 +1,7 @@
 EMACS = emacs
 DEPENDENCIES = libraries/ert-async.el libraries/js2-mode.el
 
-all: clean compile test
+all: uncompile compile test
 
 bench: ${DEPENDENCIES}
 	${EMACS} -Q \
@@ -17,8 +17,11 @@ compile: ${DEPENDENCIES}
 	-L libraries \
 	-f batch-byte-compile *.el libraries/*.el
 
-clean:
-	rm -f *.elc libraries/*.elc ${DEPENDENCIES}
+uncompile:
+	rm -f *.elc libraries/*.elc
+
+clean: uncompile
+	rm -f ${DEPENDENCIES}
 
 ${DEPENDENCIES}:
 	${EMACS} -Q -batch \
@@ -34,4 +37,4 @@ test: ${DEPENDENCIES}
 	-l test/context-coloring-test.el \
 	-f ert-run-tests-batch-and-exit
 
-.PHONY: all bench compile clean test
+.PHONY: all bench compile uncompile clean test
