@@ -65,8 +65,8 @@
 ;;; Faces
 
 (defun context-coloring-defface (level tty light dark)
-  "Dynamically define a face for LEVEL with colors for TTY, LIGHT
-and DARK backgrounds."
+  "Define a face for LEVEL with colors for TTY, LIGHT and DARK
+backgrounds."
   (let ((face (intern (format "context-coloring-level-%s-face" level)))
         (doc (format "Context coloring face, level %s." level)))
     (custom-declare-face
@@ -91,11 +91,11 @@ and DARK backgrounds."
 (context-coloring-defface-default 7)
 
 (defvar context-coloring-maximum-face nil
-  "The highest face available for coloring.")
+  "Index of the highest face available for coloring.")
 
 (defvar context-coloring-original-maximum-face nil
-  "Value for `context-coloring-maximum-face' to fall back to
-  when all themes have been disabled.")
+  "Fallback value for `context-coloring-maximum-face' when all
+  themes have been disabled.")
 
 (setq context-coloring-maximum-face 7)
 
