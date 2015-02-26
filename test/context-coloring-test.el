@@ -28,7 +28,9 @@
 
 ;;; Code:
 
+(require 'context-coloring)
 (require 'ert-async)
+(require 'js2-mode)
 
 
 ;;; Test running utilities
@@ -50,7 +52,6 @@
 (defun context-coloring-test-cleanup ()
   "Cleanup after all tests."
   (setq context-coloring-comments-and-strings t)
-  (setq context-coloring-after-colorize-hook nil)
   (setq context-coloring-js-block-scopes nil))
 
 (defmacro context-coloring-test-with-fixture (fixture &rest body)
@@ -68,16 +69,15 @@ buffer."
   "Create a temporary buffer, and evaluate CALLBACK there.  A
 teardown callback is passed to CALLBACK for it to invoke when it
 is done."
-  (let ((temp-buffer (make-symbol "temp-buffer")))
-    (let ((previous-buffer (current-buffer))
-          (temp-buffer (generate-new-buffer " *temp*")))
-      (set-buffer temp-buffer)
-      (funcall
-       callback
-       (lambda ()
-         (and (buffer-name temp-buffer)
-              (kill-buffer temp-buffer))
-         (set-buffer previous-buffer))))))
+  (let ((previous-buffer (current-buffer))
+        (temp-buffer (generate-new-buffer " *temp*")))
+    (set-buffer temp-buffer)
+    (funcall
+     callback
+     (lambda ()
+       (and (buffer-name temp-buffer)
+            (kill-buffer temp-buffer))
+       (set-buffer previous-buffer)))))
 
 (defun context-coloring-test-with-fixture-async
     (fixture callback &optional setup)
@@ -163,8 +163,7 @@ Provides the free variables `i', `length', `point', `face' and
          (length (- end start)))
      (while (< i length)
        (let* ((point (+ i start))
-              (face (get-text-property point 'face))
-              actual-level)
+              (face (get-text-property point 'face)))
          ,@body)
        (setq i (+ i 1)))))
 
@@ -172,23 +171,24 @@ Provides the free variables `i', `length', `point', `face' and
   "Assert that all points in the range [START, END) are of level
 LEVEL."
   (context-coloring-test-assert-region
-   (when (not (when face
-                (let* ((face-string (symbol-name face))
-                       (matches (string-match
-                                 context-coloring-level-face-regexp
-                                 face-string)))
-                  (when matches
-                    (setq actual-level (string-to-number
-                                        (substring face-string
-                                                   (match-beginning 1)
-                                                   (match-end 1))))
-                    (= level actual-level)))))
-     (ert-fail (format (concat "Expected level in region [%s, %s), "
-                               "which is \"%s\", to be %s; "
-                               "but at point %s, it was %s")
-                       start end
-                       (buffer-substring-no-properties start end) level
-                       point actual-level)))))
+   (let (actual-level)
+     (when (not (when face
+                  (let* ((face-string (symbol-name face))
+                         (matches (string-match
+                                   context-coloring-level-face-regexp
+                                   face-string)))
+                    (when matches
+                      (setq actual-level (string-to-number
+                                          (substring face-string
+                                                     (match-beginning 1)
+                                                     (match-end 1))))
+                      (= level actual-level)))))
+       (ert-fail (format (concat "Expected level in region [%s, %s), "
+                                 "which is \"%s\", to be %s; "
+                                 "but at point %s, it was %s")
+                         start end
+                         (buffer-substring-no-properties start end) level
+                         point actual-level))))))
 
 (defun context-coloring-test-assert-region-face (start end expected-face)
   "Assert that all points in the range [START, END) have the face

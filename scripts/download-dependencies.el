@@ -22,31 +22,33 @@
 
 ;;; Code:
 
-(defconst directory (file-name-directory (or load-file-name buffer-file-name))
+(defconst download-dependencies-directory
+  (file-name-directory (or load-file-name buffer-file-name))
   "This file's directory.")
 
-(defun resolve-path (path)
+(defun download-dependencies-resolve-path (path)
   "Resolve a path relative to this file's directory."
-  (expand-file-name path directory))
+  (expand-file-name path download-dependencies-directory))
 
-(defun strip-headers ()
+(defun download-dependencies-strip-headers ()
   "Remove the http headers included in the output of
 `url-retrieve-synchronously'."
   (goto-char 1)
-  (kill-paragraph 1) ; The headers are 1 paragraph. I hope.
+  (kill-paragraph 1) ; The headers are 1 paragraph.  I hope.
   (kill-line)        ; A line separates the headers from the file's content.
   )
 
 ;; Download any missing dependencies.
 (let ((files '("https://raw.githubusercontent.com/mooz/js2-mode/master/js2-mode.el"
                "https://raw.githubusercontent.com/rejeep/ert-async.el/master/ert-async.el")))
-  (make-directory (resolve-path "../libraries") t)
+  (make-directory (download-dependencies-resolve-path "../libraries") t)
   (dolist (file files)
     (let* ((basename (file-name-nondirectory file))
-           (destination (resolve-path (concat "../libraries/" basename))))
+           (destination (download-dependencies-resolve-path
+                         (concat "../libraries/" basename))))
       (when (null (file-exists-p destination))
         (with-current-buffer (url-retrieve-synchronously file)
-          (strip-headers)
+          (download-dependencies-strip-headers)
           (write-file destination))))))
 
 ;;; download-dependencies.el ends here

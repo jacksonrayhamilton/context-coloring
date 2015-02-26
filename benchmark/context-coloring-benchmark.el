@@ -28,7 +28,9 @@
 
 ;;; Code:
 
+(require 'context-coloring)
 (require 'js2-mode)
+
 
 (defconst context-coloring-benchmark-path
   (file-name-directory (or load-file-name buffer-file-name))
