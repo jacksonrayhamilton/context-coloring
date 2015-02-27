@@ -124,13 +124,13 @@ more info on dispatch strategies.)
 A "scopifier" is a CLI program that reads a buffer's contents from stdin and
 writes a JSON array of numbers to stdout. Every three numbers in the array
 represent a range of color. For instance, if I fed the following string of
-JavaScript code to a scopifier,
+JavaScript code to a scopifier:
 
 ```js
 var a = function () {};
 ```
 
-then the scopifier would produce the following array:
+Then the scopifier would produce the following array:
 
 ```js
 [1,24,0,9,23,1]
@@ -175,7 +175,7 @@ required.
 
 [linter]: http://jshint.com/about/
 [flycheck]: http://www.flycheck.org/
-[point]: http://www.gnu.org/software/emacs/manual/html_node/elisp/Point.html
 [js2-mode]: https://github.com/mooz/js2-mode
 [node]: http://nodejs.org/download/
 [scopifier]: https://github.com/jacksonrayhamilton/scopifier
+[point]: http://www.gnu.org/software/emacs/manual/html_node/elisp/Point.html
