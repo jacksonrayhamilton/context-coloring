@@ -25,7 +25,8 @@ clean: uncompile
 
 ${DEPENDENCIES}:
 	${EMACS} -Q -batch \
-	-l scripts/download-dependencies.el
+	-l scripts/download-dependencies.el \
+	-f download-dependencies
 
 test: ${DEPENDENCIES}
 	${EMACS} -Q -batch \

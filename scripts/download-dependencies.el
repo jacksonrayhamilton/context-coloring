@@ -17,8 +17,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;; This script downloads some dependencies for development so they don't need to
-;; be version-controlled.
+;; Download dependencies for development.
+
+;; Dependencies don't need to be version-controlled. They are also
+;; bleeding-edge, which is good because that is what most MELPA users are using.
 
 ;;; Code:
 
@@ -35,20 +37,25 @@
 `url-retrieve-synchronously'."
   (goto-char 1)
   (kill-paragraph 1) ; The headers are 1 paragraph.  I hope.
-  (kill-line)        ; A line separates the headers from the file's content.
-  )
+  (kill-line))       ; A line separates the headers from the file's content.
 
-;; Download any missing dependencies.
-(let ((files '("https://raw.githubusercontent.com/mooz/js2-mode/master/js2-mode.el"
-               "https://raw.githubusercontent.com/rejeep/ert-async.el/master/ert-async.el")))
-  (make-directory (download-dependencies-resolve-path "../libraries") t)
-  (dolist (file files)
-    (let* ((basename (file-name-nondirectory file))
-           (destination (download-dependencies-resolve-path
-                         (concat "../libraries/" basename))))
-      (when (null (file-exists-p destination))
-        (with-current-buffer (url-retrieve-synchronously file)
-          (download-dependencies-strip-headers)
-          (write-file destination))))))
+(defun download-dependencies-get-dependencies ()
+  "Read the `dependencies' file as a list of URLs."
+  (with-temp-buffer
+    (insert-file-contents (download-dependencies-resolve-path "./dependencies"))
+    (split-string (buffer-substring-no-properties (point-min) (point-max)))))
+
+(defun download-dependencies ()
+  "Download dependencies for development."
+  (let ((files (download-dependencies-get-dependencies)))
+    (make-directory (download-dependencies-resolve-path "../libraries") t)
+    (dolist (file files)
+      (let* ((basename (file-name-nondirectory file))
+             (destination (download-dependencies-resolve-path
+                           (concat "../libraries/" basename))))
+        (unless (file-exists-p destination)
+          (with-current-buffer (url-retrieve-synchronously file)
+            (download-dependencies-strip-headers)
+            (write-file destination)))))))
 
 ;;; download-dependencies.el ends here
