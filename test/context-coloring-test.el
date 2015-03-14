@@ -52,6 +52,7 @@
 (defun context-coloring-test-cleanup ()
   "Cleanup after all tests."
   (setq context-coloring-comments-and-strings t)
+  (setq context-coloring-syntactic-comments nil)
   (setq context-coloring-js-block-scopes nil))
 
 (defmacro context-coloring-test-with-fixture (fixture &rest body)
@@ -716,6 +717,32 @@ see that function."
    (setq context-coloring-comments-and-strings t)
    (context-coloring-colorize)
    (context-coloring-test-js-comments-and-strings)))
+
+(defun context-coloring-test-js-syntactic-comments ()
+  "Test fixtures/comments-and-strings.js."
+  (context-coloring-test-assert-region-comment-delimiter 1 4)
+  (context-coloring-test-assert-region-comment 4 8)
+  (context-coloring-test-assert-region-comment-delimiter 9 12)
+  (context-coloring-test-assert-region-comment 12 19)
+  (context-coloring-test-assert-region-level 20 33 0))
+
+(ert-deftest-async context-coloring-test-js-mode-syntactic-comments (done)
+  (context-coloring-test-js-mode
+   "./fixtures/comments-and-strings.js"
+   (lambda (teardown)
+     (unwind-protect
+         (context-coloring-test-js-syntactic-comments)
+       (funcall teardown))
+     (funcall done))
+   (lambda ()
+     (setq context-coloring-syntactic-comments t))))
+
+(ert-deftest context-coloring-test-js2-mode-syntactic-comments ()
+  (context-coloring-test-js2-mode
+   "./fixtures/comments-and-strings.js"
+   (setq context-coloring-syntactic-comments t)
+   (context-coloring-colorize)
+   (context-coloring-test-js-syntactic-comments)))
 
 (provide 'context-coloring-test)
 

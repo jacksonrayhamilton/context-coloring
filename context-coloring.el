@@ -136,12 +136,27 @@ the END point (exclusive) with the face corresponding to LEVEL."
   "If non-nil, also color comments and strings using `font-lock'."
   :group 'context-coloring)
 
+(defcustom context-coloring-syntactic-comments nil
+  "If non-nil, also color comments using `font-lock'."
+  :group 'context-coloring)
+
+(defun context-coloring-font-lock-syntactic-comment-function (state)
+  "Tell `font-lock' to color a comment but not a string."
+  (if (nth 3 state) nil font-lock-comment-face))
+
 (defsubst context-coloring-maybe-colorize-comments-and-strings ()
   "Color the current buffer's comments and strings if
 `context-coloring-comments-and-strings' is non-nil."
-  (when context-coloring-comments-and-strings
-    (save-excursion
-      (font-lock-fontify-syntactically-region (point-min) (point-max)))))
+  (when (or context-coloring-comments-and-strings
+            context-coloring-syntactic-comments)
+    (let ((old-function font-lock-syntactic-face-function))
+      (when context-coloring-syntactic-comments
+        (setq font-lock-syntactic-face-function
+              'context-coloring-font-lock-syntactic-comment-function))
+      (save-excursion
+        (font-lock-fontify-syntactically-region (point-min) (point-max)))
+      (when context-coloring-syntactic-comments
+        (setq font-lock-syntactic-face-function old-function)))))
 
 
 ;;; js2-mode colorization
@@ -834,6 +849,9 @@ Supported modes: `js-mode', `js3-mode'"
     ;; Font lock is incompatible with this mode; the converse is also true.
     (font-lock-mode 0)
     (jit-lock-mode nil)
+
+    ;; Safely change the valye of this function as necessary.
+    (make-local-variable 'font-lock-syntactic-face-function)
 
     (let ((dispatch (gethash major-mode context-coloring-mode-hash-table)))
       (when dispatch
