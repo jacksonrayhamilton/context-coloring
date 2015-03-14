@@ -147,7 +147,7 @@ the END point (exclusive) with the face corresponding to LEVEL."
   :group 'context-coloring)
 
 (defcustom context-coloring-syntactic-strings t
-  "If non-nil, also color comments using `font-lock'."
+  "If non-nil, also color strings using `font-lock'."
   :group 'context-coloring)
 
 (defun context-coloring-font-lock-syntactic-comment-function (state)

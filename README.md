@@ -89,6 +89,20 @@ Add the following to your `~/.emacs` file:
 
 ## Customizing
 
+### Options
+
+- `context-coloring-syntactic-comments` (default: `t`): If non-nil, also color
+  comments using `font-lock`.
+- `context-coloring-syntactic-strings` (default: `t`): If non-nil, also color
+  strings using `font-lock`.
+- `context-coloring-delay` (default: `0.25`; supported modes: `js-mode`,
+  `js3-mode`): Delay between a buffer update and colorization.
+- `context-coloring-js-block-scopes` (default: `nil`; supported modes:
+  `js2-mode`): If non-nil, also color block scopes in the scope hierarchy in
+  JavaScript.
+
+### Color Schemes
+
 Color schemes for custom themes are automatically applied when those themes are
 active. Built-in theme support is available for: `ample`, `anti-zenburn`,
 `grandshell`, `leuven`, `monokai`, `solarized`, `spacegray`, `tango` and
