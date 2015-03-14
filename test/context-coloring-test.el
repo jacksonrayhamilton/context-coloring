@@ -53,6 +53,7 @@
   "Cleanup after all tests."
   (setq context-coloring-comments-and-strings t)
   (setq context-coloring-syntactic-comments nil)
+  (setq context-coloring-syntactic-strings nil)
   (setq context-coloring-js-block-scopes nil))
 
 (defmacro context-coloring-test-with-fixture (fixture &rest body)
@@ -701,28 +702,30 @@ see that function."
 (context-coloring-test-deftest-js2-mode key-values)
 
 (defun context-coloring-test-js-comments-and-strings ()
-  "Test fixtures/comments-and-strings.js."
-  (context-coloring-test-assert-region-comment-delimiter 1 4)
-  (context-coloring-test-assert-region-comment 4 8)
+  "Test comments and strings."
+  (context-coloring-test-assert-region-level 1 8 0)
   (context-coloring-test-assert-region-comment-delimiter 9 12)
-  (context-coloring-test-assert-region-comment 12 19)
-  (context-coloring-test-assert-region-string 20 32)
-  (context-coloring-test-assert-region-level 32 33 0))
+  (context-coloring-test-assert-region-comment 12 16)
+  (context-coloring-test-assert-region-comment-delimiter 17 20)
+  (context-coloring-test-assert-region-comment 20 27)
+  (context-coloring-test-assert-region-string 28 40)
+  (context-coloring-test-assert-region-level 40 41 0))
 
 (defun context-coloring-test-js-comments-and-strings-setup ()
-  "Setup comments-and-strings."
+  "Setup comments and strings."
   (setq context-coloring-comments-and-strings t))
 
 (context-coloring-test-deftest-js-mode comments-and-strings)
 (context-coloring-test-deftest-js2-mode comments-and-strings)
 
 (defun context-coloring-test-js-syntactic-comments ()
-  "Test fixtures/comments-and-strings.js."
-  (context-coloring-test-assert-region-comment-delimiter 1 4)
-  (context-coloring-test-assert-region-comment 4 8)
+  "Test syntactic comments."
+  (context-coloring-test-assert-region-level 1 8 0)
   (context-coloring-test-assert-region-comment-delimiter 9 12)
-  (context-coloring-test-assert-region-comment 12 19)
-  (context-coloring-test-assert-region-level 20 33 0))
+  (context-coloring-test-assert-region-comment 12 16)
+  (context-coloring-test-assert-region-comment-delimiter 17 20)
+  (context-coloring-test-assert-region-comment 20 27)
+  (context-coloring-test-assert-region-level 28 41 0))
 
 (defun context-coloring-test-js-syntactic-comments-setup ()
   "Setup syntactic comments."
@@ -731,6 +734,21 @@ see that function."
 (context-coloring-test-deftest-js-mode syntactic-comments
   :fixture-name comments-and-strings)
 (context-coloring-test-deftest-js2-mode syntactic-comments
+  :fixture-name comments-and-strings)
+
+(defun context-coloring-test-js-syntactic-strings ()
+  "Test syntactic strings."
+  (context-coloring-test-assert-region-level 1 28 0)
+  (context-coloring-test-assert-region-string 28 40)
+  (context-coloring-test-assert-region-level 40 41 0))
+
+(defun context-coloring-test-js-syntactic-strings-setup ()
+  "Setup syntactic strings."
+  (setq context-coloring-syntactic-strings t))
+
+(context-coloring-test-deftest-js-mode syntactic-strings
+  :fixture-name comments-and-strings)
+(context-coloring-test-deftest-js2-mode syntactic-strings
   :fixture-name comments-and-strings)
 
 (provide 'context-coloring-test)
