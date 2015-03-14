@@ -701,7 +701,7 @@ see that function."
 (context-coloring-test-deftest-js-mode key-values)
 (context-coloring-test-deftest-js2-mode key-values)
 
-(defun context-coloring-test-js-comments-and-strings ()
+(defun context-coloring-test-js-syntactic-comments-and-strings ()
   "Test comments and strings."
   (context-coloring-test-assert-region-level 1 8 0)
   (context-coloring-test-assert-region-comment-delimiter 9 12)
@@ -711,8 +711,21 @@ see that function."
   (context-coloring-test-assert-region-string 28 40)
   (context-coloring-test-assert-region-level 40 41 0))
 
+(defun context-coloring-test-js-syntactic-comments-and-strings-setup ()
+  (setq context-coloring-syntactic-comments t)
+  (setq context-coloring-syntactic-strings t))
+
+(context-coloring-test-deftest-js-mode syntactic-comments-and-strings
+  :fixture-name comments-and-strings)
+(context-coloring-test-deftest-js2-mode syntactic-comments-and-strings
+  :fixture-name comments-and-strings)
+
+(defalias 'context-coloring-test-js-comments-and-strings
+  'context-coloring-test-js-syntactic-comments-and-strings
+  "Test comments and strings.  Deprecated.")
+
 (defun context-coloring-test-js-comments-and-strings-setup ()
-  "Setup comments and strings."
+  "Setup comments and strings.  Deprecated."
   (setq context-coloring-comments-and-strings t))
 
 (context-coloring-test-deftest-js-mode comments-and-strings)

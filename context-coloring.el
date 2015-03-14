@@ -132,15 +132,21 @@ the END point (exclusive) with the face corresponding to LEVEL."
    end
    `(face ,(context-coloring-bounded-level-face level))))
 
-(defcustom context-coloring-comments-and-strings t
+(defcustom context-coloring-comments-and-strings nil
   "If non-nil, also color comments and strings using `font-lock'."
   :group 'context-coloring)
 
-(defcustom context-coloring-syntactic-comments nil
+(make-obsolete-variable
+ 'context-coloring-comments-and-strings
+ "use `context-coloring-syntactic-comments' and
+ `context-coloring-syntactic-strings' instead."
+ "6.1.0")
+
+(defcustom context-coloring-syntactic-comments t
   "If non-nil, also color comments using `font-lock'."
   :group 'context-coloring)
 
-(defcustom context-coloring-syntactic-strings nil
+(defcustom context-coloring-syntactic-strings t
   "If non-nil, also color comments using `font-lock'."
   :group 'context-coloring)
 
