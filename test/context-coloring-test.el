@@ -54,7 +54,8 @@
   (setq context-coloring-comments-and-strings t)
   (setq context-coloring-syntactic-comments nil)
   (setq context-coloring-syntactic-strings nil)
-  (setq context-coloring-js-block-scopes nil))
+  (setq context-coloring-js-block-scopes nil)
+  (setq context-coloring-check-scopifier-version-hook nil))
 
 (defmacro context-coloring-test-with-fixture (fixture &rest body)
   "With the relative FIXTURE, evaluate BODY in a temporary
@@ -306,6 +307,38 @@ FOREGROUND.  Apply ARGUMENTS to
    (context-coloring-test-assert-message
     "Context coloring is not available for this major mode"
     "*Messages*")))
+
+(define-derived-mode
+  context-coloring-test-unsupported-version-mode
+  fundamental-mode
+  "Testing"
+  "Prevent `context-coloring-test-unsupported-version' from
+  having any unintentional side-effects on mode support.")
+
+(ert-deftest-async context-coloring-test-unsupported-version (done)
+  (context-coloring-define-dispatch
+   'outta-date
+   :modes '(context-coloring-test-unsupported-version-mode)
+   :executable "node"
+   :command "node test/binaries/outta-date"
+   :version "v2.1.3")
+  (context-coloring-test-with-fixture-async
+   "./fixtures/function-scopes.js"
+   (lambda (teardown)
+     (context-coloring-test-unsupported-version-mode)
+     (add-hook
+      'context-coloring-check-scopifier-version-hook
+      (lambda ()
+        (unwind-protect
+            (progn
+              ;; Normally the executable would be something like "outta-date"
+              ;; rather than "node".
+              (context-coloring-test-assert-message
+               "Update to the minimum version of \"node\" (v2.1.3)"
+               "*Messages*"))
+          (funcall teardown))
+        (funcall done)))
+     (context-coloring-mode))))
 
 (defvar context-coloring-test-theme-index 0
   "Unique index for unique theme names.")
