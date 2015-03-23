@@ -484,9 +484,7 @@ elisp tracks, and asynchronously for shell command tracks."
 
 Invoke CALLBACK when complete; see `context-coloring-dispatch'."
   (interactive)
-  (context-coloring-dispatch
-   (lambda ()
-     (when callback (funcall callback)))))
+  (context-coloring-dispatch callback))
 
 (defvar-local context-coloring-changed nil
   "Indication that the buffer has changed recently, which implies
@@ -515,7 +513,8 @@ used.")
 produces (1 0 0), \"19700101\" produces (19700101), etc."
   (let (version)
     (while (string-match "[0-9]+" string)
-      (setq version (append version (list (string-to-number (match-string 0 string)))))
+      (setq version (append version
+                            (list (string-to-number (match-string 0 string)))))
       (setq string (substring string (match-end 0))))
     version))
 
@@ -988,7 +987,7 @@ Supported modes: `js-mode', `js3-mode'"
               (when colorize-initially-p
                 (context-coloring-colorize))))
         (when (null dispatch)
-          (message "%s" "Context coloring is not available for this major mode"))))))
+          (message "Context coloring is not available for this major mode"))))))
 
 (provide 'context-coloring)
 

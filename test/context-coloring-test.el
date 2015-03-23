@@ -137,7 +137,8 @@ in the typical format."
         (function-name (intern-soft
                         (format "context-coloring-test-js-%s" name)))
         (setup-function-name (intern-soft
-                              (format "context-coloring-test-js-%s-setup" name))))
+                              (format
+                               "context-coloring-test-js-%s-setup" name))))
     `(ert-deftest-async ,test-name (done)
                         (context-coloring-test-js-mode
                          ,fixture
@@ -157,7 +158,8 @@ format."
         (function-name (intern-soft
                         (format "context-coloring-test-js-%s" name)))
         (setup-function-name (intern-soft
-                              (format "context-coloring-test-js-%s-setup" name))))
+                              (format
+                               "context-coloring-test-js-%s-setup" name))))
     `(ert-deftest ,test-name ()
        (context-coloring-test-js2-mode
         ,fixture
@@ -288,7 +290,8 @@ is FOREGROUND, or the inverse if NEGATE is non-nil."
                                 "but it %s.")
                         level
                         (if negate "not " "") foreground
-                        (if negate "did" (format "was `%s'" actual-foreground)))))))
+                        (if negate
+                            "did" (format "was `%s'" actual-foreground)))))))
 
 (defun context-coloring-test-assert-not-face (&rest arguments)
   "Assert that LEVEL does not have a face with `:foreground'
