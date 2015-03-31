@@ -303,6 +303,12 @@ FOREGROUND.  Apply ARGUMENTS to
 
 ;;; The tests
 
+(ert-deftest context-coloring-test-check-version ()
+  (when (not (context-coloring-check-version "2.1.3" "3.0.1"))
+    (ert-fail "Expected version 3.0.1 to satisfy 2.1.3, but it didn't."))
+  (when (context-coloring-check-version "3.0.1" "2.1.3")
+    (ert-fail "Expected version 2.1.3 not to satisfy 3.0.1, but it did.")))
+
 (ert-deftest context-coloring-test-unsupported-mode ()
   (context-coloring-test-with-fixture
    "./fixtures/function-scopes.js"
@@ -342,6 +348,35 @@ FOREGROUND.  Apply ARGUMENTS to
           (funcall teardown))
         (funcall done)))
      (context-coloring-mode))))
+
+(define-derived-mode
+  context-coloring-test-disable-mode-mode
+  fundamental-mode
+  "Testing"
+  "Prevent `context-coloring-test-disable-mode' from having any
+  unintentional side-effects on mode support.")
+
+(ert-deftest-async context-coloring-test-disable-mode (done)
+  (let (torn-down)
+    (context-coloring-define-dispatch
+     'disable-mode
+     :modes '(context-coloring-test-disable-mode-mode)
+     :executable "node"
+     :command "node test/binaries/noop"
+     :teardown (lambda ()
+                 (setq torn-down t)))
+    (context-coloring-test-with-fixture-async
+     "./fixtures/function-scopes.js"
+     (lambda (teardown)
+       (unwind-protect
+           (progn
+             (context-coloring-test-disable-mode-mode)
+             (context-coloring-mode)
+             (context-coloring-mode -1)
+             (when (not torn-down)
+               (ert-fail "Expected teardown function to have been called, but it wasn't.")))
+         (funcall teardown))
+       (funcall done)))))
 
 (defvar context-coloring-test-theme-index 0
   "Unique index for unique theme names.")
