@@ -375,15 +375,6 @@ Invoke CALLBACK when complete."
 (defvar context-coloring-mode-hash-table (make-hash-table :test 'eq)
   "Map major mode names to dispatch property lists.")
 
-(defun context-coloring-select-dispatch (mode dispatch)
-  "Use DISPATCH for MODE."
-  (puthash
-   mode
-   (gethash
-    dispatch
-    context-coloring-dispatch-hash-table)
-   context-coloring-mode-hash-table))
-
 (defun context-coloring-define-dispatch (symbol &rest properties)
   "Define a new dispatch named SYMBOL with PROPERTIES.
 
