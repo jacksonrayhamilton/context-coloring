@@ -1,4 +1,4 @@
-# Context Coloring [![Build Status](https://travis-ci.org/jacksonrayhamilton/context-coloring.png?branch=develop)](https://travis-ci.org/jacksonrayhamilton/context-coloring)
+# Context Coloring [![Build Status](https://travis-ci.org/jacksonrayhamilton/context-coloring.png?branch=develop)](https://travis-ci.org/jacksonrayhamilton/context-coloring) [![Coverage Status](https://coveralls.io/repos/jacksonrayhamilton/context-coloring/badge.svg)](https://coveralls.io/r/jacksonrayhamilton/context-coloring)
 
 <p align="center">
   <img alt="Screenshot of JavaScript code highlighted by context." src="screenshot.png" title="Screenshot">
