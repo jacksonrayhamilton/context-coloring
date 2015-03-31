@@ -470,12 +470,18 @@ elisp tracks, and asynchronously for shell command tracks."
 
 ;;; Colorization
 
+(defvar context-coloring-colorize-hook nil
+  "Hooks to run after coloring a buffer.")
+
 (defun context-coloring-colorize (&optional callback)
   "Color the current buffer by function context.
 
 Invoke CALLBACK when complete; see `context-coloring-dispatch'."
   (interactive)
-  (context-coloring-dispatch callback))
+  (context-coloring-dispatch
+   (lambda ()
+     (when callback (funcall callback))
+     (run-hooks 'context-coloring-colorize-hook))))
 
 (defvar-local context-coloring-changed nil
   "Indication that the buffer has changed recently, which implies

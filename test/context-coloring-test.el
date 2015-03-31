@@ -55,6 +55,7 @@
   (setq context-coloring-syntactic-comments nil)
   (setq context-coloring-syntactic-strings nil)
   (setq context-coloring-js-block-scopes nil)
+  (setq context-coloring-colorize-hook nil)
   (setq context-coloring-check-scopifier-version-hook nil))
 
 (defmacro context-coloring-test-with-fixture (fixture &rest body)
@@ -302,6 +303,20 @@ FOREGROUND.  Apply ARGUMENTS to
 
 
 ;;; The tests
+
+(ert-deftest-async context-coloring-test-async-mode-startup (done)
+  (context-coloring-test-with-fixture-async
+   "./fixtures/function-scopes.js"
+   (lambda (teardown)
+     (js-mode)
+     (add-hook
+      'context-coloring-colorize-hook
+      (lambda ()
+        ;; If this runs we are implicitly successful; this test only confirms
+        ;; that colorization occurs on mode startup.
+        (funcall teardown)
+        (funcall done)))
+     (context-coloring-mode))))
 
 (ert-deftest context-coloring-test-check-version ()
   (when (not (context-coloring-check-version "2.1.3" "3.0.1"))
