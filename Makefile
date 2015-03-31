@@ -30,7 +30,7 @@ test: ${DEPENDENCIES}
 	-L . \
 	-l ert \
 	-l ert-async \
-	-l context-coloring \
+	-l test/test-helper.el \
 	-l test/context-coloring-test.el \
 	-f ert-run-tests-batch-and-exit
 
