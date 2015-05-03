@@ -89,12 +89,12 @@ backgrounds."
   (context-coloring-defface level nil "#3f3f3f" "#cdcdcd"))
 
 (context-coloring-defface 0 nil       "#000000" "#ffffff")
-(context-coloring-defface 1 "yellow"  "#007f80" "#ffff80")
-(context-coloring-defface 2 "green"   "#001580" "#cdfacd")
-(context-coloring-defface 3 "cyan"    "#550080" "#d8d8ff")
-(context-coloring-defface 4 "blue"    "#802b00" "#e7c7ff")
-(context-coloring-defface 5 "magenta" "#6a8000" "#ffcdcd")
-(context-coloring-defface 6 "red"     "#008000" "#ffe390")
+(context-coloring-defface 1 "yellow"  "#008b8b" "#00ffff")
+(context-coloring-defface 2 "green"   "#0000ff" "#87cefa")
+(context-coloring-defface 3 "cyan"    "#483d8b" "#b0c4de")
+(context-coloring-defface 4 "blue"    "#a020f0" "#eedd82")
+(context-coloring-defface 5 "magenta" "#a0522d" "#98fb98")
+(context-coloring-defface 6 "red"     "#228b22" "#7fffd4")
 (context-coloring-defface-neutral 7)
 
 (defvar context-coloring-maximum-face nil
