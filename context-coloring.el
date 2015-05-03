@@ -4,7 +4,7 @@
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; URL: https://github.com/jacksonrayhamilton/context-coloring
-;; Keywords: context coloring syntax highlighting
+;; Keywords: convenience faces tools
 ;; Version: 6.2.0
 ;; Package-Requires: ((emacs "24") (js2-mode "20150126"))
 
