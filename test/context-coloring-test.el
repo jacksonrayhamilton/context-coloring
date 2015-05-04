@@ -304,12 +304,28 @@ FOREGROUND.  Apply ARGUMENTS to
   (apply 'context-coloring-test-assert-face
          (append arguments '(t))))
 
+(defun context-coloring-test-assert-error (body error-message)
+  "Assert that BODY signals ERROR-MESSAGE."
+  (let ((error-signaled-p nil))
+    (condition-case err
+        (progn
+          (funcall body))
+      (error
+       (setq error-signaled-p t)
+       (when (not (string-equal (cadr err) error-message))
+         (ert-fail (format (concat "Expected the error \"%s\" to be thrown, "
+                                   "but instead it was \"%s\".")
+                           error-message
+                           (cadr err))))))
+    (when (not error-signaled-p)
+      (ert-fail "Expected an error to be thrown, but there wasn't."))))
+
 
 ;;; The tests
 
 (ert-deftest-async context-coloring-test-async-mode-startup (done)
   (context-coloring-test-with-fixture-async
-   "./fixtures/function-scopes.js"
+   "./fixtures/empty"
    (lambda (teardown)
      (js-mode)
      (add-hook
@@ -321,6 +337,39 @@ FOREGROUND.  Apply ARGUMENTS to
         (funcall done)))
      (context-coloring-mode))))
 
+(define-derived-mode
+  context-coloring-change-detection-mode
+  fundamental-mode
+  "Testing"
+  "Prevent `context-coloring-test-change-detection' from
+  having any unintentional side-effects on mode support.")
+
+;; Simply cannot figure out how to trigger an idle timer; would much rather test
+;; that.  But (current-idle-time) always returns nil in these tests.
+(ert-deftest-async context-coloring-test-change-detection (done)
+  (context-coloring-define-dispatch
+     'idle-change
+     :modes '(context-coloring-change-detection-mode)
+     :executable "node"
+     :command "node test/binaries/noop")
+  (context-coloring-test-with-fixture-async
+   "./fixtures/empty"
+   (lambda (teardown)
+     (context-coloring-change-detection-mode)
+     (add-hook
+      'context-coloring-colorize-hook
+      (lambda ()
+        (setq context-coloring-colorize-hook nil)
+        (add-hook
+         'context-coloring-colorize-hook
+         (lambda ()
+           (funcall teardown)
+           (funcall done)))
+        (insert " ")
+        (set-window-buffer (selected-window) (current-buffer))
+        (context-coloring-maybe-colorize)))
+     (context-coloring-mode))))
+
 (ert-deftest context-coloring-test-check-version ()
   (when (not (context-coloring-check-version "2.1.3" "3.0.1"))
     (ert-fail "Expected version 3.0.1 to satisfy 2.1.3, but it didn't."))
@@ -329,11 +378,65 @@ FOREGROUND.  Apply ARGUMENTS to
 
 (ert-deftest context-coloring-test-unsupported-mode ()
   (context-coloring-test-with-fixture
-   "./fixtures/function-scopes.js"
+   "./fixtures/empty"
    (context-coloring-mode)
    (context-coloring-test-assert-message
     "Context coloring is not available for this major mode"
     "*Messages*")))
+
+(define-derived-mode
+  context-coloring-test-define-dispatch-error-mode
+  fundamental-mode
+  "Testing"
+  "Prevent `context-coloring-test-define-dispatch-error' from
+  having any unintentional side-effects on mode support.")
+
+(ert-deftest context-coloring-test-define-dispatch-error ()
+  (context-coloring-test-assert-error
+   (lambda ()
+     (context-coloring-define-dispatch
+      'define-dispatch-no-modes))
+   "No mode defined for dispatch")
+  (context-coloring-test-assert-error
+   (lambda ()
+     (context-coloring-define-dispatch
+      'define-dispatch-no-strategy
+      :modes '(context-coloring-test-define-dispatch-error-mode)))
+   "No colorizer, scopifier or command defined for dispatch"))
+
+(define-derived-mode
+  context-coloring-test-define-dispatch-scopifier-mode
+  fundamental-mode
+  "Testing"
+  "Prevent `context-coloring-test-define-dispatch-scopifier' from
+  having any unintentional side-effects on mode support.")
+
+(ert-deftest context-coloring-test-define-dispatch-scopifier ()
+  (context-coloring-define-dispatch
+   'define-dispatch-scopifier
+   :modes '(context-coloring-test-define-dispatch-scopifier-mode)
+   :scopifier (lambda () (vector)))
+  (with-temp-buffer
+    (context-coloring-test-define-dispatch-scopifier-mode)
+    (context-coloring-mode)
+    (context-coloring-colorize)))
+
+(define-derived-mode
+  context-coloring-test-missing-executable-mode
+  fundamental-mode
+  "Testing"
+  "Prevent `context-coloring-test-define-dispatch-scopifier' from
+  having any unintentional side-effects on mode support.")
+
+(ert-deftest context-coloring-test-missing-executable ()
+  (context-coloring-define-dispatch
+   'scopifier
+   :modes '(context-coloring-test-missing-executable-mode)
+   :command ""
+   :executable "__should_not_exist__")
+  (with-temp-buffer
+    (context-coloring-test-missing-executable-mode)
+    (context-coloring-mode)))
 
 (define-derived-mode
   context-coloring-test-unsupported-version-mode
@@ -350,7 +453,7 @@ FOREGROUND.  Apply ARGUMENTS to
    :command "node test/binaries/outta-date"
    :version "v2.1.3")
   (context-coloring-test-with-fixture-async
-   "./fixtures/function-scopes.js"
+   "./fixtures/empty"
    (lambda (teardown)
      (context-coloring-test-unsupported-version-mode)
      (add-hook
@@ -384,7 +487,7 @@ FOREGROUND.  Apply ARGUMENTS to
      :teardown (lambda ()
                  (setq torn-down t)))
     (context-coloring-test-with-fixture-async
-     "./fixtures/function-scopes.js"
+     "./fixtures/empty"
      (lambda (teardown)
        (unwind-protect
            (progn
@@ -586,6 +689,18 @@ theme THEME is signaled."
   (context-coloring-test-assert-no-message "*Warnings*")
   (context-coloring-test-assert-face 0 "#cccccc")
   (context-coloring-test-assert-face 1 "#dddddd"))
+
+(context-coloring-test-deftest-define-theme pre-recede-delayed-application
+  (context-coloring-define-theme
+   theme
+   :recede t
+   :colors '("#aaaaaa"
+             "#bbbbbb"))
+  (context-coloring-test-deftheme theme)
+  (enable-theme theme)
+  (context-coloring-test-assert-no-message "*Warnings*")
+  (context-coloring-test-assert-face 0 "#aaaaaa")
+  (context-coloring-test-assert-face 1 "#bbbbbb"))
 
 (context-coloring-test-deftest-define-theme post-recede
   (context-coloring-test-deftheme theme)
