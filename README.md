@@ -138,19 +138,19 @@ more info on dispatch strategies.)
 A "scopifier" is a CLI program that reads a buffer's contents from stdin and
 writes a JSON array of numbers to stdout. Every three numbers in the array
 represent a range of color. For instance, if I fed the following string of
-JavaScript code to a scopifier:
+JavaScript code to a scopifier
 
 ```js
 var a = function () {};
 ```
 
-Then the scopifier would produce the following array:
+then the scopifier would produce the following array
 
 ```js
 [1,24,0,9,23,1]
 ```
 
-Where, for every three numbers, the first number is a 1-indexed start [point][],
+where, for every three numbers, the first number is a 1-indexed start [point][],
 the second number is an exclusive end point, and the third number is a scope
 level. The result of applying level 0 coloring to the range &#91;1, 24) and then
 applying level 1 coloring to the range &#91;9, 23) would result in the following
