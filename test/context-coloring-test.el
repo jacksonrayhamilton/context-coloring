@@ -320,8 +320,20 @@ FOREGROUND.  Apply ARGUMENTS to
     (when (not error-signaled-p)
       (ert-fail "Expected an error to be thrown, but there wasn't."))))
 
+(defun context-coloring-test-assert-trimmed (result expected)
+  (when (not (string-equal result expected))
+    (ert-fail "Expected string to be trimmed, but it wasn't.")))
+
 
 ;;; The tests
+
+(ert-deftest context-coloring-test-trim ()
+  (context-coloring-test-assert-trimmed (context-coloring-trim "") "")
+  (context-coloring-test-assert-trimmed (context-coloring-trim " ") "")
+  (context-coloring-test-assert-trimmed (context-coloring-trim "a") "a")
+  (context-coloring-test-assert-trimmed (context-coloring-trim " a") "a")
+  (context-coloring-test-assert-trimmed (context-coloring-trim "a ") "a")
+  (context-coloring-test-assert-trimmed (context-coloring-trim " a ") "a"))
 
 (ert-deftest-async context-coloring-test-async-mode-startup (done)
   (context-coloring-test-with-fixture-async
