@@ -30,8 +30,18 @@ test: ${DEPENDENCIES}
 	-L . \
 	-l ert \
 	-l ert-async \
-	-l test/test-helper.el \
+	-l test/ci-coverage.el \
 	-l test/context-coloring-test.el \
 	-f ert-run-tests-batch-and-exit
 
-.PHONY: all bench compile uncompile clean test
+cover: ${DEPENDENCIES}
+	COVERALLS_REPO_TOKEN="noop" \
+	${CASK} exec ${EMACS} -Q -batch \
+	-L . \
+	-l ert \
+	-l ert-async \
+	-l test/local-coverage.el \
+	-l test/context-coloring-test.el \
+	-f ert-run-tests-batch-and-exit
+
+.PHONY: all bench compile uncompile clean test cover
