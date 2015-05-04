@@ -647,7 +647,9 @@ which must already exist and which *should* already be enabled."
   (let* ((properties (gethash theme context-coloring-theme-hash-table))
          (colors (plist-get properties :colors))
          (level -1))
-    (setq context-coloring-maximum-face (- (length colors) 1))
+    ;; Only clobber when we have to.
+    (when (custom-theme-enabled-p theme)
+      (setq context-coloring-maximum-face (- (length colors) 1)))
     (apply
      'custom-theme-set-faces
      theme
@@ -745,7 +747,7 @@ precedence, i.e. the car of `custom-enabled-themes'."
   (when (and (not (eq theme 'user)) ; Called internally by `enable-theme'.
              (custom-theme-p theme) ; Guard against non-existent themes.
              (context-coloring-theme-p theme))
-    (when (= (length custom-enabled-themes) 0)
+    (when (= (length custom-enabled-themes) 1)
       ;; Cache because we can't reliably figure it out in reverse.
       (setq context-coloring-original-maximum-face
             context-coloring-maximum-face))

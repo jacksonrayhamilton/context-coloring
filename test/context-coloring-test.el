@@ -56,7 +56,10 @@
   (setq context-coloring-syntactic-strings nil)
   (setq context-coloring-js-block-scopes nil)
   (setq context-coloring-colorize-hook nil)
-  (setq context-coloring-check-scopifier-version-hook nil))
+  (setq context-coloring-check-scopifier-version-hook nil)
+  (setq context-coloring-maximum-face 7)
+  (setq context-coloring-original-maximum-face
+        context-coloring-maximum-face))
 
 (defmacro context-coloring-test-with-fixture (fixture &rest body)
   "With the relative FIXTURE, evaluate BODY in a temporary
@@ -500,12 +503,14 @@ test completes."
                        (format "context-coloring-test-define-theme-%s" name))))
     `(ert-deftest ,deftest-name ()
        (context-coloring-test-kill-buffer "*Warnings*")
+       (context-coloring-test-setup)
        (let ((theme (context-coloring-test-get-next-theme)))
          (unwind-protect
              (progn
                ,@body)
            ;; Always cleanup.
-           (disable-theme theme))))))
+           (disable-theme theme)
+           (context-coloring-test-cleanup))))))
 
 (defun context-coloring-test-deftheme (theme)
   "Dynamically define theme THEME."
@@ -671,42 +676,45 @@ see that function."
          (append arguments '(t))))
 
 (context-coloring-test-deftest-define-theme disable-cascade
-  (context-coloring-test-deftheme theme)
-  (context-coloring-define-theme
-   theme
-   :colors '("#aaaaaa"
-             "#bbbbbb"))
-  (let ((second-theme (context-coloring-test-get-next-theme)))
-    (context-coloring-test-deftheme second-theme)
+  (let ((maximum-face-value 9999))
+    (setq context-coloring-maximum-face maximum-face-value)
+    (context-coloring-test-deftheme theme)
     (context-coloring-define-theme
-     second-theme
-     :colors '("#cccccc"
-               "#dddddd"
-               "#eeeeee"))
-    (let ((third-theme (context-coloring-test-get-next-theme)))
-      (context-coloring-test-deftheme third-theme)
+     theme
+     :colors '("#aaaaaa"
+               "#bbbbbb"))
+    (let ((second-theme (context-coloring-test-get-next-theme)))
+      (context-coloring-test-deftheme second-theme)
       (context-coloring-define-theme
-       third-theme
-       :colors '("#111111"
-                 "#222222"
-                 "#333333"
-                 "#444444"))
-      (enable-theme theme)
-      (enable-theme second-theme)
-      (enable-theme third-theme)
-      (disable-theme third-theme)
-      (context-coloring-test-assert-face 0 "#cccccc")
-      (context-coloring-test-assert-face 1 "#dddddd")
-      (context-coloring-test-assert-face 2 "#eeeeee")
-      (context-coloring-test-assert-maximum-face 2))
-    (disable-theme second-theme)
-    (context-coloring-test-assert-face 0 "#aaaaaa")
-    (context-coloring-test-assert-face 1 "#bbbbbb")
-    (context-coloring-test-assert-maximum-face 1))
-  (disable-theme theme)
-  (context-coloring-test-assert-not-face 0 "#aaaaaa")
-  (context-coloring-test-assert-not-face 1 "#bbbbbb")
-  (context-coloring-test-assert-not-maximum-face 1))
+       second-theme
+       :colors '("#cccccc"
+                 "#dddddd"
+                 "#eeeeee"))
+      (let ((third-theme (context-coloring-test-get-next-theme)))
+        (context-coloring-test-deftheme third-theme)
+        (context-coloring-define-theme
+         third-theme
+         :colors '("#111111"
+                   "#222222"
+                   "#333333"
+                   "#444444"))
+        (enable-theme theme)
+        (enable-theme second-theme)
+        (enable-theme third-theme)
+        (disable-theme third-theme)
+        (context-coloring-test-assert-face 0 "#cccccc")
+        (context-coloring-test-assert-face 1 "#dddddd")
+        (context-coloring-test-assert-face 2 "#eeeeee")
+        (context-coloring-test-assert-maximum-face 2))
+      (disable-theme second-theme)
+      (context-coloring-test-assert-face 0 "#aaaaaa")
+      (context-coloring-test-assert-face 1 "#bbbbbb")
+      (context-coloring-test-assert-maximum-face 1))
+    (disable-theme theme)
+    (context-coloring-test-assert-not-face 0 "#aaaaaa")
+    (context-coloring-test-assert-not-face 1 "#bbbbbb")
+    (context-coloring-test-assert-maximum-face
+     maximum-face-value)))
 
 (defun context-coloring-test-js-function-scopes ()
   "Test fixtures/functions-scopes.js."
