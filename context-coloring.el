@@ -54,6 +54,7 @@
 ;;; Code:
 
 (require 'js2-mode)
+(require 'subr-x)
 
 
 ;;; Local variables
@@ -300,8 +301,13 @@ element."
 
 (defun context-coloring-parse-array (array)
   "Parse ARRAY as a flat JSON array of numbers."
-  (vconcat
-   (mapcar 'string-to-number (split-string (substring array 1 -1) ","))))
+  (let ((braceless (substring (string-trim array) 1 -1)))
+    (cond
+     ((> (length braceless) 0)
+      (vconcat
+       (mapcar 'string-to-number (split-string braceless ","))))
+     (t
+      (vector)))))
 
 (defvar-local context-coloring-scopifier-process nil
   "The single scopifier process that can be running.")
