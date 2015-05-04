@@ -54,7 +54,6 @@
 ;;; Code:
 
 (require 'js2-mode)
-(require 'subr-x)
 
 
 ;;; Local variables
@@ -68,6 +67,16 @@
 (defun context-coloring-join (strings delimiter)
   "Join a list of STRINGS with the string DELIMITER."
   (mapconcat 'identity strings delimiter))
+
+(defun context-coloring-trim (string)
+  "Remove leading and trailing whitespace from STRING."
+  ;; Trim right.
+  (when (string-match "[ \t\n\r]+\\'" string)
+    (setq string (replace-match "" t t string)))
+  ;; Trim left.
+  (if (string-match "\\`[ \t\n\r]+" string)
+      (replace-match "" t t string)
+    string))
 
 
 ;;; Faces
@@ -301,7 +310,7 @@ element."
 
 (defun context-coloring-parse-array (array)
   "Parse ARRAY as a flat JSON array of numbers."
-  (let ((braceless (substring (string-trim array) 1 -1)))
+  (let ((braceless (substring (context-coloring-trim array) 1 -1)))
     (cond
      ((> (length braceless) 0)
       (vconcat
