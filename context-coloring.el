@@ -1,11 +1,11 @@
-;;; context-coloring.el --- Syntax highlighting, except not for syntax. -*- lexical-binding: t; -*-
+;;; context-coloring.el --- Highlight by scope  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014-2015  Free Software Foundation, Inc.
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
-;; URL: https://github.com/jacksonrayhamilton/context-coloring
-;; Keywords: convenience faces tools
 ;; Version: 6.2.0
+;; Keywords: convenience faces tools
+;; Homepage: https://github.com/jacksonrayhamilton/context-coloring
 ;; Package-Requires: ((emacs "24") (js2-mode "20150126"))
 
 ;; This file is part of GNU Emacs.
@@ -25,29 +25,20 @@
 
 ;;; Commentary:
 
-;; Highlights code according to function context.
+;; Highlights code by scope.  Top-level scopes are one color, second-level
+;; scopes are another color, and so on.  Variables retain the color of the scope
+;; in which they are defined.  A variable defined in an outer scope referenced
+;; in an inner scope is colored the same as the outer scope.
 
-;; - Code in the global scope is one color.  Code in functions within the global
-;;   scope is a different color, and code within such functions is another
-;;   color, and so on.
-;; - Identifiers retain the color of the scope in which they are declared.
+;; By default, comments and strings are still highlighted syntactically.
 
-;; Lexical scope information at-a-glance can assist a programmer in
-;; understanding the overall structure of a program.  It can help to curb nasty
-;; bugs like name shadowing.  A rainbow can indicate excessive complexity.
-;; State change within a closure is easily monitored.
-
-;; By default, Context Coloring still highlights comments and strings
-;; syntactically.  It is still easy to differentiate code from non-code, and
-;; strings cannot be confused for variables.
-
-;; To use, add the following to your ~/.emacs:
+;; To use with js2-mode, add the following to your init file:
 
 ;; (require 'context-coloring)
 ;; (add-hook 'js2-mode-hook 'context-coloring-mode)
 
-;; js-mode or js3-mode support requires Node.js 0.10+ and the scopifier
-;; executable.
+;; To use with js-mode or js3-mode, install Node.js 0.10+ and the scopifier
+;; executable:
 
 ;; $ npm install -g scopifier
 
