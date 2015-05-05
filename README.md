@@ -6,7 +6,7 @@
 
 Highlights code by scope.  Top-level scopes are one color, second-level scopes
 are another color, and so on.  Variables retain the color of the scope in which
-they are defined.  A variable defined in an outer scope referenced in an inner
+they are defined.  A variable defined in an outer scope referenced by an inner
 scope is colored the same as the outer scope.
 
 By default, comments and strings are still highlighted syntactically.
@@ -87,7 +87,7 @@ Add the following to your init file:
 ### Color Schemes
 
 Color schemes for custom themes are automatically applied when those themes are
-active. Built-in theme support is available for: `ample`, `anti-zenburn`,
+active.  Built-in theme support is available for: `ample`, `anti-zenburn`,
 `grandshell`, `leuven`, `monokai`, `solarized`, `spacegray`, `tango` and
 `zenburn`.
 
@@ -114,13 +114,13 @@ See `C-h f context-coloring-define-theme` for more info on theme parameters.
 ## Extending
 
 To add support for a new language, write a "scopifier" for it, and define a new
-coloring dispatch strategy with `context-coloring-define-dispatch`. Then the
-plugin should handle the rest. (See `C-h f context-coloring-define-dispatch` for
-more info on dispatch strategies.)
+coloring dispatch strategy with `context-coloring-define-dispatch`.  Then the
+plugin should handle the rest.  (See `C-h f context-coloring-define-dispatch`
+for more info on dispatch strategies.)
 
 A "scopifier" is a CLI program that reads a buffer's contents from stdin and
-writes a JSON array of numbers to stdout. Every three numbers in the array
-represent a range of color. For instance, if I fed the following string of
+writes a JSON array of numbers to stdout.  Every three numbers in the array
+represent a range of color.  For instance, if I fed the following string of
 JavaScript code to a scopifier
 
 ```js
@@ -135,9 +135,9 @@ then the scopifier would produce the following array
 
 where, for every three numbers, the first number is a 1-indexed start [point][],
 the second number is an exclusive end point, and the third number is a scope
-level. The result of applying level 0 coloring to the range &#91;1, 24) and then
-applying level 1 coloring to the range &#91;9, 23) would result in the following
-coloring:
+level.  The result of applying level 0 coloring to the range &#91;1, 24) and
+then applying level 1 coloring to the range &#91;9, 23) would result in the
+following coloring:
 
 <p align="center">
   <img alt="Screenshot of ranges &#91;1, 24) and &#91;9, 23)." src="scopifier.png" title="Screenshot">
@@ -167,7 +167,7 @@ print scopifier ARGF.read
 ```
 
 When a `--version` argument is passed, a scopifier should print its version
-number and exit. This allows context-coloring to determine if an update is
+number and exit.  This allows context-coloring to determine if an update is
 required.
 
 [js2-mode]: https://github.com/mooz/js2-mode
