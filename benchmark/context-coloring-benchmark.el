@@ -1,4 +1,4 @@
-;;; benchmark/context-coloring-benchmark.el --- Benchmarks for context coloring. -*- lexical-binding: t; -*-
+;;; context-coloring-benchmark.el --- Benchmarks for context coloring  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014-2015  Free Software Foundation, Inc.
 
@@ -19,12 +19,9 @@
 
 ;;; Commentary:
 
-;; Benchmarks for context-coloring.
+;; Benchmarks for context coloring.
 
-;; `ert' instruments and benchmarks the package's functions, and the results are
-;; logged to `benchmark/logs'.
-
-;; To run, execute `make bench' from the project root.
+;; Use with `make bench'.
 
 ;;; Code:
 

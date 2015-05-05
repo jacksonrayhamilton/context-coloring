@@ -1,4 +1,4 @@
-;;; test/context-coloring-test.el --- Tests for context coloring. -*- lexical-binding: t; -*-
+;;; context-coloring-test.el --- Tests for context coloring  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014-2015  Free Software Foundation, Inc.
 
@@ -19,12 +19,9 @@
 
 ;;; Commentary:
 
-;; Tests for context-coloring.
+;; Tests for context coloring.
 
-;; Tests for both synchronous (elisp) and asynchronous (shell command) coloring
-;; are available.  Basic plugin functionality is also tested.
-
-;; To run, execute `make test' from the project root.
+;; Use with `make test'.
 
 ;;; Code:
 
