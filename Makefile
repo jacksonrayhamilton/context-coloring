@@ -30,17 +30,18 @@ test: ${DEPENDENCIES}
 	-L . \
 	-l ert \
 	-l ert-async \
-	-l test/ci-coverage.el \
+	-l test/context-coloring-coverage.el \
+	-f context-coloring-coverage-ci-init \
 	-l test/context-coloring-test.el \
 	-f ert-run-tests-batch-and-exit
 
 cover: ${DEPENDENCIES}
-	COVERALLS_REPO_TOKEN="noop" \
 	${CASK} exec ${EMACS} -Q -batch \
 	-L . \
 	-l ert \
 	-l ert-async \
-	-l test/local-coverage.el \
+	-l test/context-coloring-coverage.el \
+	-f context-coloring-coverage-local-init \
 	-l test/context-coloring-test.el \
 	-f ert-run-tests-batch-and-exit
 
