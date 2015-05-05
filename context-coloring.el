@@ -3,7 +3,7 @@
 ;; Copyright (C) 2014-2015  Free Software Foundation, Inc.
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
-;; Version: 6.2.0
+;; Version: 6.2.1
 ;; Keywords: convenience faces tools
 ;; Homepage: https://github.com/jacksonrayhamilton/context-coloring
 ;; Package-Requires: ((emacs "24") (js2-mode "20150126"))
