@@ -25,6 +25,7 @@
 
 ;;; Code:
 
+(require 'json)
 (require 'undercover)
 
 
@@ -50,8 +51,67 @@
   (concat context-coloring-coverage-output-directory
           context-coloring-coverage-output-file-prefix ".txt"))
 
-(defconst context-coloring-coverage-parser
-  (concat "node " (context-coloring-coverage-resolve-path "./parse-coverage.js")))
+(defun context-coloring-coverage-join (strings delimiter)
+  "Join a list of STRINGS with the string DELIMITER."
+  (mapconcat 'identity strings delimiter))
+
+(defun context-coloring-coverage-percentage (dividend divisor)
+  "Get the percentage of DIVIDEND / DIVISOR with precision 2."
+  (let ((percentage (/ (float (round (* (/ (float dividend) divisor) 10000))) 100)))
+    (number-to-string
+     (cond
+      ((= (mod percentage 1) 0)
+       ;; Get an integer because we don't like dangling zeros.
+       (round percentage))
+      (t
+       percentage)))))
+
+(defun context-coloring-coverage-format-source-file (source-file)
+  "Generate a report for SOURCE-FILE's line coverage."
+  (let* ((source-lines (split-string (cdr (assq 'source source-file)) "\n"))
+         (coverage (cdr (assq 'coverage source-file)))
+         (results (list "Hits  | Source"
+                        (context-coloring-coverage-join (make-vector 80 "-") "")))
+         (lines-hit 0)
+         (lines-hittable 0)
+         hits
+         source-line)
+    (while coverage
+      (setq hits (car coverage))
+      (setq coverage (cdr coverage))
+      (setq source-line (car source-lines))
+      (setq source-lines (cdr source-lines))
+      (when (not (null hits))
+        (setq lines-hittable (+ lines-hittable 1))
+        (when (> hits 0)
+          (setq lines-hit (+ lines-hit 1))))
+      (setq results
+            (append results
+                    (list (format
+                           "%-5s %s %s"
+                           (if hits hits "N/A")
+                           (if (and hits (= hits 0)) "~" "|")
+                           source-line)))))
+    (setq results
+          (append results
+                  (list
+                   ""
+                   (format
+                    "Lines: %s / %s"
+                    lines-hit
+                    lines-hittable)
+                   (format
+                    "Coverage: %s%%"
+                    (context-coloring-coverage-percentage lines-hit lines-hittable)))))
+    (context-coloring-coverage-join results "\n")))
+
+(defun context-coloring-coverage-format (coverage-data)
+  "Generate reports for all files in COVERAGE-DATA."
+  (context-coloring-coverage-join
+   (mapcar
+    'context-coloring-coverage-format-source-file
+    (cdr (assq 'source_files coverage-data)))
+   "\n"))
 
 (defun context-coloring-coverage-local-init ()
   "Initialize test coverage for local viewing."
@@ -63,13 +123,23 @@
   (add-hook
    'kill-emacs-hook
    (lambda ()
-     (let* ((output-buffer (get-buffer-create "*parsed coverage*")))
-       (call-process-shell-command
-        context-coloring-coverage-parser
-        context-coloring-coverage-output-file
-        output-buffer)
-       (with-current-buffer output-buffer
-         (princ (buffer-substring-no-properties (point-min) (point-max)))
+     (let (original-json-array-type
+           coverage-data
+           report)
+       (with-temp-buffer
+         (insert-file-contents-literally context-coloring-coverage-output-file)
+         (setq original-json-array-type json-array-type)
+         (setq json-array-type 'list)
+         (setq coverage-data
+               (json-read-from-string
+                (buffer-substring-no-properties (point-min) (point-max))))
+         (setq json-array-type original-json-array-type)
+         (setq report
+               (context-coloring-coverage-format coverage-data))
+         (setq report (concat report "\n")))
+       (princ report)
+       (with-temp-buffer
+         (insert report)
          (write-file context-coloring-coverage-report-file))))
    t)
   (require 'context-coloring))
