@@ -68,15 +68,21 @@
   "Join a list of STRINGS with the string DELIMITER."
   (mapconcat 'identity strings delimiter))
 
-(defun context-coloring-trim (string)
-  "Remove leading and trailing whitespace from STRING."
-  ;; Trim right.
-  (when (string-match "[ \t\n\r]+\\'" string)
-    (setq string (replace-match "" t t string)))
-  ;; Trim left.
+(defsubst context-coloring-trim-right (string)
+  "Remove leading whitespace from STRING."
+  (if (string-match "[ \t\n\r]+\\'" string)
+      (replace-match "" t t string)
+    string))
+
+(defsubst context-coloring-trim-left (string)
+  "Remove trailing whitespace from STRING."
   (if (string-match "\\`[ \t\n\r]+" string)
       (replace-match "" t t string)
     string))
+
+(defsubst context-coloring-trim (string)
+  "Remove leading and trailing whitespace from STRING."
+  (context-coloring-trim-left (context-coloring-trim-right string)))
 
 
 ;;; Faces
