@@ -1,0 +1,6 @@
+function a() {
+    /*
+    function b() {
+
+    }
+}

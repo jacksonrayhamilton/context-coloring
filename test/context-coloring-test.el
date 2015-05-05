@@ -985,6 +985,12 @@ see that function."
 (context-coloring-test-deftest-js2-mode syntactic-strings
   :fixture-name comments-and-strings)
 
+;; As long as `add-text-properties' doesn't signal an error, this test passes.
+(defun context-coloring-test-js-unterminated-comment ()
+  "Test unterminated multiline comments.")
+
+(context-coloring-test-deftest-js2-mode unterminated-comment)
+
 (provide 'context-coloring-test)
 
 ;;; context-coloring-test.el ends here
