@@ -1,32 +1,15 @@
-# Context Coloring [![Build Status](https://travis-ci.org/jacksonrayhamilton/context-coloring.png?branch=master)](https://travis-ci.org/jacksonrayhamilton/context-coloring) [![Coverage Status](https://coveralls.io/repos/jacksonrayhamilton/context-coloring/badge.svg?branch=master&bust-cache=1)](https://coveralls.io/r/jacksonrayhamilton/context-coloring?branch=master)
+# Context Coloring [![Build Status](https://travis-ci.org/jacksonrayhamilton/context-coloring.png?branch=master)](https://travis-ci.org/jacksonrayhamilton/context-coloring) [![Coverage Status](https://coveralls.io/repos/jacksonrayhamilton/context-coloring/badge.svg?branch=master)](https://coveralls.io/r/jacksonrayhamilton/context-coloring?branch=master)
 
 <p align="center">
   <img alt="Screenshot of JavaScript code highlighted by context." src="screenshot.png" title="Screenshot">
 </p>
 
-Highlights code according to function context.
+Highlights code by scope.  Top-level scopes are one color, second-level scopes
+are another color, and so on.  Variables retain the color of the scope in which
+they are defined.  A variable defined in an outer scope referenced in an inner
+scope is colored the same as the outer scope.
 
-- Code in the global scope is one color. Code in functions within the global
-  scope is a different color, and code within such functions is another color,
-  and so on.
-- Identifiers retain the color of the scope in which they are declared.
-
-Lexical scope information at-a-glance can assist a programmer in understanding
-the overall structure of a program. It can help to curb nasty bugs like name
-shadowing. A rainbow can indicate excessive complexity. State change within a
-closure is easily monitored.
-
-By default, context-coloring still highlights comments and strings
-syntactically. It is still easy to differentiate code from non-code, and strings
-cannot be confused for variables.
-
-This coloring strategy is probably more useful than conventional syntax
-highlighting. Highlighting keywords can help one to detect spelling errors, but
-a [linter][] could also spot those errors, and if integrated with [flycheck][],
-an extra spot opens up in your editing toolbelt.
-
-Give context-coloring a try; you may find that it *changes the way you write
-code*.
+By default, comments and strings are still highlighted syntactically.
 
 ## Features
 
@@ -61,7 +44,7 @@ cd context-coloring/
 make compile
 ```
 
-- Add the following to your `~/.emacs` file:
+- Add the following to your init file:
 
 ```lisp
 (add-to-list 'load-path "~/.emacs.d/context-coloring")
@@ -76,7 +59,7 @@ npm install -g scopifier
 
 ## Usage
 
-Add the following to your `~/.emacs` file:
+Add the following to your init file:
 
 ```lisp
 ;; non-js2-mode users:
@@ -187,8 +170,6 @@ When a `--version` argument is passed, a scopifier should print its version
 number and exit. This allows context-coloring to determine if an update is
 required.
 
-[linter]: http://jshint.com/about/
-[flycheck]: http://www.flycheck.org/
 [js2-mode]: https://github.com/mooz/js2-mode
 [node]: http://nodejs.org/download/
 [scopifier]: https://github.com/jacksonrayhamilton/scopifier
