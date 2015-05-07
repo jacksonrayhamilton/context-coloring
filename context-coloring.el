@@ -5,8 +5,8 @@
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; Version: 6.2.1
 ;; Keywords: convenience faces tools
-;; Homepage: https://github.com/jacksonrayhamilton/context-coloring
 ;; Package-Requires: ((emacs "24") (js2-mode "20150126"))
+;; URL: https://github.com/jacksonrayhamilton/context-coloring
 
 ;; This file is part of GNU Emacs.
 
