@@ -793,7 +793,7 @@ precedence, i.e. the car of `custom-enabled-themes'."
            "#5180b3"
            "#ab75c3"
            "#cd7542"
-           "#dF9522"
+           "#df9522"
            "#454545"))
 
 (context-coloring-define-theme
@@ -827,27 +827,27 @@ precedence, i.e. the car of `custom-enabled-themes'."
  'leuven
  :recede t
  :colors '("#333333"
-           "#0000FF"
-           "#6434A3"
-           "#BA36A5"
-           "#D0372D"
-           "#036A07"
+           "#0000ff"
+           "#6434a3"
+           "#ba36a5"
+           "#d0372d"
+           "#036a07"
            "#006699"
-           "#006FE0"
+           "#006fe0"
            "#808080"))
 
 (context-coloring-define-theme
  'monokai
  :recede t
- :colors '("#F8F8F2"
-           "#66D9EF"
-           "#A1EFE4"
-           "#A6E22E"
-           "#E6DB74"
-           "#FD971F"
-           "#F92672"
-           "#FD5FF0"
-           "#AE81FF"))
+ :colors '("#f8f8f2"
+           "#66d9ef"
+           "#a1efe4"
+           "#a6e22e"
+           "#e6db74"
+           "#fd971f"
+           "#f92672"
+           "#fd5ff0"
+           "#ae81ff"))
 
 (context-coloring-define-theme
  'solarized
@@ -865,26 +865,26 @@ precedence, i.e. the car of `custom-enabled-themes'."
            "#dc322f"
            "#d33682"
            "#6c71c4"
-           "#69B7F0"
-           "#69CABF"
-           "#B4C342"
-           "#DEB542"
-           "#F2804F"
-           "#FF6E64"
-           "#F771AC"
-           "#9EA0E5"))
+           "#69b7f0"
+           "#69cabf"
+           "#b4c342"
+           "#deb542"
+           "#f2804f"
+           "#ff6e64"
+           "#f771ac"
+           "#9ea0e5"))
 
 (context-coloring-define-theme
  'spacegray
  :recede t
  :colors '("#ffffff"
-           "#89AAEB"
-           "#C189EB"
+           "#89aaeb"
+           "#c189eb"
            "#bf616a"
-           "#DCA432"
+           "#dca432"
            "#ebcb8b"
-           "#B4EB89"
-           "#89EBCA"))
+           "#b4eb89"
+           "#89ebca"))
 
 (context-coloring-define-theme
  'tango
@@ -906,17 +906,17 @@ precedence, i.e. the car of `custom-enabled-themes'."
 (context-coloring-define-theme
  'zenburn
  :recede t
- :colors '("#DCDCCC"
-           "#93E0E3"
-           "#BFEBBF"
-           "#F0DFAF"
-           "#DFAF8F"
-           "#CC9393"
-           "#DC8CC3"
-           "#94BFF3"
-           "#9FC59F"
-           "#D0BF8F"
-           "#DCA3A3"))
+ :colors '("#dcdccc"
+           "#93e0e3"
+           "#bfebbf"
+           "#f0dfaf"
+           "#dfaf8f"
+           "#cc9393"
+           "#dc8cc3"
+           "#94bff3"
+           "#9fc59f"
+           "#d0bf8f"
+           "#dca3a3"))
 
 
 ;;; Minor mode

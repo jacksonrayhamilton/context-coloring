@@ -96,17 +96,17 @@ You can define your own theme colors too:
 ```lisp
 (context-coloring-define-theme
  'zenburn
- :colors '("#DCDCCC"
-           "#93E0E3"
-           "#BFEBBF"
-           "#F0DFAF"
-           "#DFAF8F"
-           "#CC9393"
-           "#DC8CC3"
-           "#94BFF3"
-           "#9FC59F"
-           "#D0BF8F"
-           "#DCA3A3"))
+ :colors '("#dcdccc"
+           "#93e0e3"
+           "#bfebbf"
+           "#f0dfaf"
+           "#dfaf8f"
+           "#cc9393"
+           "#dc8cc3"
+           "#94bff3"
+           "#9fc59f"
+           "#d0bf8f"
+           "#dca3a3"))
 ```
 
 See `C-h f context-coloring-define-theme` for more info on theme parameters.
