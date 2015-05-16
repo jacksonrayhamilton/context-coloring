@@ -1077,6 +1077,11 @@ see that function."
   :setup (lambda ()
            (setq context-coloring-syntactic-strings t)))
 
+(context-coloring-test-deftest-emacs-lisp-mode unbindable
+  (lambda ()
+    (context-coloring-test-assert-region-level 20 40 1)  ; 1 +1 -1 1.0 :a t nil
+    ))
+
 (provide 'context-coloring-test)
 
 ;;; context-coloring-test.el ends here
