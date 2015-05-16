@@ -167,6 +167,25 @@ format."
         ',setup-function-name
         (,function-name)))))
 
+(defmacro context-coloring-test-emacs-lisp-mode (fixture &rest body)
+  "Use FIXTURE as the subject matter for test logic in BODY."
+  `(context-coloring-test-with-fixture
+    ,fixture
+    (emacs-lisp-mode)
+    (context-coloring-mode)
+    ,@body))
+
+(defmacro context-coloring-test-deftest-emacs-lisp-mode (name &rest body)
+  "Define a test for `emacs-lisp-mode' with name and fixture as
+NAME, with BODY containing the assertions."
+  (declare (indent defun))
+  (let ((test-name (intern (format "context-coloring-emacs-lisp-mode-%s" name)))
+        (fixture (format "./fixtures/%s.el" name)))
+    `(ert-deftest ,test-name ()
+       (context-coloring-test-emacs-lisp-mode
+        ,fixture
+        ,@body))))
+
 
 ;;; Assertion functions
 
@@ -987,6 +1006,16 @@ see that function."
   "Test unterminated multiline comments.")
 
 (context-coloring-test-deftest-js2-mode unterminated-comment)
+
+(context-coloring-test-deftest-emacs-lisp-mode defun
+  (context-coloring-test-assert-region-level 1 8 1)    ; (defun
+  (context-coloring-test-assert-region-level 8 11 0)   ; abc
+  (context-coloring-test-assert-region-level 11 39 1)  ; (def ghi &optional jkl) (
+  (context-coloring-test-assert-region-level 39 40 0)  ; +
+  (context-coloring-test-assert-region-level 40 53 1)  ; def ghi jkl
+  (context-coloring-test-assert-region-level 53 57 0)  ; free
+  (context-coloring-test-assert-region-level 57 59 1)  ; ))
+  (context-coloring-test-assert-region-level 61 72 0)) ; (abc 1 2 3)
 
 (provide 'context-coloring-test)
 
