@@ -234,38 +234,39 @@ environment."
 
 (defun context-coloring-test-assert-coloring (map)
   "Assert that the current buffer's coloring matches MAP."
-  ;; Omit the superfluous, formatting-related leading newline.
-  (save-excursion
-    (goto-char (point-min))
-    (let* ((map (substring map 1))
-           (index 0)
-           char-string
-           char)
-      (while (< index (length map))
-        (setq char-string (substring map index (1+ index)))
-        (setq char (string-to-char char-string))
-        (cond
-         ;; Newline
-         ((= char 10)
-          (next-logical-line)
-          (beginning-of-line))
-         ;; Number
-         ((and (>= char 48)
-               (<= char 57))
-          (context-coloring-test-assert-position-level
-           (point) (string-to-number char-string))
-          (forward-char))
-         ;; ';' = Comment
-         ((= char 59)
-          (context-coloring-test-assert-position-comment (point))
-          (forward-char))
-         ;; 's' = String
-         ((= char 115)
-          (context-coloring-test-assert-position-string (point))
-          (forward-char))
-         (t
-          (forward-char)))
-        (setq index (1+ index))))))
+  ;; Omit the superfluous, formatting-related leading newline.  Can't use
+  ;; `save-excursion' here because if an assertion fails it will cause future
+  ;; tests to get messed up.
+  (goto-char (point-min))
+  (let* ((map (substring map 1))
+         (index 0)
+         char-string
+         char)
+    (while (< index (length map))
+      (setq char-string (substring map index (1+ index)))
+      (setq char (string-to-char char-string))
+      (cond
+       ;; Newline
+       ((= char 10)
+        (next-logical-line)
+        (beginning-of-line))
+       ;; Number
+       ((and (>= char 48)
+             (<= char 57))
+        (context-coloring-test-assert-position-level
+         (point) (string-to-number char-string))
+        (forward-char))
+       ;; ';' = Comment
+       ((= char 59)
+        (context-coloring-test-assert-position-comment (point))
+        (forward-char))
+       ;; 's' = String
+       ((= char 115)
+        (context-coloring-test-assert-position-string (point))
+        (forward-char))
+       (t
+        (forward-char)))
+      (setq index (1+ index)))))
 
 (defmacro context-coloring-test-assert-region (&rest body)
   "Assert something about the face of points in a region.
@@ -1134,6 +1135,19 @@ see that function."
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
   (0 0 1 11 11 111 11 1 111))")))
+
+(context-coloring-test-deftest-emacs-lisp-mode let*
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+11111 11
+       11 11
+       11 000011
+  1000 1 1 1 0 0 00001
+  22222 22
+         22 12
+         22 000022
+    2000 1 1 2 2 2 0000))
+  1000 1 1 1 0 0 000011")))
 
 (provide 'context-coloring-test)
 
