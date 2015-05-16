@@ -1021,6 +1021,17 @@ see that function."
   (context-coloring-test-assert-region-level 82 83 1)  ; )
   (context-coloring-test-assert-region-level 84 94 1)) ; (defun ())
 
+(context-coloring-test-deftest-emacs-lisp-mode lambda
+  (context-coloring-test-assert-region-level 1 10 0)     ; (funcall
+  (context-coloring-test-assert-region-level 10 35 1)    ; (lambda (fn) (
+  (context-coloring-test-assert-region-level 35 42 0)    ; funcall
+  (context-coloring-test-assert-region-level 42 46 1)    ; fn
+  (context-coloring-test-assert-region-level 46 85 2)    ; (lambda (fn) (
+  (context-coloring-test-assert-region-level 85 87 0)    ; fn
+  (context-coloring-test-assert-region-level 87 98 2)    ; fn fn) fn)
+  (context-coloring-test-assert-region-level 98 103 1)   ; ) fn)
+  (context-coloring-test-assert-region-level 103 106 0)) ; 0)
+
 (provide 'context-coloring-test)
 
 ;;; context-coloring-test.el ends here
