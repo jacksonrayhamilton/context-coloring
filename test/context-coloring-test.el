@@ -186,6 +186,87 @@ environment."
 
 ;;; Assertion functions
 
+(defun context-coloring-test-assert-position-level (position level)
+  "Assert that POSITION has LEVEL."
+  (let ((face (get-text-property position 'face))
+        actual-level)
+    (when (not (and face
+                    (let* ((face-string (symbol-name face))
+                           (matches (string-match
+                                     context-coloring-level-face-regexp
+                                     face-string)))
+                      (when matches
+                        (setq actual-level (string-to-number
+                                            (substring face-string
+                                                       (match-beginning 1)
+                                                       (match-end 1))))
+                        (= level actual-level)))))
+      (ert-fail (format (concat "Expected level at position %s, "
+                                "which is \"%s\", to be %s; "
+                                "but it was %s")
+                        position
+                        (buffer-substring-no-properties position (1+ position)) level
+                        actual-level)))))
+
+(defun context-coloring-test-assert-position-face (position face-regexp)
+  "Assert that the face at POSITION satisfies FACE-REGEXP."
+  (let ((face (get-text-property position 'face)))
+    (when (or
+           ;; Pass a non-string to do an `eq' check (against a symbol or nil).
+           (unless (stringp face-regexp)
+             (not (eq face-regexp face)))
+           ;; Otherwise do the matching.
+           (when (stringp face-regexp)
+             (not (string-match-p face-regexp (symbol-name face)))))
+      (ert-fail (format (concat "Expected face at position %s, "
+                                "which is \"%s\", to be %s; "
+                                "but it was %s")
+                        position
+                        (buffer-substring-no-properties position (1+ position)) face-regexp
+                        face)))))
+
+(defun context-coloring-test-assert-position-comment (position)
+  (context-coloring-test-assert-position-face
+   position "\\`font-lock-comment\\(-delimiter\\)?-face\\'"))
+
+(defun context-coloring-test-assert-position-string (position)
+  (context-coloring-test-assert-position-face position 'font-lock-string-face))
+
+(defun context-coloring-test-assert-coloring (map)
+  "Assert that the current buffer's coloring matches MAP."
+  ;; Omit the superfluous, formatting-related leading newline.
+  (save-excursion
+    (goto-char (point-min))
+    (let* ((map (substring map 1))
+           (index 0)
+           char-string
+           char)
+      (while (< index (length map))
+        (setq char-string (substring map index (1+ index)))
+        (setq char (string-to-char char-string))
+        (cond
+         ;; Newline
+         ((= char 10)
+          (next-logical-line)
+          (beginning-of-line))
+         ;; Number
+         ((and (>= char 48)
+               (<= char 57))
+          (context-coloring-test-assert-position-level
+           (point) (string-to-number char-string))
+          (forward-char))
+         ;; ';' = Comment
+         ((= char 59)
+          (context-coloring-test-assert-position-comment (point))
+          (forward-char))
+         ;; 's' = String
+         ((= char 115)
+          (context-coloring-test-assert-position-string (point))
+          (forward-char))
+         (t
+          (forward-char)))
+        (setq index (1+ index))))))
+
 (defmacro context-coloring-test-assert-region (&rest body)
   "Assert something about the face of points in a region.
 Provides the free variables `i', `length', `point', `face' and
@@ -1006,81 +1087,53 @@ see that function."
 
 (context-coloring-test-deftest-emacs-lisp-mode defun
   (lambda ()
-    (context-coloring-test-assert-region-level 1 8 1)    ; (defun
-    (context-coloring-test-assert-region-level 8 11 0)   ; abc
-    (context-coloring-test-assert-region-level 11 39 1)  ; (def ghi &optional jkl) (
-    (context-coloring-test-assert-region-level 39 40 0)  ; +
-    (context-coloring-test-assert-region-level 40 53 1)  ; def ghi jkl
-    (context-coloring-test-assert-region-level 53 57 0)  ; free
-    (context-coloring-test-assert-region-level 57 59 1)  ; ))
-    (context-coloring-test-assert-region-level 61 72 0)  ; (abc 1 2 3)
-    (context-coloring-test-assert-region-level 74 81 1)  ; (defun
-    (context-coloring-test-assert-region-level 81 82 0)  ; a
-    (context-coloring-test-assert-region-level 82 83 1)  ; )
-    (context-coloring-test-assert-region-level 84 94 1)  ; (defun ())
-    ))
+    (context-coloring-test-assert-coloring "
+111111 000 1111 111 111111111 1111
+  10 111 111 111 000011
+
+0000 0 0 00
+
+111111 01
+111111 111")))
 
 (context-coloring-test-deftest-emacs-lisp-mode lambda
   (lambda ()
-    (context-coloring-test-assert-region-level 1 10 0)     ; (funcall
-    (context-coloring-test-assert-region-level 10 35 1)    ; (lambda (fn) (
-    (context-coloring-test-assert-region-level 35 42 0)    ; funcall
-    (context-coloring-test-assert-region-level 42 46 1)    ; fn
-    (context-coloring-test-assert-region-level 46 85 2)    ; (lambda (fn) (
-    (context-coloring-test-assert-region-level 85 87 0)    ; fn
-    (context-coloring-test-assert-region-level 87 98 2)    ; fn fn) fn)
-    (context-coloring-test-assert-region-level 98 103 1)   ; ) fn)
-    (context-coloring-test-assert-region-level 103 106 0)  ; 0)
-    ))
+    (context-coloring-test-assert-coloring "
+00000000 1111111 1111
+           10000000 11 2222222 2222
+                         200 22 12 2221 111 0 00")))
 
 (context-coloring-test-deftest-emacs-lisp-mode quote
   (lambda ()
-    (context-coloring-test-assert-region-level 26 28 1)    ; 'b
-    (context-coloring-test-assert-region-level 45 51 1)    ; '(a b)
-    (context-coloring-test-assert-region-level 68 72 1)    ; `(,
-    (context-coloring-test-assert-region-level 72 78 0)    ; append
-    (context-coloring-test-assert-region-level 78 90 1)    ; () `(a b ,(
-    (context-coloring-test-assert-region-level 90 91 0)    ; +
-    (context-coloring-test-assert-region-level 91 94 1)    ; 1
-    (context-coloring-test-assert-region-level 94 98 0)    ; free
-    (context-coloring-test-assert-region-level 98 101 1)   ; ) ,
-    (context-coloring-test-assert-region-level 101 105 0)  ; free
-    (context-coloring-test-assert-region-level 105 109 1)  ; ) b)
-    (context-coloring-test-assert-region-level 109 113 0)  ; free
-    (context-coloring-test-assert-region-level 113 118 1)  ; ) b ,
-    (context-coloring-test-assert-region-level 118 122 0)  ; ) free
-    (context-coloring-test-assert-region-level 122 126 1)  ; ))))
-    ))
+    (context-coloring-test-assert-coloring "
+(xxxxx x (x)
+  (xx (xx x 111
+      100000 1 111 111
+      100000 1 1111000000 11 111 1 110 1 00001 10000 11 00001 1 100001111")))
 
 (context-coloring-test-deftest-emacs-lisp-mode comment
   (lambda ()
     ;; Just check that the comment isn't parsed syntactically.
-    (context-coloring-test-assert-region-comment-delimiter 39 41)  ; ;
-    (context-coloring-test-assert-region-comment 41 49)            ; 96 = '`'
-    (context-coloring-test-assert-region-level 57 58 0)            ; =
-    )
+    (context-coloring-test-assert-coloring "
+(xxxxx x ()
+  (xx (x xxxxx-xxxx xx)   ;;;;;;;;;;
+      (0 xxxxx-xxxx xx))) ;;;;;;;;;;"))
   :setup (lambda ()
            (setq context-coloring-syntactic-comments t)))
 
 (context-coloring-test-deftest-emacs-lisp-mode string
   (lambda ()
-    ;; Ensure the string is evaded.
-    (context-coloring-test-assert-region-string 28 31)   ; "("
-    (context-coloring-test-assert-region-level 32 33 1)  ; a
-    (context-coloring-test-assert-region-level 34 35 0)  ; b
-    (context-coloring-test-assert-region-string 36 41)   ; "(\""
-    (context-coloring-test-assert-region-level 42 43 0)  ; b
-    (context-coloring-test-assert-region-level 44 45 1)  ; a
-    (context-coloring-test-assert-region-string 46 53)   ; "(\"\""
-    (context-coloring-test-assert-region-level 53 55 1)  ; ))
-    )
+    (context-coloring-test-assert-coloring "
+(xxxxx x (x)
+  (xxxxxx x x sss 1 0 sssss 0 1 sssssss11"))
   :setup (lambda ()
            (setq context-coloring-syntactic-strings t)))
 
 (context-coloring-test-deftest-emacs-lisp-mode unbindable
   (lambda ()
-    (context-coloring-test-assert-region-level 20 40 1)  ; 1 +1 -1 1.0 :a t nil
-    ))
+    (context-coloring-test-assert-coloring "
+(xxxxx x ()
+  (0 0 1 11 11 111 11 1 111))")))
 
 (provide 'context-coloring-test)
 

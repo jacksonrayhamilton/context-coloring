@@ -1,3 +1,3 @@
-(funcall (lambda (fn)
+(funcall (lambda (fn a)
            (funcall fn (lambda (fn)
-                         (fn fn fn) fn)) fn) 0)
+                         (fn fn a) fn)) fn) 0 1)
