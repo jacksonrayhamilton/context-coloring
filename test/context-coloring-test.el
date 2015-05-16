@@ -1090,7 +1090,7 @@ see that function."
   (lambda ()
     (context-coloring-test-assert-coloring "
 111111 000 1111 111 111111111 1111
-  10 111 111 111 000011
+  11 111 111 111 000011
 
 0000 0 0 00
 
@@ -1101,16 +1101,16 @@ see that function."
   (lambda ()
     (context-coloring-test-assert-coloring "
 00000000 1111111 1111
-           10000000 11 2222222 2222
-                         200 22 12 2221 111 0 00")))
+           11111111 11 2222222 2222
+                         222 22 12 2221 111 0 00")))
 
 (context-coloring-test-deftest-emacs-lisp-mode quote
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxx x (x)
   (xx (xx x 111
-      100000 1 111 111
-      100000 1 1111000000 11 111 1 110 1 00001 10000 11 00001 1 100001111")))
+      111111 1 111 111
+      111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111")))
 
 (context-coloring-test-deftest-emacs-lisp-mode comment
   (lambda ()
@@ -1118,7 +1118,7 @@ see that function."
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
   (xx (x xxxxx-xxxx xx)   ;;;;;;;;;;
-      (0 xxxxx-xxxx xx))) ;;;;;;;;;;"))
+      11 00000-0000 11))) ;;;;;;;;;;"))
   :setup (lambda ()
            (setq context-coloring-syntactic-comments t)))
 
@@ -1134,7 +1134,7 @@ see that function."
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
-  (0 0 1 11 11 111 11 1 111))")))
+  (x x 1 11 11 111 11 1 111))")))
 
 (context-coloring-test-deftest-emacs-lisp-mode let*
   (lambda ()
