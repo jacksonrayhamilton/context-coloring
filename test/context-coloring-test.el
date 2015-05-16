@@ -1015,7 +1015,11 @@ see that function."
   (context-coloring-test-assert-region-level 40 53 1)  ; def ghi jkl
   (context-coloring-test-assert-region-level 53 57 0)  ; free
   (context-coloring-test-assert-region-level 57 59 1)  ; ))
-  (context-coloring-test-assert-region-level 61 72 0)) ; (abc 1 2 3)
+  (context-coloring-test-assert-region-level 61 72 0)  ; (abc 1 2 3)
+  (context-coloring-test-assert-region-level 74 81 1)  ; (defun
+  (context-coloring-test-assert-region-level 81 82 0)  ; a
+  (context-coloring-test-assert-region-level 82 83 1)  ; )
+  (context-coloring-test-assert-region-level 84 94 1)) ; (defun ())
 
 (provide 'context-coloring-test)
 

@@ -2,3 +2,6 @@
   (+ def ghi jkl free))
 
 (abc 1 2 3)
+
+(defun a)
+(defun ())
