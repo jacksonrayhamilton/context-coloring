@@ -1032,6 +1032,23 @@ see that function."
   (context-coloring-test-assert-region-level 98 103 1)   ; ) fn)
   (context-coloring-test-assert-region-level 103 106 0)) ; 0)
 
+(context-coloring-test-deftest-emacs-lisp-mode quote
+  (context-coloring-test-assert-region-level 26 28 1)    ; 'b
+  (context-coloring-test-assert-region-level 45 51 1)    ; '(a b)
+  (context-coloring-test-assert-region-level 68 72 1)    ; `(,
+  (context-coloring-test-assert-region-level 72 78 0)    ; append
+  (context-coloring-test-assert-region-level 78 90 1)    ; () `(a b ,(
+  (context-coloring-test-assert-region-level 90 91 0)    ; +
+  (context-coloring-test-assert-region-level 91 94 1)    ; 1
+  (context-coloring-test-assert-region-level 94 98 0)    ; free
+  (context-coloring-test-assert-region-level 98 101 1)   ; ) ,
+  (context-coloring-test-assert-region-level 101 105 0)  ; free
+  (context-coloring-test-assert-region-level 105 109 1)  ; ) b)
+  (context-coloring-test-assert-region-level 109 113 0)  ; free
+  (context-coloring-test-assert-region-level 113 118 1)  ; ) b ,
+  (context-coloring-test-assert-region-level 118 122 0)  ; ) free
+  (context-coloring-test-assert-region-level 122 126 1)) ; ))))
+
 (provide 'context-coloring-test)
 
 ;;; context-coloring-test.el ends here
