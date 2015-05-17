@@ -172,6 +172,8 @@ the END point (exclusive) with the face corresponding to LEVEL."
   "Tell `font-lock' to color a string but not a comment."
   (if (nth 3 state) font-lock-string-face nil))
 
+;; TODO: Add specialized emacs-lisp version based on
+;; `lisp-font-lock-syntactic-face-function'.
 (defsubst context-coloring-maybe-colorize-comments-and-strings (&optional min max)
   "Color the current buffer's comments and strings if
 `context-coloring-comments-and-strings' is non-nil."
@@ -415,7 +417,7 @@ As of this writing, emacs lisp colorization seems to run at about
 60,000 iterations per second.  A default value of 1000 should
 provide visually \"instant\" updates at ~60 frames per second.")
 
-(defvar context-coloring-verbose-parse t
+(defvar context-coloring-verbose-parse nil
   "Log useful information pertaining to a parse.")
 
 (defun context-coloring-emacs-lisp-colorize ()
@@ -427,6 +429,8 @@ provide visually \"instant\" updates at ~60 frames per second.")
       (let* ((start-time (float-time))
              (inhibit-point-motion-hooks t)
              (iteration-count 0)
+             (last-fontified-position (point))
+             end-of-current-defun
              (end (point-max))
              (last-ppss-pos (point))
              (ppss (syntax-ppss))
@@ -466,11 +470,25 @@ provide visually \"instant\" updates at ~60 frames per second.")
              child-2-end)
         (while (> end (progn (skip-syntax-forward "^()w_'" end)
                              (point)))
-          (and context-coloring-parse-interruptable-p
-               (zerop (% (setq iteration-count (1+ iteration-count))
-                         context-coloring-emacs-lisp-iterations-per-pause))
-               (input-pending-p)
-               (throw 'interrupted t))
+          ;; Sparingly-executed tasks.
+          (setq iteration-count (1+ iteration-count))
+          (when (zerop (% iteration-count
+                          context-coloring-emacs-lisp-iterations-per-pause))
+            ;; Fontify until the end of the current defun because doing it in
+            ;; chunks based soley on point could result in partial
+            ;; re-fontifications over the contents of scopes.
+            (setq end-of-current-defun (save-excursion
+                                         (end-of-defun)
+                                         (point)))
+            ;; Fontify in chunks.
+            (context-coloring-maybe-colorize-comments-and-strings
+             last-fontified-position
+             end-of-current-defun)
+            (setq last-fontified-position end-of-current-defun)
+            (when (and context-coloring-parse-interruptable-p
+                       (input-pending-p))
+              (throw 'interrupted t)))
+
           (setq token-pos (point))
           (setq token-syntax (syntax-after token-pos))
           (setq token-syntax-code (logand #xFFFF (car token-syntax)))
@@ -701,10 +719,13 @@ provide visually \"instant\" updates at ~60 frames per second.")
               (setq popped-vars (cdr popped-vars))))
 
            ))
+        ;; Fontify the last stretch.
+        (context-coloring-maybe-colorize-comments-and-strings
+         last-fontified-position
+         (point))
         (when context-coloring-verbose-parse
           (message "Elapsed: %s; iterations: %s"
-                   (- (float-time) start-time) iteration-count))))
-    (context-coloring-maybe-colorize-comments-and-strings)))
+                   (- (float-time) start-time) iteration-count))))))
 
 
 ;;; Shell command scopification / colorization
@@ -847,11 +868,7 @@ should be numeric, e.g. \"2\", \"19700101\", \"1.2.3\",
 `context-coloring-mode' is enabled.
 
 `:teardown' - Arbitrary code to tear down this dispatch when
-`context-coloring-mode' is disabled.
-
-`:interrupt' - Arbitrary code to run if parsing or coloring is
-interrupted (for synchronous strategies like `:colorizer' and
-`:scopifier')."
+`context-coloring-mode' is disabled."
   (let ((modes (plist-get properties :modes))
         (colorizer (plist-get properties :colorizer))
         (scopifier (plist-get properties :scopifier))
@@ -1346,10 +1363,6 @@ Supported modes: `js-mode', `js3-mode'"
  'emacs-lisp
  :modes '(emacs-lisp-mode)
  :colorizer 'context-coloring-emacs-lisp-colorize
- ;; Comments and strings aren't colored till the end so it can be pretty ugly if
- ;; you interrupt too far down the buffer.  TODO: Still not very satisfying,
- ;; seeing flashes of uncolored code occassionally.
- :interrupt 'context-coloring-maybe-colorize-comments-and-strings
  :setup
  (lambda ()
    (context-coloring-setup-idle-change-detection))
@@ -1370,7 +1383,6 @@ elisp tracks, and asynchronously for shell command tracks."
          (colorizer (plist-get dispatch :colorizer))
          (scopifier (plist-get dispatch :scopifier))
          (command (plist-get dispatch :command))
-         (interrupt (plist-get dispatch :interrupt))
          interrupted-p)
     (cond
      ((or colorizer scopifier)
@@ -1383,7 +1395,6 @@ elisp tracks, and asynchronously for shell command tracks."
                 (context-coloring-apply-tokens (funcall scopifier))))))
       (cond
        (interrupted-p
-        (when interrupt (funcall interrupt))
         (setq context-coloring-changed t))
        (t
         (when callback (funcall callback)))))
@@ -1455,7 +1466,8 @@ elisp tracks, and asynchronously for shell command tracks."
                 (funcall setup))
               ;; Colorize once initially.
               (when colorize-initially-p
-                (context-coloring-colorize))))
+                (let ((context-coloring-parse-interruptable-p nil))
+                  (context-coloring-colorize)))))
         (when (null dispatch)
           (message "Context coloring is not available for this major mode"))))))
 
