@@ -172,29 +172,25 @@ the END point (exclusive) with the face corresponding to LEVEL."
   "Tell `font-lock' to color a string but not a comment."
   (if (nth 3 state) font-lock-string-face nil))
 
-(defsubst context-coloring-maybe-colorize-comments-and-strings ()
+(defsubst context-coloring-maybe-colorize-comments-and-strings (&optional min max)
   "Color the current buffer's comments and strings if
 `context-coloring-comments-and-strings' is non-nil."
   (when (or context-coloring-comments-and-strings
             context-coloring-syntactic-comments
             context-coloring-syntactic-strings)
-    (let ((old-function font-lock-syntactic-face-function)
-          saved-function-p)
-      (cond
-       ((and context-coloring-syntactic-comments
-             (not context-coloring-syntactic-strings))
-        (setq font-lock-syntactic-face-function
-              'context-coloring-font-lock-syntactic-comment-function)
-        (setq saved-function-p t))
-       ((and context-coloring-syntactic-strings
-             (not context-coloring-syntactic-comments))
-        (setq font-lock-syntactic-face-function
-              'context-coloring-font-lock-syntactic-string-function)
-        (setq saved-function-p t)))
+    (let ((font-lock-syntactic-face-function
+           (cond
+            ((and context-coloring-syntactic-comments
+                  (not context-coloring-syntactic-strings))
+             'context-coloring-font-lock-syntactic-comment-function)
+            ((and context-coloring-syntactic-strings
+                  (not context-coloring-syntactic-comments))
+             'context-coloring-font-lock-syntactic-string-function)
+            (t
+             font-lock-syntactic-face-function))))
       (save-excursion
-        (font-lock-fontify-syntactically-region (point-min) (point-max)))
-      (when saved-function-p
-        (setq font-lock-syntactic-face-function old-function)))))
+        (font-lock-fontify-syntactically-region (or min (point-min))
+                                                (or max (point-max)))))))
 
 
 ;;; js2-mode colorization
