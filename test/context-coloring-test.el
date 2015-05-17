@@ -1130,11 +1130,11 @@ see that function."
   :setup (lambda ()
            (setq context-coloring-syntactic-strings t)))
 
-(context-coloring-test-deftest-emacs-lisp-mode unbindable
+(context-coloring-test-deftest-emacs-lisp-mode ignored
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
-  (x x 1 11 11 111 11 1 111))")))
+  (x x 1 11 11 111 11 1 111 (1 1 1)))")))
 
 (context-coloring-test-deftest-emacs-lisp-mode let
   (lambda ()
