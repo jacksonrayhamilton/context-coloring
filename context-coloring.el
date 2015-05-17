@@ -172,8 +172,6 @@ the END point (exclusive) with the face corresponding to LEVEL."
   "Tell `font-lock' to color a string but not a comment."
   (if (nth 3 state) font-lock-string-face nil))
 
-;; TODO: Add specialized emacs-lisp version based on
-;; `lisp-font-lock-syntactic-face-function'.
 (defsubst context-coloring-maybe-colorize-comments-and-strings (&optional min max)
   "Color the current buffer's comments and strings if
 `context-coloring-comments-and-strings' is non-nil."
@@ -192,7 +190,11 @@ the END point (exclusive) with the face corresponding to LEVEL."
              font-lock-syntactic-face-function))))
       (save-excursion
         (font-lock-fontify-syntactically-region (or min (point-min))
-                                                (or max (point-max)))))))
+                                                (or max (point-max)))
+        ;; TODO: Make configurable at the dispatch level.
+        (when (eq major-mode 'emacs-lisp-mode)
+          (font-lock-fontify-keywords-region (or min (point-min))
+                                             (or max (point-max))))))))
 
 
 ;;; js2-mode colorization
