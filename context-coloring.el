@@ -1434,6 +1434,7 @@ elisp tracks, and asynchronously for shell command tracks."
     ;; Safely change the valye of this function as necessary.
     (make-local-variable 'font-lock-syntactic-face-function)
 
+    ;; TODO: Detect derived modes.
     (let ((dispatch (gethash major-mode context-coloring-mode-hash-table)))
       (if dispatch
           (progn
