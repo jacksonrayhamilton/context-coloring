@@ -864,8 +864,7 @@ interrupted (for synchronous strategies like `:colorizer' and
       (error "No colorizer, scopifier or command defined for dispatch"))
     (puthash symbol properties context-coloring-dispatch-hash-table)
     (dolist (mode modes)
-      (when (null (gethash mode context-coloring-mode-hash-table))
-        (puthash mode properties context-coloring-mode-hash-table)))))
+      (puthash mode properties context-coloring-mode-hash-table))))
 
 
 ;;; Colorization
