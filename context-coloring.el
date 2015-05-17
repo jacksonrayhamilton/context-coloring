@@ -842,49 +842,6 @@ should be numeric, e.g. \"2\", \"19700101\", \"1.2.3\",
       (when (null (gethash mode context-coloring-mode-hash-table))
         (puthash mode properties context-coloring-mode-hash-table)))))
 
-(context-coloring-define-dispatch
- 'javascript-node
- :modes '(js-mode js3-mode)
- :executable "scopifier"
- :command "scopifier"
- :version "v1.1.1")
-
-(context-coloring-define-dispatch
- 'javascript-js2
- :modes '(js2-mode)
- :colorizer 'context-coloring-js2-colorize
- :setup
- (lambda ()
-   (add-hook 'js2-post-parse-callbacks 'context-coloring-colorize nil t))
- :teardown
- (lambda ()
-   (remove-hook 'js2-post-parse-callbacks 'context-coloring-colorize t)))
-
-(context-coloring-define-dispatch
- 'emacs-lisp
- :modes '(emacs-lisp-mode)
- :colorizer 'context-coloring-emacs-lisp-colorize)
-
-(defun context-coloring-dispatch (&optional callback)
-  "Determine the optimal track for scopification / coloring of
-the current buffer, then execute it.
-
-Invoke CALLBACK when complete.  It is invoked synchronously for
-elisp tracks, and asynchronously for shell command tracks."
-  (let ((dispatch (gethash major-mode context-coloring-mode-hash-table))
-        colorizer
-        scopifier
-        command)
-    (cond
-     ((setq colorizer (plist-get dispatch :colorizer))
-      (funcall colorizer)
-      (when callback (funcall callback)))
-     ((setq scopifier (plist-get dispatch :scopifier))
-      (context-coloring-apply-tokens (funcall scopifier))
-      (when callback (funcall callback)))
-     ((setq command (plist-get dispatch :command))
-      (context-coloring-scopify-and-colorize command callback)))))
-
 
 ;;; Colorization
 
@@ -1316,7 +1273,7 @@ precedence, i.e. the car of `custom-enabled-themes'."
            "#dca3a3"))
 
 
-;;; Minor mode
+;;; Change detection
 
 (defvar-local context-coloring-colorize-idle-timer nil
   "The currently-running idle timer.")
@@ -1339,6 +1296,64 @@ Supported modes: `js-mode', `js3-mode'"
          context-coloring-delay
          t
          'context-coloring-maybe-colorize)))
+
+
+;;; Built-in dispatches
+
+(context-coloring-define-dispatch
+ 'javascript-node
+ :modes '(js-mode js3-mode)
+ :executable "scopifier"
+ :command "scopifier"
+ :version "v1.1.1")
+
+(context-coloring-define-dispatch
+ 'javascript-js2
+ :modes '(js2-mode)
+ :colorizer 'context-coloring-js2-colorize
+ :setup
+ (lambda ()
+   (add-hook 'js2-post-parse-callbacks 'context-coloring-colorize nil t))
+ :teardown
+ (lambda ()
+   (remove-hook 'js2-post-parse-callbacks 'context-coloring-colorize t)))
+
+(context-coloring-define-dispatch
+ 'emacs-lisp
+ :modes '(emacs-lisp-mode)
+ :colorizer 'context-coloring-emacs-lisp-colorize
+ :setup
+ (lambda ()
+   (context-coloring-setup-idle-change-detection))
+ :teardown
+ (lambda ()
+   (when context-coloring-colorize-idle-timer
+     (cancel-timer context-coloring-colorize-idle-timer))
+   (remove-hook
+    'after-change-functions 'context-coloring-change-function t)))
+
+(defun context-coloring-dispatch (&optional callback)
+  "Determine the optimal track for scopification / coloring of
+the current buffer, then execute it.
+
+Invoke CALLBACK when complete.  It is invoked synchronously for
+elisp tracks, and asynchronously for shell command tracks."
+  (let ((dispatch (gethash major-mode context-coloring-mode-hash-table))
+        colorizer
+        scopifier
+        command)
+    (cond
+     ((setq colorizer (plist-get dispatch :colorizer))
+      (funcall colorizer)
+      (when callback (funcall callback)))
+     ((setq scopifier (plist-get dispatch :scopifier))
+      (context-coloring-apply-tokens (funcall scopifier))
+      (when callback (funcall callback)))
+     ((setq command (plist-get dispatch :command))
+      (context-coloring-scopify-and-colorize command callback)))))
+
+
+;;; Minor mode
 
 ;;;###autoload
 (define-minor-mode context-coloring-mode
