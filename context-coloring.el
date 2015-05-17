@@ -1340,6 +1340,14 @@ Supported modes: `js-mode', `js3-mode'"
          t
          'context-coloring-maybe-colorize)))
 
+(defun context-coloring-teardown-idle-change-detection ()
+  "Teardown idle change detection."
+  (context-coloring-kill-scopifier)
+  (when context-coloring-colorize-idle-timer
+    (cancel-timer context-coloring-colorize-idle-timer))
+  (remove-hook
+   'after-change-functions 'context-coloring-change-function t))
+
 
 ;;; Built-in dispatches
 
@@ -1365,15 +1373,8 @@ Supported modes: `js-mode', `js3-mode'"
  'emacs-lisp
  :modes '(emacs-lisp-mode)
  :colorizer 'context-coloring-emacs-lisp-colorize
- :setup
- (lambda ()
-   (context-coloring-setup-idle-change-detection))
- :teardown
- (lambda ()
-   (when context-coloring-colorize-idle-timer
-     (cancel-timer context-coloring-colorize-idle-timer))
-   (remove-hook
-    'after-change-functions 'context-coloring-change-function t)))
+ :setup 'context-coloring-setup-idle-change-detection
+ :teardown 'context-coloring-teardown-idle-change-detection)
 
 (defun context-coloring-dispatch (&optional callback)
   "Determine the optimal track for scopification / coloring of
@@ -1412,16 +1413,12 @@ elisp tracks, and asynchronously for shell command tracks."
   nil " Context" nil
   (if (not context-coloring-mode)
       (progn
-        (context-coloring-kill-scopifier)
-        (when context-coloring-colorize-idle-timer
-          (cancel-timer context-coloring-colorize-idle-timer))
         (let ((dispatch (gethash major-mode context-coloring-mode-hash-table)))
           (when dispatch
             (let ((command (plist-get dispatch :command))
                   (teardown (plist-get dispatch :teardown)))
               (when command
-                (remove-hook
-                 'after-change-functions 'context-coloring-change-function t))
+                (context-coloring-teardown-idle-change-detection))
               (when teardown
                 (funcall teardown)))))
         (font-lock-mode)
