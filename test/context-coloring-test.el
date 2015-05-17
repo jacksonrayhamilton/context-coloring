@@ -1136,6 +1136,14 @@ see that function."
 (xxxxx x ()
   (x x 1 11 11 111 11 1 111))")))
 
+(context-coloring-test-deftest-emacs-lisp-mode let
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111 11
+      11 01
+      11 000011
+  1111 1 1 1 000011")))
+
 (context-coloring-test-deftest-emacs-lisp-mode let*
   (lambda ()
     (context-coloring-test-assert-coloring "
