@@ -236,6 +236,9 @@ environment."
 (defun context-coloring-test-assert-position-string (position)
   (context-coloring-test-assert-position-face position 'font-lock-string-face))
 
+(defun context-coloring-test-assert-position-nil (position)
+  (context-coloring-test-assert-position-face position nil))
+
 (defun context-coloring-test-assert-coloring (map)
   "Assert that the current buffer's coloring matches MAP."
   ;; Omit the superfluous, formatting-related leading newline.  Can't use
@@ -267,6 +270,10 @@ environment."
        ;; 'c' = Constant comment
        ((= char 99)
         (context-coloring-test-assert-position-constant-comment (point))
+        (forward-char))
+       ;; 'n' = nil
+       ((= char 110)
+        (context-coloring-test-assert-position-nil (point))
         (forward-char))
        ;; 's' = String
        ((= char 115)
@@ -1171,13 +1178,28 @@ see that function."
     2222 1 1 2 2 2 000022
   1111 1 1 1 0 0 000011")))
 
-(context-coloring-test-deftest-emacs-lisp-mode depth
+(defun context-coloring-test-insert-unread-space ()
+  (setq unread-command-events (cons '(t . 32)
+                                    unread-command-events)))
+
+(defun context-coloring-test-remove-faces ()
+  (remove-text-properties (point-min) (point-max) '(face nil)))
+
+(context-coloring-test-deftest-emacs-lisp-mode iteration
   (lambda ()
     (let ((context-coloring-emacs-lisp-iterations-per-pause 1))
       (context-coloring-colorize)
       (context-coloring-test-assert-coloring "
 ;; `cc' `cc'
-(xxxxx x ())")))
+(xxxxx x ())")
+      (context-coloring-test-remove-faces)
+      (context-coloring-test-insert-unread-space)
+      (context-coloring-colorize)
+      ;; The first iteration will color the first part of the comment, but
+      ;; that's it.  Then it will be interrupted.
+      (context-coloring-test-assert-coloring "
+;; nnnn nnnn
+nnnnnn n nnn")))
   :setup (lambda ()
            (setq context-coloring-syntactic-comments t)
            (setq context-coloring-syntactic-strings t)))

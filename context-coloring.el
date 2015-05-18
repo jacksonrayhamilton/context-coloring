@@ -438,6 +438,7 @@ provide visually \"instant\" updates at ~60 frames per second.")
              (inhibit-point-motion-hooks t)
              (iteration-count 0)
              (last-fontified-position (point))
+             beginning-of-current-defun
              end-of-current-defun
              (end (point-max))
              (last-ppss-pos (point))
@@ -485,13 +486,22 @@ provide visually \"instant\" updates at ~60 frames per second.")
             ;; Fontify until the end of the current defun because doing it in
             ;; chunks based soley on point could result in partial
             ;; re-fontifications over the contents of scopes.
-            (setq end-of-current-defun (save-excursion
-                                         (end-of-defun)
-                                         (point)))
+            (save-excursion
+              (end-of-defun)
+              (setq end-of-current-defun (point))
+              (beginning-of-defun)
+              (setq beginning-of-current-defun (point)))
+
             ;; Fontify in chunks.
             (context-coloring-maybe-colorize-comments-and-strings
              last-fontified-position
-             end-of-current-defun)
+             (cond
+              ;; We weren't actually in a defun, so don't color the next one, as
+              ;; that could result in `font-lock' properties being added to it.
+              ((> beginning-of-current-defun (point))
+               (point))
+              (t
+               end-of-current-defun)))
             (setq last-fontified-position (point))
             (when (and context-coloring-parse-interruptable-p
                        (input-pending-p))
