@@ -212,9 +212,9 @@ environment."
   "Assert that the face at POSITION satisfies FACE-REGEXP."
   (let ((face (get-text-property position 'face)))
     (when (or
-           ;; Pass a non-string to do an `eq' check (against a symbol or nil).
+           ;; Pass a non-string to do an `equal' check (against a symbol or nil).
            (unless (stringp face-regexp)
-             (not (eq face-regexp face)))
+             (not (equal face-regexp face)))
            ;; Otherwise do the matching.
            (when (stringp face-regexp)
              (not (string-match-p face-regexp (symbol-name face)))))
@@ -228,6 +228,10 @@ environment."
 (defun context-coloring-test-assert-position-comment (position)
   (context-coloring-test-assert-position-face
    position "\\`font-lock-comment\\(-delimiter\\)?-face\\'"))
+
+(defun context-coloring-test-assert-position-constant-comment (position)
+  (context-coloring-test-assert-position-face position '(font-lock-constant-face
+                                                         font-lock-comment-face)))
 
 (defun context-coloring-test-assert-position-string (position)
   (context-coloring-test-assert-position-face position 'font-lock-string-face))
@@ -259,6 +263,10 @@ environment."
        ;; ';' = Comment
        ((= char 59)
         (context-coloring-test-assert-position-comment (point))
+        (forward-char))
+       ;; 'c' = Constant comment
+       ((= char 99)
+        (context-coloring-test-assert-position-constant-comment (point))
         (forward-char))
        ;; 's' = String
        ((= char 115)
@@ -1162,6 +1170,17 @@ see that function."
          22 222
     2222 1 1 2 2 2 000022
   1111 1 1 1 0 0 000011")))
+
+(context-coloring-test-deftest-emacs-lisp-mode depth
+  (lambda ()
+    (let ((context-coloring-emacs-lisp-iterations-per-pause 1))
+      (context-coloring-colorize)
+      (context-coloring-test-assert-coloring "
+;; `cc' `cc'
+(xxxxx x ())")))
+  :setup (lambda ()
+           (setq context-coloring-syntactic-comments t)
+           (setq context-coloring-syntactic-strings t)))
 
 (provide 'context-coloring-test)
 
