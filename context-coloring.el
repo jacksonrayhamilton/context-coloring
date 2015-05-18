@@ -193,7 +193,6 @@ the END point (exclusive) with the face corresponding to LEVEL."
                                                 (or max (point-max)))
         ;; TODO: Make configurable at the dispatch level.
         (when (eq major-mode 'emacs-lisp-mode)
-          (font-lock-set-defaults)
           (font-lock-fontify-keywords-region (or min (point-min))
                                              (or max (point-max))))))))
 
@@ -1431,6 +1430,9 @@ elisp tracks, and asynchronously for shell command tracks."
     ;; Font lock is incompatible with this mode; the converse is also true.
     (font-lock-mode 0)
     (jit-lock-mode nil)
+
+    ;; ...but we do use font-lock functions here.
+    (font-lock-set-defaults)
 
     ;; Safely change the valye of this function as necessary.
     (make-local-variable 'font-lock-syntactic-face-function)
