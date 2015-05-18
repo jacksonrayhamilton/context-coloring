@@ -44,13 +44,12 @@
 
 (defun context-coloring-test-setup ()
   "Prepare before all tests."
-  (setq context-coloring-comments-and-strings nil))
+  (setq context-coloring-syntactic-comments nil)
+  (setq context-coloring-syntactic-strings nil))
 
 (defun context-coloring-test-cleanup ()
   "Cleanup after all tests."
-  (setq context-coloring-comments-and-strings t)
-  (setq context-coloring-syntactic-comments nil)
-  (setq context-coloring-syntactic-strings nil)
+  (setq context-coloring-comments-and-strings nil)
   (setq context-coloring-js-block-scopes nil)
   (setq context-coloring-colorize-hook nil)
   (setq context-coloring-check-scopifier-version-hook nil)
@@ -167,8 +166,122 @@ format."
         ',setup-function-name
         (,function-name)))))
 
+(cl-defmacro context-coloring-test-deftest-emacs-lisp-mode (name
+                                                            body
+                                                            &key setup)
+  "Define a test for `emacs-lisp-mode' with name and fixture as
+NAME, with BODY containing the assertions, and SETUP defining the
+environment."
+  (declare (indent defun))
+  (let ((test-name (intern (format "context-coloring-emacs-lisp-mode-%s" name)))
+        (fixture (format "./fixtures/%s.el" name)))
+    `(ert-deftest ,test-name ()
+       (context-coloring-test-with-fixture
+        ,fixture
+        (emacs-lisp-mode)
+        (when ,setup (funcall ,setup))
+        (context-coloring-mode)
+        (funcall ,body)))))
+
 
 ;;; Assertion functions
+
+(defun context-coloring-test-assert-position-level (position level)
+  "Assert that POSITION has LEVEL."
+  (let ((face (get-text-property position 'face))
+        actual-level)
+    (when (not (and face
+                    (let* ((face-string (symbol-name face))
+                           (matches (string-match
+                                     context-coloring-level-face-regexp
+                                     face-string)))
+                      (when matches
+                        (setq actual-level (string-to-number
+                                            (substring face-string
+                                                       (match-beginning 1)
+                                                       (match-end 1))))
+                        (= level actual-level)))))
+      (ert-fail (format (concat "Expected level at position %s, "
+                                "which is \"%s\", to be %s; "
+                                "but it was %s")
+                        position
+                        (buffer-substring-no-properties position (1+ position)) level
+                        actual-level)))))
+
+(defun context-coloring-test-assert-position-face (position face-regexp)
+  "Assert that the face at POSITION satisfies FACE-REGEXP."
+  (let ((face (get-text-property position 'face)))
+    (when (or
+           ;; Pass a non-string to do an `equal' check (against a symbol or nil).
+           (unless (stringp face-regexp)
+             (not (equal face-regexp face)))
+           ;; Otherwise do the matching.
+           (when (stringp face-regexp)
+             (not (string-match-p face-regexp (symbol-name face)))))
+      (ert-fail (format (concat "Expected face at position %s, "
+                                "which is \"%s\", to be %s; "
+                                "but it was %s")
+                        position
+                        (buffer-substring-no-properties position (1+ position)) face-regexp
+                        face)))))
+
+(defun context-coloring-test-assert-position-comment (position)
+  (context-coloring-test-assert-position-face
+   position "\\`font-lock-comment\\(-delimiter\\)?-face\\'"))
+
+(defun context-coloring-test-assert-position-constant-comment (position)
+  (context-coloring-test-assert-position-face position '(font-lock-constant-face
+                                                         font-lock-comment-face)))
+
+(defun context-coloring-test-assert-position-string (position)
+  (context-coloring-test-assert-position-face position 'font-lock-string-face))
+
+(defun context-coloring-test-assert-position-nil (position)
+  (context-coloring-test-assert-position-face position nil))
+
+(defun context-coloring-test-assert-coloring (map)
+  "Assert that the current buffer's coloring matches MAP."
+  ;; Omit the superfluous, formatting-related leading newline.  Can't use
+  ;; `save-excursion' here because if an assertion fails it will cause future
+  ;; tests to get messed up.
+  (goto-char (point-min))
+  (let* ((map (substring map 1))
+         (index 0)
+         char-string
+         char)
+    (while (< index (length map))
+      (setq char-string (substring map index (1+ index)))
+      (setq char (string-to-char char-string))
+      (cond
+       ;; Newline
+       ((= char 10)
+        (next-logical-line)
+        (beginning-of-line))
+       ;; Number
+       ((and (>= char 48)
+             (<= char 57))
+        (context-coloring-test-assert-position-level
+         (point) (string-to-number char-string))
+        (forward-char))
+       ;; ';' = Comment
+       ((= char 59)
+        (context-coloring-test-assert-position-comment (point))
+        (forward-char))
+       ;; 'c' = Constant comment
+       ((= char 99)
+        (context-coloring-test-assert-position-constant-comment (point))
+        (forward-char))
+       ;; 'n' = nil
+       ((= char 110)
+        (context-coloring-test-assert-position-nil (point))
+        (forward-char))
+       ;; 's' = String
+       ((= char 115)
+        (context-coloring-test-assert-position-string (point))
+        (forward-char))
+       (t
+        (forward-char)))
+      (setq index (1+ index)))))
 
 (defmacro context-coloring-test-assert-region (&rest body)
   "Assert something about the face of points in a region.
@@ -235,8 +348,16 @@ EXPECTED-FACE."
   (context-coloring-test-assert-region-face
    start end 'font-lock-string-face))
 
+(defun context-coloring-test-get-last-message ()
+  (let ((messages (split-string
+                   (buffer-substring-no-properties
+                    (point-min)
+                    (point-max))
+                   "\n")))
+    (car (nthcdr (- (length messages) 2) messages))))
+
 (defun context-coloring-test-assert-message (expected buffer)
-  "Assert that message EXPECTED exists in BUFFER."
+  "Assert that message EXPECTED is at the end of BUFFER."
   (when (null (get-buffer buffer))
     (ert-fail
      (format
@@ -245,20 +366,28 @@ EXPECTED-FACE."
        "but the buffer did not have any messages.")
       buffer expected)))
   (with-current-buffer buffer
-    (let ((messages (split-string
-                     (buffer-substring-no-properties
-                      (point-min)
-                      (point-max))
-                     "\n")))
-      (let ((message (car (nthcdr (- (length messages) 2) messages))))
-        (when (not (equal message expected))
+    (let ((message (context-coloring-test-get-last-message)))
+      (when (not (equal message expected))
+        (ert-fail
+         (format
+          (concat
+           "Expected buffer `%s' to have message \"%s\", "
+           "but instead it was \"%s\"")
+          buffer expected
+          message))))))
+
+(defun context-coloring-test-assert-not-message (expected buffer)
+  "Assert that message EXPECTED is not at the end of BUFFER."
+  (when (get-buffer buffer)
+    (with-current-buffer buffer
+      (let ((message (context-coloring-test-get-last-message)))
+        (when (equal message expected)
           (ert-fail
            (format
             (concat
-             "Expected buffer `%s' to have message \"%s\", "
-             "but instead it was \"%s\"")
-            buffer expected
-            message)))))))
+             "Expected buffer `%s' not to have message \"%s\", "
+             "but it did")
+            buffer expected)))))))
 
 (defun context-coloring-test-assert-no-message (buffer)
   "Assert that BUFFER has no message."
@@ -376,7 +505,7 @@ FOREGROUND.  Apply ARGUMENTS to
            (funcall done)))
         (insert " ")
         (set-window-buffer (selected-window) (current-buffer))
-        (context-coloring-maybe-colorize)))
+        (context-coloring-maybe-colorize (current-buffer))))
      (context-coloring-mode))))
 
 (ert-deftest context-coloring-test-check-version ()
@@ -390,6 +519,15 @@ FOREGROUND.  Apply ARGUMENTS to
    "./fixtures/empty"
    (context-coloring-mode)
    (context-coloring-test-assert-message
+    "Context coloring is not available for this major mode"
+    "*Messages*")))
+
+(ert-deftest context-coloring-test-derived-mode ()
+  (context-coloring-test-with-fixture
+   "./fixtures/empty"
+   (lisp-interaction-mode)
+   (context-coloring-mode)
+   (context-coloring-test-assert-not-message
     "Context coloring is not available for this major mode"
     "*Messages*")))
 
@@ -987,6 +1125,109 @@ see that function."
   "Test unterminated multiline comments.")
 
 (context-coloring-test-deftest-js2-mode unterminated-comment)
+
+(context-coloring-test-deftest-emacs-lisp-mode defun
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+111111 000 1111 111 111111111 1111
+  11 111 111 111 000011
+
+0000 0 0 00
+
+111111 01
+111111 111")))
+
+(context-coloring-test-deftest-emacs-lisp-mode lambda
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+00000000 1111111 1111
+           11111111 11 2222222 2222
+                         222 22 12 2221 111 0 00")))
+
+(context-coloring-test-deftest-emacs-lisp-mode quote
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxxxx x (x)
+  (xx (xx x 111
+      111111 1 111 111
+      111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111")))
+
+(context-coloring-test-deftest-emacs-lisp-mode comment
+  (lambda ()
+    ;; Just check that the comment isn't parsed syntactically.
+    (context-coloring-test-assert-coloring "
+(xxxxx x ()
+  (xx (x xxxxx-xxxx xx)   ;;;;;;;;;;
+      11 00000-0000 11))) ;;;;;;;;;;"))
+  :setup (lambda ()
+           (setq context-coloring-syntactic-comments t)))
+
+(context-coloring-test-deftest-emacs-lisp-mode string
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxxxx x (x)
+  (xxxxxx x x sss 1 0 sssss 0 1 sssssss11"))
+  :setup (lambda ()
+           (setq context-coloring-syntactic-strings t)))
+
+(context-coloring-test-deftest-emacs-lisp-mode ignored
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxxxx x ()
+  (x x 1 11 11 111 11 1 111 (1 1 1)))")))
+
+(context-coloring-test-deftest-emacs-lisp-mode let
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111 11
+      11 01
+      11 00001
+      11 2222 22
+               22 02
+               22 000022
+           2222 2 2 2 00002211
+  1111 1 1 1 000011")))
+
+(context-coloring-test-deftest-emacs-lisp-mode let*
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+11111 11
+       11 11
+       11 000011
+  1111 1 1 1 0 0 00001
+  22222 22
+         22 12
+         22 00002
+         22 02
+         22 222
+    2222 1 1 2 2 2 000022
+  1111 1 1 1 0 0 000011")))
+
+(defun context-coloring-test-insert-unread-space ()
+  (setq unread-command-events (cons '(t . 32)
+                                    unread-command-events)))
+
+(defun context-coloring-test-remove-faces ()
+  (remove-text-properties (point-min) (point-max) '(face nil)))
+
+(context-coloring-test-deftest-emacs-lisp-mode iteration
+  (lambda ()
+    (let ((context-coloring-emacs-lisp-iterations-per-pause 1))
+      (context-coloring-colorize)
+      (context-coloring-test-assert-coloring "
+;; `cc' `cc'
+(xxxxx x ())")
+      (context-coloring-test-remove-faces)
+      (context-coloring-test-insert-unread-space)
+      (context-coloring-colorize)
+      ;; The first iteration will color the first part of the comment, but
+      ;; that's it.  Then it will be interrupted.
+      (context-coloring-test-assert-coloring "
+;; nnnn nnnn
+nnnnnn n nnn")))
+  :setup (lambda ()
+           (setq context-coloring-syntactic-comments t)
+           (setq context-coloring-syntactic-strings t)))
 
 (provide 'context-coloring-test)
 
