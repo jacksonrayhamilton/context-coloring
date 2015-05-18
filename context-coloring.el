@@ -841,6 +841,15 @@ Invoke CALLBACK when complete."
 (defvar context-coloring-mode-hash-table (make-hash-table :test 'eq)
   "Map major mode names to dispatch property lists.")
 
+(defun context-coloring-get-dispatch-for-mode (mode)
+  "Return the dispatch for MODE (or a derivative mode)."
+  (let ((parent mode)
+        dispatch)
+    (while (and parent
+                (not (setq dispatch (gethash parent context-coloring-mode-hash-table)))
+                (setq parent (get parent 'derived-mode-parent))))
+    dispatch))
+
 (defun context-coloring-define-dispatch (symbol &rest properties)
   "Define a new dispatch named SYMBOL with PROPERTIES.
 
@@ -969,7 +978,7 @@ produces (1 0 0), \"19700101\" produces (19700101), etc."
   "Asynchronously invoke CALLBACK with a predicate indicating
 whether the current scopifier version satisfies the minimum
 version number required for the current major mode."
-  (let ((dispatch (gethash major-mode context-coloring-mode-hash-table)))
+  (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
     (when dispatch
       (let ((version (plist-get dispatch :version))
             (command (plist-get dispatch :command)))
@@ -1396,7 +1405,7 @@ the current buffer, then execute it.
 
 Invoke CALLBACK when complete.  It is invoked synchronously for
 elisp tracks, and asynchronously for shell command tracks."
-  (let* ((dispatch (gethash major-mode context-coloring-mode-hash-table))
+  (let* ((dispatch (context-coloring-get-dispatch-for-mode major-mode))
          (colorizer (plist-get dispatch :colorizer))
          (scopifier (plist-get dispatch :scopifier))
          (command (plist-get dispatch :command))
@@ -1427,7 +1436,7 @@ elisp tracks, and asynchronously for shell command tracks."
   nil " Context" nil
   (if (not context-coloring-mode)
       (progn
-        (let ((dispatch (gethash major-mode context-coloring-mode-hash-table)))
+        (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
           (when dispatch
             (let ((command (plist-get dispatch :command))
                   (teardown (plist-get dispatch :teardown)))
@@ -1448,8 +1457,7 @@ elisp tracks, and asynchronously for shell command tracks."
     ;; Safely change the valye of this function as necessary.
     (make-local-variable 'font-lock-syntactic-face-function)
 
-    ;; TODO: Detect derived modes.
-    (let ((dispatch (gethash major-mode context-coloring-mode-hash-table)))
+    (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
       (if dispatch
           (progn
             (let ((command (plist-get dispatch :command))

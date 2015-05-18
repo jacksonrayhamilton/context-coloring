@@ -348,8 +348,16 @@ EXPECTED-FACE."
   (context-coloring-test-assert-region-face
    start end 'font-lock-string-face))
 
+(defun context-coloring-test-get-last-message ()
+  (let ((messages (split-string
+                   (buffer-substring-no-properties
+                    (point-min)
+                    (point-max))
+                   "\n")))
+    (car (nthcdr (- (length messages) 2) messages))))
+
 (defun context-coloring-test-assert-message (expected buffer)
-  "Assert that message EXPECTED exists in BUFFER."
+  "Assert that message EXPECTED is at the end of BUFFER."
   (when (null (get-buffer buffer))
     (ert-fail
      (format
@@ -358,20 +366,28 @@ EXPECTED-FACE."
        "but the buffer did not have any messages.")
       buffer expected)))
   (with-current-buffer buffer
-    (let ((messages (split-string
-                     (buffer-substring-no-properties
-                      (point-min)
-                      (point-max))
-                     "\n")))
-      (let ((message (car (nthcdr (- (length messages) 2) messages))))
-        (when (not (equal message expected))
+    (let ((message (context-coloring-test-get-last-message)))
+      (when (not (equal message expected))
+        (ert-fail
+         (format
+          (concat
+           "Expected buffer `%s' to have message \"%s\", "
+           "but instead it was \"%s\"")
+          buffer expected
+          message))))))
+
+(defun context-coloring-test-assert-not-message (expected buffer)
+  "Assert that message EXPECTED is not at the end of BUFFER."
+  (when (get-buffer buffer)
+    (with-current-buffer buffer
+      (let ((message (context-coloring-test-get-last-message)))
+        (when (equal message expected)
           (ert-fail
            (format
             (concat
-             "Expected buffer `%s' to have message \"%s\", "
-             "but instead it was \"%s\"")
-            buffer expected
-            message)))))))
+             "Expected buffer `%s' not to have message \"%s\", "
+             "but it did")
+            buffer expected)))))))
 
 (defun context-coloring-test-assert-no-message (buffer)
   "Assert that BUFFER has no message."
@@ -503,6 +519,15 @@ FOREGROUND.  Apply ARGUMENTS to
    "./fixtures/empty"
    (context-coloring-mode)
    (context-coloring-test-assert-message
+    "Context coloring is not available for this major mode"
+    "*Messages*")))
+
+(ert-deftest context-coloring-test-derived-mode ()
+  (context-coloring-test-with-fixture
+   "./fixtures/empty"
+   (lisp-interaction-mode)
+   (context-coloring-mode)
+   (context-coloring-test-assert-not-message
     "Context coloring is not available for this major mode"
     "*Messages*")))
 
