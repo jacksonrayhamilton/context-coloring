@@ -15,10 +15,11 @@ By default, comments and strings are still highlighted syntactically.
 
 - Light and dark (customizable) color schemes.
 - JavaScript support:
-  - Very fast for files under 1000 lines.
   - Script, function and block scopes (and even `catch` block scopes).
+  - Very fast for files under 1000 lines.
 - Emacs Lisp support:
   - `defun`, `lambda`, `let`, `let*`, quotes, backticks, commas.
+  - 25,000 lines per second!
 
 ## Installation
 
