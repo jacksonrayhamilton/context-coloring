@@ -3,7 +3,7 @@
 ;; Copyright (C) 2014-2015  Free Software Foundation, Inc.
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
-;; Version: 6.2.1
+;; Version: 6.3.0
 ;; Keywords: convenience faces tools
 ;; Package-Requires: ((emacs "24") (js2-mode "20150126"))
 ;; URL: https://github.com/jacksonrayhamilton/context-coloring
@@ -31,16 +31,6 @@
 ;; by an inner scope is colored the same as the outer scope.
 
 ;; By default, comments and strings are still highlighted syntactically.
-
-;; To use with js2-mode, add the following to your init file:
-
-;; (require 'context-coloring)
-;; (add-hook 'js2-mode-hook 'context-coloring-mode)
-
-;; To use with js-mode or js3-mode, install Node.js 0.10+ and the scopifier
-;; executable:
-
-;; $ npm install -g scopifier
 
 ;;; Code:
 
