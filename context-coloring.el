@@ -47,12 +47,6 @@
 (require 'js2-mode)
 
 
-;;; Local variables
-
-(defvar-local context-coloring-buffer nil
-  "Reference to this buffer (for timers).")
-
-
 ;;; Utilities
 
 (defun context-coloring-join (strings delimiter)
@@ -811,7 +805,7 @@ read the scopifier's response asynchronously and apply a parsed
 list of tokens to `context-coloring-apply-tokens'.
 
 Invoke CALLBACK when complete."
-  (let ((buffer context-coloring-buffer))
+  (let ((buffer (current-buffer)))
     (context-coloring-scopify-shell-command
      command
      (lambda (output)
@@ -913,9 +907,9 @@ used.")
   (context-coloring-kill-scopifier)
   (setq context-coloring-changed t))
 
-(defun context-coloring-maybe-colorize ()
+(defun context-coloring-maybe-colorize (buffer)
   "Colorize the current buffer if it has changed."
-  (when (and (eq context-coloring-buffer (window-buffer (selected-window)))
+  (when (and (eq buffer (current-buffer))
              context-coloring-changed)
     (setq context-coloring-changed nil)
     (context-coloring-colorize)))
@@ -1334,17 +1328,22 @@ Supported modes: `js-mode', `js3-mode'"
   "Setup idle change detection."
   (add-hook
    'after-change-functions 'context-coloring-change-function nil t)
+  (add-hook
+   'kill-buffer-hook 'context-coloring-teardown-idle-change-detection nil t)
   (setq context-coloring-colorize-idle-timer
         (run-with-idle-timer
          context-coloring-delay
          t
-         'context-coloring-maybe-colorize)))
+         'context-coloring-maybe-colorize
+         (current-buffer))))
 
 (defun context-coloring-teardown-idle-change-detection ()
   "Teardown idle change detection."
   (context-coloring-kill-scopifier)
   (when context-coloring-colorize-idle-timer
     (cancel-timer context-coloring-colorize-idle-timer))
+  (remove-hook
+   'kill-buffer-hook 'context-coloring-teardown-idle-change-detection t)
   (remove-hook
    'after-change-functions 'context-coloring-change-function t))
 
@@ -1423,9 +1422,6 @@ elisp tracks, and asynchronously for shell command tracks."
                 (funcall teardown)))))
         (font-lock-mode)
         (jit-lock-mode t))
-
-    ;; Remember this buffer.  This value should not be dynamically-bound.
-    (setq context-coloring-buffer (current-buffer))
 
     ;; Font lock is incompatible with this mode; the converse is also true.
     (font-lock-mode 0)

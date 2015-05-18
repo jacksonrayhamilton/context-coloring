@@ -474,7 +474,7 @@ FOREGROUND.  Apply ARGUMENTS to
            (funcall done)))
         (insert " ")
         (set-window-buffer (selected-window) (current-buffer))
-        (context-coloring-maybe-colorize)))
+        (context-coloring-maybe-colorize (current-buffer))))
      (context-coloring-mode))))
 
 (ert-deftest context-coloring-test-check-version ()
