@@ -1336,7 +1336,7 @@ precedence, i.e. the car of `custom-enabled-themes'."
 Increase this if your machine is high-performing.  Decrease it if
 it ain't.
 
-Supported modes: `js-mode', `js3-mode'"
+Supported modes: `js-mode', `js3-mode', `emacs-lisp-mode'"
   :group 'context-coloring)
 
 (defun context-coloring-setup-idle-change-detection ()

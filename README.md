@@ -13,9 +13,12 @@ By default, comments and strings are still highlighted syntactically.
 
 ## Features
 
-- Supported languages: JavaScript
 - Light and dark (customizable) color schemes.
-- Very fast for files under 1000 lines.
+- JavaScript support:
+  - Very fast for files under 1000 lines.
+  - Script, function and block scopes (and even `catch` block scopes).
+- Emacs Lisp support:
+  - `defun`, `lambda`, `let`, `let*`, quotes, backticks, commas.
 
 ## Installation
 
@@ -51,7 +54,7 @@ make compile
 (require 'context-coloring)
 ```
 
-### scopifier (for non-js2-mode users)
+### Dependencies (js-mode)
 
 ```bash
 npm install -g scopifier
@@ -62,12 +65,15 @@ npm install -g scopifier
 Add the following to your init file:
 
 ```lisp
-;; non-js2-mode users:
+;; js-mode:
 (add-hook 'js-mode-hook 'context-coloring-mode)
 
-;; js2-mode users:
+;; js2-mode:
 (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
 (add-hook 'js2-mode-hook 'context-coloring-mode)
+
+;; emacs-lisp-mode:
+(add-hook 'emacs-lisp-mode-hook 'context-coloring-mode)
 ```
 
 ## Customizing
@@ -79,7 +85,8 @@ Add the following to your init file:
 - `context-coloring-syntactic-strings` (default: `t`): If non-nil, also color
   strings using `font-lock`.
 - `context-coloring-delay` (default: `0.25`; supported modes: `js-mode`,
-  `js3-mode`): Delay between a buffer update and colorization.
+  `js3-mode`, `emacs-lisp-mode`): Delay between a buffer update and
+  colorization.
 - `context-coloring-js-block-scopes` (default: `nil`; supported modes:
   `js2-mode`): If non-nil, also color block scopes in the scope hierarchy in
   JavaScript.
@@ -169,6 +176,11 @@ print scopifier ARGF.read
 When a `--version` argument is passed, a scopifier should print its version
 number and exit.  This allows context-coloring to determine if an update is
 required.
+
+Alternatively, you could implement a "colorizer" in Emacs Lisp.  A colorizer
+also handles the job of calling `context-coloring-colorize-region` to apply
+colors to a buffer.  A colorizer may have better performance than a scopifier
+when parsing and coloring can be performed in the same pass.
 
 [js2-mode]: https://github.com/mooz/js2-mode
 [node]: http://nodejs.org/download/
