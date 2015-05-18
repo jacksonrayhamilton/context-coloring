@@ -492,7 +492,7 @@ provide visually \"instant\" updates at ~60 frames per second.")
             (context-coloring-maybe-colorize-comments-and-strings
              last-fontified-position
              end-of-current-defun)
-            (setq last-fontified-position end-of-current-defun)
+            (setq last-fontified-position (point))
             (when (and context-coloring-parse-interruptable-p
                        (input-pending-p))
               (throw 'interrupted t)))
