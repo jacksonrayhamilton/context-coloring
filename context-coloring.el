@@ -172,7 +172,9 @@ the END point (exclusive) with the face corresponding to LEVEL."
   (when (or context-coloring-comments-and-strings
             context-coloring-syntactic-comments
             context-coloring-syntactic-strings)
-    (let ((font-lock-syntactic-face-function
+    (let ((min (or min (point-min)))
+          (max (or max (point-max)))
+          (font-lock-syntactic-face-function
            (cond
             ((and context-coloring-syntactic-comments
                   (not context-coloring-syntactic-strings))
@@ -183,12 +185,10 @@ the END point (exclusive) with the face corresponding to LEVEL."
             (t
              font-lock-syntactic-face-function))))
       (save-excursion
-        (font-lock-fontify-syntactically-region (or min (point-min))
-                                                (or max (point-max)))
+        (font-lock-fontify-syntactically-region min max)
         ;; TODO: Make configurable at the dispatch level.
         (when (eq major-mode 'emacs-lisp-mode)
-          (font-lock-fontify-keywords-region (or min (point-min))
-                                             (or max (point-max))))))))
+          (font-lock-fontify-keywords-region min max))))))
 
 
 ;;; js2-mode colorization
