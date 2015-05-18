@@ -193,6 +193,7 @@ the END point (exclusive) with the face corresponding to LEVEL."
                                                 (or max (point-max)))
         ;; TODO: Make configurable at the dispatch level.
         (when (eq major-mode 'emacs-lisp-mode)
+          (font-lock-set-defaults)
           (font-lock-fontify-keywords-region (or min (point-min))
                                              (or max (point-max))))))))
 
