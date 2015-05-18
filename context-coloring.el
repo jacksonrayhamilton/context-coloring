@@ -425,17 +425,13 @@ As of this writing, emacs lisp colorization seems to run at about
 60,000 iterations per second.  A default value of 1000 should
 provide visually \"instant\" updates at ~60 frames per second.")
 
-(defvar context-coloring-verbose-parse nil
-  "Log useful information pertaining to a parse.")
-
 (defun context-coloring-emacs-lisp-colorize ()
   "Color the current buffer by parsing emacs lisp sexps."
   (with-silent-modifications
     (save-excursion
       ;; TODO: Can probably make this lazy to the nearest defun.
       (goto-char (point-min))
-      (let* ((start-time (float-time))
-             (inhibit-point-motion-hooks t)
+      (let* ((inhibit-point-motion-hooks t)
              (iteration-count 0)
              (last-fontified-position (point))
              beginning-of-current-defun
@@ -740,10 +736,7 @@ provide visually \"instant\" updates at ~60 frames per second.")
         ;; Fontify the last stretch.
         (context-coloring-maybe-colorize-comments-and-strings
          last-fontified-position
-         (point))
-        (when context-coloring-verbose-parse
-          (message "Elapsed: %s; iterations: %s"
-                   (- (float-time) start-time) iteration-count))))))
+         (point))))))
 
 
 ;;; Shell command scopification / colorization
