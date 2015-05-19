@@ -130,10 +130,6 @@ the END point (exclusive) with the face corresponding to LEVEL."
    end
    `(face ,(context-coloring-bounded-level-face level))))
 
-(defcustom context-coloring-comments-and-strings nil
-  "If non-nil, also color comments and strings using `font-lock'."
-  :group 'context-coloring)
-
 (make-obsolete-variable
  'context-coloring-comments-and-strings
  "use `context-coloring-syntactic-comments' and
@@ -157,10 +153,10 @@ the END point (exclusive) with the face corresponding to LEVEL."
   (if (nth 3 state) font-lock-string-face nil))
 
 (defsubst context-coloring-maybe-colorize-comments-and-strings (&optional min max)
-  "Color the current buffer's comments and strings if
-`context-coloring-comments-and-strings' is non-nil."
-  (when (or context-coloring-comments-and-strings
-            context-coloring-syntactic-comments
+  "Color the current buffer's comments or strings if
+`context-coloring-syntactic-comments' or
+`context-coloring-syntactic-strings' are non-nil."
+  (when (or context-coloring-syntactic-comments
             context-coloring-syntactic-strings)
     (let ((min (or min (point-min)))
           (max (or max (point-max)))
@@ -425,6 +421,10 @@ As of this writing, emacs lisp colorization seems to run at about
 60,000 iterations per second.  A default value of 1000 should
 provide visually \"instant\" updates at 60 frames per second.")
 
+;; TODO: Add cases for special forms like `cond'.
+;; TODO: Backticks only go one level deep.
+;; TODO: Refactor this function into smaller, focused ones so we can parse
+;; recursively and easily.
 (defun context-coloring-emacs-lisp-colorize ()
   "Color the current buffer by parsing emacs lisp sexps."
   (with-silent-modifications
