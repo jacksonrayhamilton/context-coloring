@@ -37,7 +37,7 @@
   "This file's directory.")
 
 (defun context-coloring-test-read-file (path)
-  "Read a file's contents from PATH into a string."
+  "Return the file's contents from PATH as a string."
   (with-temp-buffer
     (insert-file-contents (expand-file-name path context-coloring-test-path))
     (buffer-string)))
@@ -167,22 +167,51 @@ format."
         ',setup-function-name
         (,function-name)))))
 
-(cl-defmacro context-coloring-test-deftest-emacs-lisp-mode (name
-                                                            body
-                                                            &key setup)
-  "Define a test for `emacs-lisp-mode' with name and fixture as
-NAME, with BODY containing the assertions, and SETUP defining the
-environment."
+(cl-defmacro context-coloring-test-define-deftest (name
+                                                   &key mode
+                                                   &key extension)
+  "Define a deftest defmacro for tests prefixed with NAME. MODE
+is called to set up the test's environment.  EXTENSION denotes
+the suffix for tests' fixture files."
   (declare (indent defun))
-  (let ((test-name (intern (format "context-coloring-emacs-lisp-mode-%s" name)))
-        (fixture (format "./fixtures/%s.el" name)))
-    `(ert-deftest ,test-name ()
-       (context-coloring-test-with-fixture
-        ,fixture
-        (emacs-lisp-mode)
-        (when ,setup (funcall ,setup))
-        (context-coloring-mode)
-        (funcall ,body)))))
+  (let ((macro-name (intern (format "context-coloring-test-deftest-%s" name))))
+    `(cl-defmacro ,macro-name (name
+                               body
+                               &key fixture
+                               &key before
+                               &key after)
+       ,(format "Define a test for `%s' suffixed with NAME.
+Function BODY makes assertions.  The default fixture has a
+filename matching NAME (plus the filetype extension, \"%s\"),
+unless FIXTURE is specified to override it.  Functions BEFORE
+and AFTER run before and after the test, even if an error is
+signaled.
+
+BODY is run after `context-coloring-mode' is activated, or after
+initial colorization if colorization should occur."
+                (cadr mode) extension)
+       (declare (indent defun))
+       ;; Commas in nested backquotes are not evaluated.  Binding the mode here
+       ;; is probably the cleanest workaround.
+       (let ((mode ,mode)
+             (test-name (intern (format ,(format "%s-%%s" name) name)))
+             (fixture (cond
+                       (fixture (format "./fixtures/%s" fixture))
+                       (t (format "./fixtures/%s.el" name)))))
+         `(ert-deftest ,test-name ()
+            (context-coloring-test-with-fixture
+             ,fixture
+             (,mode)
+             (when ,before (funcall ,before))
+             (context-coloring-mode)
+             (unwind-protect
+                 (progn
+                   (funcall ,body))
+               (when ,after (funcall ,after)))))))))
+
+(context-coloring-test-define-deftest emacs-lisp
+  :mode 'emacs-lisp-mode
+  :extension "el")
 
 
 ;;; Assertion functions
@@ -1128,7 +1157,7 @@ see that function."
 
 (context-coloring-test-deftest-js2-mode unterminated-comment)
 
-(context-coloring-test-deftest-emacs-lisp-mode defun
+(context-coloring-test-deftest-emacs-lisp defun
   (lambda ()
     (context-coloring-test-assert-coloring "
 111111 000 1111 111 111111111 1111
@@ -1139,14 +1168,14 @@ see that function."
 111111 01
 111111 111")))
 
-(context-coloring-test-deftest-emacs-lisp-mode lambda
+(context-coloring-test-deftest-emacs-lisp lambda
   (lambda ()
     (context-coloring-test-assert-coloring "
 00000000 1111111 1111
            11111111 11 2222222 2222
                          222 22 12 2221 111 0 00")))
 
-(context-coloring-test-deftest-emacs-lisp-mode quote
+(context-coloring-test-deftest-emacs-lisp quote
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxx x (x)
@@ -1154,31 +1183,31 @@ see that function."
       111111 1 111 111
       111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111")))
 
-(context-coloring-test-deftest-emacs-lisp-mode comment
+(context-coloring-test-deftest-emacs-lisp comment
   (lambda ()
     ;; Just check that the comment isn't parsed syntactically.
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
   (xx (x xxxxx-xxxx xx)   ;;;;;;;;;;
       11 00000-0000 11))) ;;;;;;;;;;"))
-  :setup (lambda ()
-           (setq context-coloring-syntactic-comments t)))
+  :before (lambda ()
+            (setq context-coloring-syntactic-comments t)))
 
-(context-coloring-test-deftest-emacs-lisp-mode string
+(context-coloring-test-deftest-emacs-lisp string
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxx x (x)
   (xxxxxx x x sss 1 0 sssss 0 1 sssssss11"))
-  :setup (lambda ()
-           (setq context-coloring-syntactic-strings t)))
+  :before (lambda ()
+            (setq context-coloring-syntactic-strings t)))
 
-(context-coloring-test-deftest-emacs-lisp-mode ignored
+(context-coloring-test-deftest-emacs-lisp ignored
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
   (x x 1 11 11 111 11 1 111 (1 1 1)))")))
 
-(context-coloring-test-deftest-emacs-lisp-mode let
+(context-coloring-test-deftest-emacs-lisp let
   (lambda ()
     (context-coloring-test-assert-coloring "
 1111 11
@@ -1190,7 +1219,7 @@ see that function."
            2222 2 2 2 00002211
   1111 1 1 1 000011")))
 
-(context-coloring-test-deftest-emacs-lisp-mode let*
+(context-coloring-test-deftest-emacs-lisp let*
   (lambda ()
     (context-coloring-test-assert-coloring "
 11111 11
@@ -1212,7 +1241,7 @@ see that function."
 (defun context-coloring-test-remove-faces ()
   (remove-text-properties (point-min) (point-max) '(face nil)))
 
-(context-coloring-test-deftest-emacs-lisp-mode iteration
+(context-coloring-test-deftest-emacs-lisp iteration
   (lambda ()
     (let ((context-coloring-emacs-lisp-iterations-per-pause 1))
       (context-coloring-colorize)
@@ -1227,9 +1256,9 @@ see that function."
       (context-coloring-test-assert-coloring "
 ;; nnnn nnnn
 nnnnnn n nnn")))
-  :setup (lambda ()
-           (setq context-coloring-syntactic-comments t)
-           (setq context-coloring-syntactic-strings t)))
+  :before (lambda ()
+            (setq context-coloring-syntactic-comments t)
+            (setq context-coloring-syntactic-strings t)))
 
 (provide 'context-coloring-test)
 
