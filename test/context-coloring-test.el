@@ -49,7 +49,8 @@
 
 (defun context-coloring-test-cleanup ()
   "Cleanup after all tests."
-  (setq context-coloring-comments-and-strings nil)
+  (with-no-warnings
+    (setq context-coloring-comments-and-strings nil))
   (setq context-coloring-js-block-scopes nil)
   (setq context-coloring-colorize-hook nil)
   (setq context-coloring-check-scopifier-version-hook nil)
@@ -1082,7 +1083,8 @@ see that function."
 
 (defun context-coloring-test-js-comments-and-strings-setup ()
   "Setup comments and strings.  Deprecated."
-  (setq context-coloring-comments-and-strings t))
+  (with-no-warnings
+    (setq context-coloring-comments-and-strings t)))
 
 (context-coloring-test-deftest-js-mode comments-and-strings)
 (context-coloring-test-deftest-js2-mode comments-and-strings)
