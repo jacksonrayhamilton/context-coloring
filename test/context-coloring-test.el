@@ -172,6 +172,13 @@ initial colorization if colorization should occur."
   :mode 'js2-mode
   :extension "js")
 
+(defmacro context-coloring-test-deftest-js-js2 (&rest args)
+  "Simultaneously define the same test for js and js2."
+  (declare (indent defun))
+  `(progn
+     (context-coloring-test-deftest-js ,@args)
+     (context-coloring-test-deftest-js2 ,@args)))
+
 (context-coloring-test-define-deftest emacs-lisp
   :mode 'emacs-lisp-mode
   :extension "el")
@@ -971,151 +978,101 @@ see that function."
     (context-coloring-test-assert-maximum-face
      maximum-face-value)))
 
-(defun context-coloring-test-js-function-scopes ()
-  (context-coloring-test-assert-region-level 1 9 0)
-  (context-coloring-test-assert-region-level 9 23 1)
-  (context-coloring-test-assert-region-level 23 25 0)
-  (context-coloring-test-assert-region-level 25 34 1)
-  (context-coloring-test-assert-region-level 34 35 0)
-  (context-coloring-test-assert-region-level 35 52 1)
-  (context-coloring-test-assert-region-level 52 66 2)
-  (context-coloring-test-assert-region-level 66 72 1)
-  (context-coloring-test-assert-region-level 72 81 2)
-  (context-coloring-test-assert-region-level 81 82 1)
-  (context-coloring-test-assert-region-level 82 87 2)
-  (context-coloring-test-assert-region-level 87 89 1))
+(context-coloring-test-deftest-js-js2 function-scopes
+  (lambda ()
+    (context-coloring-test-assert-region-level 1 9 0)
+    (context-coloring-test-assert-region-level 9 23 1)
+    (context-coloring-test-assert-region-level 23 25 0)
+    (context-coloring-test-assert-region-level 25 34 1)
+    (context-coloring-test-assert-region-level 34 35 0)
+    (context-coloring-test-assert-region-level 35 52 1)
+    (context-coloring-test-assert-region-level 52 66 2)
+    (context-coloring-test-assert-region-level 66 72 1)
+    (context-coloring-test-assert-region-level 72 81 2)
+    (context-coloring-test-assert-region-level 81 82 1)
+    (context-coloring-test-assert-region-level 82 87 2)
+    (context-coloring-test-assert-region-level 87 89 1)))
 
-(context-coloring-test-deftest-js function-scopes
-  'context-coloring-test-js-function-scopes)
-(context-coloring-test-deftest-js2 function-scopes
-  'context-coloring-test-js-function-scopes)
-
-(defun context-coloring-test-js-global ()
-  (context-coloring-test-assert-region-level 20 28 1)
-  (context-coloring-test-assert-region-level 28 35 0)
-  (context-coloring-test-assert-region-level 35 41 1))
-
-(context-coloring-test-deftest-js global
-  'context-coloring-test-js-global)
-(context-coloring-test-deftest-js2 global
-  'context-coloring-test-js-global)
-
-(defun context-coloring-test-js-block-scopes ()
-  (context-coloring-colorize)
-  (context-coloring-test-assert-region-level 20 27 1)
-  (context-coloring-test-assert-region-level 27 41 2)
-  (context-coloring-test-assert-region-level 41 42 1)
-  (context-coloring-test-assert-region-level 42 64 2))
+(context-coloring-test-deftest-js-js2 global
+  (lambda ()
+    (context-coloring-test-assert-region-level 20 28 1)
+    (context-coloring-test-assert-region-level 28 35 0)
+    (context-coloring-test-assert-region-level 35 41 1)))
 
 (context-coloring-test-deftest-js2 block-scopes
-  'context-coloring-test-js-block-scopes
+  (lambda ()
+    (context-coloring-colorize)
+    (context-coloring-test-assert-region-level 20 27 1)
+    (context-coloring-test-assert-region-level 27 41 2)
+    (context-coloring-test-assert-region-level 41 42 1)
+    (context-coloring-test-assert-region-level 42 64 2))
   :before (lambda ()
             (setq context-coloring-js-block-scopes t))
   :after (lambda ()
            (setq context-coloring-js-block-scopes nil)))
 
-(defun context-coloring-test-js-catch ()
-  (context-coloring-test-assert-region-level 20 27 1)
-  (context-coloring-test-assert-region-level 27 51 2)
-  (context-coloring-test-assert-region-level 51 52 1)
-  (context-coloring-test-assert-region-level 52 73 2)
-  (context-coloring-test-assert-region-level 73 101 3)
-  (context-coloring-test-assert-region-level 101 102 1)
-  (context-coloring-test-assert-region-level 102 117 3)
-  (context-coloring-test-assert-region-level 117 123 2))
+(context-coloring-test-deftest-js-js2 catch
+  (lambda ()
+    (context-coloring-test-assert-region-level 20 27 1)
+    (context-coloring-test-assert-region-level 27 51 2)
+    (context-coloring-test-assert-region-level 51 52 1)
+    (context-coloring-test-assert-region-level 52 73 2)
+    (context-coloring-test-assert-region-level 73 101 3)
+    (context-coloring-test-assert-region-level 101 102 1)
+    (context-coloring-test-assert-region-level 102 117 3)
+    (context-coloring-test-assert-region-level 117 123 2)))
 
-(context-coloring-test-deftest-js catch
-  'context-coloring-test-js-catch)
-(context-coloring-test-deftest-js2 catch
-  'context-coloring-test-js-catch)
+(context-coloring-test-deftest-js-js2 key-names
+  (lambda ()
+    (context-coloring-test-assert-region-level 20 63 1)))
 
-(defun context-coloring-test-js-key-names ()
-  (context-coloring-test-assert-region-level 20 63 1))
+(context-coloring-test-deftest-js-js2 property-lookup
+  (lambda ()
+    (context-coloring-test-assert-region-level 20 26 0)
+    (context-coloring-test-assert-region-level 26 38 1)
+    (context-coloring-test-assert-region-level 38 44 0)
+    (context-coloring-test-assert-region-level 44 52 1)
+    (context-coloring-test-assert-region-level 57 63 0)
+    (context-coloring-test-assert-region-level 63 74 1)))
 
-(context-coloring-test-deftest-js key-names
-  'context-coloring-test-js-key-names)
-(context-coloring-test-deftest-js2 key-names
-  'context-coloring-test-js-key-names)
+(context-coloring-test-deftest-js-js2 key-values
+  (lambda ()
+    (context-coloring-test-assert-region-level 78 79 1)))
 
-(defun context-coloring-test-js-property-lookup ()
-  (context-coloring-test-assert-region-level 20 26 0)
-  (context-coloring-test-assert-region-level 26 38 1)
-  (context-coloring-test-assert-region-level 38 44 0)
-  (context-coloring-test-assert-region-level 44 52 1)
-  (context-coloring-test-assert-region-level 57 63 0)
-  (context-coloring-test-assert-region-level 63 74 1))
-
-(context-coloring-test-deftest-js property-lookup
-  'context-coloring-test-js-property-lookup)
-(context-coloring-test-deftest-js2 property-lookup
-  'context-coloring-test-js-property-lookup)
-
-(defun context-coloring-test-js-key-values ()
-  (context-coloring-test-assert-region-level 78 79 1))
-
-(context-coloring-test-deftest-js key-values
-  'context-coloring-test-js-key-values)
-(context-coloring-test-deftest-js2 key-values
-  'context-coloring-test-js-key-values)
-
-(defun context-coloring-test-js-syntactic-comments-and-strings ()
-  (context-coloring-test-assert-region-level 1 8 0)
-  (context-coloring-test-assert-region-comment-delimiter 9 12)
-  (context-coloring-test-assert-region-comment 12 16)
-  (context-coloring-test-assert-region-comment-delimiter 17 20)
-  (context-coloring-test-assert-region-comment 20 27)
-  (context-coloring-test-assert-region-string 28 40)
-  (context-coloring-test-assert-region-level 40 41 0))
-
-(defun context-coloring-test-js-syntactic-comments-and-strings-setup ()
-  (setq context-coloring-syntactic-comments t)
-  (setq context-coloring-syntactic-strings t))
-
-(context-coloring-test-deftest-js syntactic-comments-and-strings
-  'context-coloring-test-js-syntactic-comments-and-strings
+(context-coloring-test-deftest-js-js2 syntactic-comments-and-strings
+  (lambda ()
+    (context-coloring-test-assert-region-level 1 8 0)
+    (context-coloring-test-assert-region-comment-delimiter 9 12)
+    (context-coloring-test-assert-region-comment 12 16)
+    (context-coloring-test-assert-region-comment-delimiter 17 20)
+    (context-coloring-test-assert-region-comment 20 27)
+    (context-coloring-test-assert-region-string 28 40)
+    (context-coloring-test-assert-region-level 40 41 0))
   :fixture "comments-and-strings.js"
-  :before 'context-coloring-test-js-syntactic-comments-and-strings-setup)
-(context-coloring-test-deftest-js2 syntactic-comments-and-strings
-  'context-coloring-test-js-syntactic-comments-and-strings
+  :before (lambda ()
+            (setq context-coloring-syntactic-comments t)
+            (setq context-coloring-syntactic-strings t)))
+
+(context-coloring-test-deftest-js-js2 syntactic-comments
+  (lambda ()
+    (context-coloring-test-assert-region-level 1 8 0)
+    (context-coloring-test-assert-region-comment-delimiter 9 12)
+    (context-coloring-test-assert-region-comment 12 16)
+    (context-coloring-test-assert-region-comment-delimiter 17 20)
+    (context-coloring-test-assert-region-comment 20 27)
+    (context-coloring-test-assert-region-level 28 41 0))
   :fixture "comments-and-strings.js"
-  :before 'context-coloring-test-js-syntactic-comments-and-strings-setup)
+  :before (lambda ()
+            (setq context-coloring-syntactic-comments t)))
 
-(defun context-coloring-test-js-syntactic-comments ()
-  (context-coloring-test-assert-region-level 1 8 0)
-  (context-coloring-test-assert-region-comment-delimiter 9 12)
-  (context-coloring-test-assert-region-comment 12 16)
-  (context-coloring-test-assert-region-comment-delimiter 17 20)
-  (context-coloring-test-assert-region-comment 20 27)
-  (context-coloring-test-assert-region-level 28 41 0))
-
-(defun context-coloring-test-js-syntactic-comments-setup ()
-  (setq context-coloring-syntactic-comments t))
-
-(context-coloring-test-deftest-js syntactic-comments
-  'context-coloring-test-js-syntactic-comments
+(context-coloring-test-deftest-js-js2 syntactic-strings
+  (lambda ()
+    (context-coloring-test-assert-region-level 1 28 0)
+    (context-coloring-test-assert-region-string 28 40)
+    (context-coloring-test-assert-region-level 40 41 0))
   :fixture "comments-and-strings.js"
-  :before 'context-coloring-test-js-syntactic-comments-setup)
-(context-coloring-test-deftest-js2 syntactic-comments
-  'context-coloring-test-js-syntactic-comments
-  :fixture "comments-and-strings.js"
-  :before 'context-coloring-test-js-syntactic-comments-setup)
-
-(defun context-coloring-test-js-syntactic-strings ()
-  (context-coloring-test-assert-region-level 1 28 0)
-  (context-coloring-test-assert-region-string 28 40)
-  (context-coloring-test-assert-region-level 40 41 0))
-
-(defun context-coloring-test-js-syntactic-strings-setup ()
-  (setq context-coloring-syntactic-strings t))
-
-(context-coloring-test-deftest-js syntactic-strings
-  'context-coloring-test-js-syntactic-strings
-  :fixture "comments-and-strings.js"
-  :before 'context-coloring-test-js-syntactic-strings-setup)
-(context-coloring-test-deftest-js2 syntactic-strings
-  'context-coloring-test-js-syntactic-strings
-  :fixture "comments-and-strings.js"
-  :before 'context-coloring-test-js-syntactic-strings-setup)
+  :before (lambda ()
+            (setq context-coloring-syntactic-strings t)))
 
 (context-coloring-test-deftest-js2 unterminated-comment
   ;; As long as `add-text-properties' doesn't signal an error, this test passes.
