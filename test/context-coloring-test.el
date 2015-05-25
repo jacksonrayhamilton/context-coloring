@@ -45,7 +45,10 @@
 (defun context-coloring-test-before-all ()
   "Prepare before all tests."
   (setq context-coloring-syntactic-comments nil)
-  (setq context-coloring-syntactic-strings nil))
+  (setq context-coloring-syntactic-strings nil)
+  ;; TODO: Should only be for js2-mode tests.
+  (setq js2-mode-show-parse-errors nil)
+  (setq js2-mode-show-strict-warnings nil))
 
 (defun context-coloring-test-after-all ()
   "Cleanup after all tests."
@@ -164,10 +167,6 @@ initial colorization if colorization should occur."
   :extension "js"
   :async t)
 
-;; TODO: Do we need some way to do
-;;   (setq js2-mode-show-parse-errors nil)
-;;   (setq js2-mode-show-strict-warnings nil)
-;; ?
 (context-coloring-test-define-deftest js2
   :mode 'js2-mode
   :extension "js")
@@ -255,7 +254,7 @@ initial colorization if colorization should occur."
       (cond
        ;; Newline
        ((= char 10)
-        (next-logical-line)
+        (forward-line)
         (beginning-of-line))
        ;; Number
        ((and (>= char 48)
@@ -980,24 +979,19 @@ see that function."
 
 (context-coloring-test-deftest-js-js2 function-scopes
   (lambda ()
-    (context-coloring-test-assert-region-level 1 9 0)
-    (context-coloring-test-assert-region-level 9 23 1)
-    (context-coloring-test-assert-region-level 23 25 0)
-    (context-coloring-test-assert-region-level 25 34 1)
-    (context-coloring-test-assert-region-level 34 35 0)
-    (context-coloring-test-assert-region-level 35 52 1)
-    (context-coloring-test-assert-region-level 52 66 2)
-    (context-coloring-test-assert-region-level 66 72 1)
-    (context-coloring-test-assert-region-level 72 81 2)
-    (context-coloring-test-assert-region-level 81 82 1)
-    (context-coloring-test-assert-region-level 82 87 2)
-    (context-coloring-test-assert-region-level 87 89 1)))
+    (context-coloring-test-assert-coloring "
+000 0 0 11111111 11 110
+11111111 011 1
+    111 1 1 22222222 22 221
+    22222222 122 22
+1")))
 
 (context-coloring-test-deftest-js-js2 global
   (lambda ()
-    (context-coloring-test-assert-region-level 20 28 1)
-    (context-coloring-test-assert-region-level 28 35 0)
-    (context-coloring-test-assert-region-level 35 41 1)))
+    (context-coloring-test-assert-coloring "
+(xxxxxxxx () {
+    111 1 1 00000001xxx11
+}())")))
 
 (context-coloring-test-deftest-js2 block-scopes
   (lambda ()
