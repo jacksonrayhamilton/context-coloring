@@ -185,103 +185,6 @@ initial colorization if colorization should occur."
 
 ;;; Assertion functions
 
-(defun context-coloring-test-assert-position-level (position level)
-  "Assert that POSITION has LEVEL."
-  (let ((face (get-text-property position 'face))
-        actual-level)
-    (when (not (and face
-                    (let* ((face-string (symbol-name face))
-                           (matches (string-match
-                                     context-coloring-level-face-regexp
-                                     face-string)))
-                      (when matches
-                        (setq actual-level (string-to-number
-                                            (substring face-string
-                                                       (match-beginning 1)
-                                                       (match-end 1))))
-                        (= level actual-level)))))
-      (ert-fail (format (concat "Expected level at position %s, "
-                                "which is \"%s\", to be %s; "
-                                "but it was %s")
-                        position
-                        (buffer-substring-no-properties position (1+ position)) level
-                        actual-level)))))
-
-(defun context-coloring-test-assert-position-face (position face-regexp)
-  "Assert that the face at POSITION satisfies FACE-REGEXP."
-  (let ((face (get-text-property position 'face)))
-    (when (or
-           ;; Pass a non-string to do an `equal' check (against a symbol or nil).
-           (unless (stringp face-regexp)
-             (not (equal face-regexp face)))
-           ;; Otherwise do the matching.
-           (when (stringp face-regexp)
-             (not (string-match-p face-regexp (symbol-name face)))))
-      (ert-fail (format (concat "Expected face at position %s, "
-                                "which is \"%s\", to be %s; "
-                                "but it was %s")
-                        position
-                        (buffer-substring-no-properties position (1+ position)) face-regexp
-                        face)))))
-
-(defun context-coloring-test-assert-position-comment (position)
-  (context-coloring-test-assert-position-face
-   position "\\`font-lock-comment\\(-delimiter\\)?-face\\'"))
-
-(defun context-coloring-test-assert-position-constant-comment (position)
-  (context-coloring-test-assert-position-face position '(font-lock-constant-face
-                                                         font-lock-comment-face)))
-
-(defun context-coloring-test-assert-position-string (position)
-  (context-coloring-test-assert-position-face position 'font-lock-string-face))
-
-(defun context-coloring-test-assert-position-nil (position)
-  (context-coloring-test-assert-position-face position nil))
-
-(defun context-coloring-test-assert-coloring (map)
-  "Assert that the current buffer's coloring matches MAP."
-  ;; Omit the superfluous, formatting-related leading newline.  Can't use
-  ;; `save-excursion' here because if an assertion fails it will cause future
-  ;; tests to get messed up.
-  (goto-char (point-min))
-  (let* ((map (substring map 1))
-         (index 0)
-         char-string
-         char)
-    (while (< index (length map))
-      (setq char-string (substring map index (1+ index)))
-      (setq char (string-to-char char-string))
-      (cond
-       ;; Newline
-       ((= char 10)
-        (forward-line)
-        (beginning-of-line))
-       ;; Number
-       ((and (>= char 48)
-             (<= char 57))
-        (context-coloring-test-assert-position-level
-         (point) (string-to-number char-string))
-        (forward-char))
-       ;; 'C' = Constant comment
-       ((= char 67)
-        (context-coloring-test-assert-position-constant-comment (point))
-        (forward-char))
-       ;; 'c' = Comment
-       ((= char 99)
-        (context-coloring-test-assert-position-comment (point))
-        (forward-char))
-       ;; 'n' = nil
-       ((= char 110)
-        (context-coloring-test-assert-position-nil (point))
-        (forward-char))
-       ;; 's' = String
-       ((= char 115)
-        (context-coloring-test-assert-position-string (point))
-        (forward-char))
-       (t
-        (forward-char)))
-      (setq index (1+ index)))))
-
 (defun context-coloring-test-get-last-message ()
   (let ((messages (split-string
                    (buffer-substring-no-properties
@@ -332,38 +235,6 @@ initial colorization if colorization should occur."
                       (with-current-buffer buffer
                         (buffer-string))))))
 
-(defun context-coloring-test-kill-buffer (buffer)
-  "Kill BUFFER if it exists."
-  (when (get-buffer buffer) (kill-buffer buffer)))
-
-(defun context-coloring-test-assert-face (level foreground &optional negate)
-  "Assert that a face for LEVEL exists and that its `:foreground'
-is FOREGROUND, or the inverse if NEGATE is non-nil."
-  (let* ((face (context-coloring-level-face level))
-         actual-foreground)
-    (when (not (or negate
-                   face))
-      (ert-fail (format (concat "Expected face for level `%s' to exist; "
-                                "but it didn't")
-                        level)))
-    (setq actual-foreground (face-attribute face :foreground))
-    (when (funcall (if negate 'identity 'not)
-                   (string-equal foreground actual-foreground))
-      (ert-fail (format (concat "Expected face for level `%s' "
-                                "%sto have foreground `%s'; "
-                                "but it %s.")
-                        level
-                        (if negate "not " "") foreground
-                        (if negate
-                            "did" (format "was `%s'" actual-foreground)))))))
-
-(defun context-coloring-test-assert-not-face (&rest arguments)
-  "Assert that LEVEL does not have a face with `:foreground'
-FOREGROUND.  Apply ARGUMENTS to
-`context-coloring-test-assert-face', see that function."
-  (apply 'context-coloring-test-assert-face
-         (append arguments '(t))))
-
 (defun context-coloring-test-assert-error (body error-message)
   "Assert that BODY signals ERROR-MESSAGE."
   (let ((error-signaled-p nil))
@@ -380,12 +251,12 @@ FOREGROUND.  Apply ARGUMENTS to
     (when (not error-signaled-p)
       (ert-fail "Expected an error to be thrown, but there wasn't."))))
 
+
+;;; Miscellaneous tests
+
 (defun context-coloring-test-assert-trimmed (result expected)
   (when (not (string-equal result expected))
     (ert-fail "Expected string to be trimmed, but it wasn't.")))
-
-
-;;; The tests
 
 (ert-deftest context-coloring-test-trim ()
   (context-coloring-test-assert-trimmed (context-coloring-trim "") "")
@@ -554,6 +425,9 @@ FOREGROUND.  Apply ARGUMENTS to
          (funcall teardown))
        (funcall done)))))
 
+
+;;; Theme tests
+
 (defvar context-coloring-test-theme-index 0
   "Unique index for unique theme names.")
 
@@ -564,6 +438,34 @@ FOREGROUND.  Apply ARGUMENTS to
                       context-coloring-test-theme-index))
     (setq context-coloring-test-theme-index
           (+ context-coloring-test-theme-index 1))))
+
+(defun context-coloring-test-assert-face (level foreground &optional negate)
+  "Assert that a face for LEVEL exists and that its `:foreground'
+is FOREGROUND, or the inverse if NEGATE is non-nil."
+  (let* ((face (context-coloring-level-face level))
+         actual-foreground)
+    (when (not (or negate
+                   face))
+      (ert-fail (format (concat "Expected face for level `%s' to exist; "
+                                "but it didn't")
+                        level)))
+    (setq actual-foreground (face-attribute face :foreground))
+    (when (funcall (if negate 'identity 'not)
+                   (string-equal foreground actual-foreground))
+      (ert-fail (format (concat "Expected face for level `%s' "
+                                "%sto have foreground `%s'; "
+                                "but it %s.")
+                        level
+                        (if negate "not " "") foreground
+                        (if negate
+                            "did" (format "was `%s'" actual-foreground)))))))
+
+(defun context-coloring-test-assert-not-face (&rest arguments)
+  "Assert that LEVEL does not have a face with `:foreground'
+FOREGROUND.  Apply ARGUMENTS to
+`context-coloring-test-assert-face', see that function."
+  (apply 'context-coloring-test-assert-face
+         (append arguments '(t))))
 
 (defun context-coloring-test-assert-theme-originally-set-p
     (settings &optional negate)
@@ -648,6 +550,10 @@ function."
    '((theme-face context-coloring-level-0-face)
      (theme-face context-coloring-level-1-face))
    1))
+
+(defun context-coloring-test-kill-buffer (buffer)
+  "Kill BUFFER if it exists."
+  (when (get-buffer buffer) (kill-buffer buffer)))
 
 (defmacro context-coloring-test-deftest-define-theme (name &rest body)
   "Define a test with name NAME and an automatically-generated
@@ -883,6 +789,106 @@ see that function."
     (context-coloring-test-assert-not-face 1 "#bbbbbb")
     (context-coloring-test-assert-maximum-face
      maximum-face-value)))
+
+
+;;; Coloring tests
+
+(defun context-coloring-test-assert-position-level (position level)
+  "Assert that POSITION has LEVEL."
+  (let ((face (get-text-property position 'face))
+        actual-level)
+    (when (not (and face
+                    (let* ((face-string (symbol-name face))
+                           (matches (string-match
+                                     context-coloring-level-face-regexp
+                                     face-string)))
+                      (when matches
+                        (setq actual-level (string-to-number
+                                            (substring face-string
+                                                       (match-beginning 1)
+                                                       (match-end 1))))
+                        (= level actual-level)))))
+      (ert-fail (format (concat "Expected level at position %s, "
+                                "which is \"%s\", to be %s; "
+                                "but it was %s")
+                        position
+                        (buffer-substring-no-properties position (1+ position)) level
+                        actual-level)))))
+
+(defun context-coloring-test-assert-position-face (position face-regexp)
+  "Assert that the face at POSITION satisfies FACE-REGEXP."
+  (let ((face (get-text-property position 'face)))
+    (when (or
+           ;; Pass a non-string to do an `equal' check (against a symbol or nil).
+           (unless (stringp face-regexp)
+             (not (equal face-regexp face)))
+           ;; Otherwise do the matching.
+           (when (stringp face-regexp)
+             (not (string-match-p face-regexp (symbol-name face)))))
+      (ert-fail (format (concat "Expected face at position %s, "
+                                "which is \"%s\", to be %s; "
+                                "but it was %s")
+                        position
+                        (buffer-substring-no-properties position (1+ position)) face-regexp
+                        face)))))
+
+(defun context-coloring-test-assert-position-comment (position)
+  (context-coloring-test-assert-position-face
+   position "\\`font-lock-comment\\(-delimiter\\)?-face\\'"))
+
+(defun context-coloring-test-assert-position-constant-comment (position)
+  (context-coloring-test-assert-position-face position '(font-lock-constant-face
+                                                         font-lock-comment-face)))
+
+(defun context-coloring-test-assert-position-string (position)
+  (context-coloring-test-assert-position-face position 'font-lock-string-face))
+
+(defun context-coloring-test-assert-position-nil (position)
+  (context-coloring-test-assert-position-face position nil))
+
+(defun context-coloring-test-assert-coloring (map)
+  "Assert that the current buffer's coloring matches MAP."
+  ;; Omit the superfluous, formatting-related leading newline.  Can't use
+  ;; `save-excursion' here because if an assertion fails it will cause future
+  ;; tests to get messed up.
+  (goto-char (point-min))
+  (let* ((map (substring map 1))
+         (index 0)
+         char-string
+         char)
+    (while (< index (length map))
+      (setq char-string (substring map index (1+ index)))
+      (setq char (string-to-char char-string))
+      (cond
+       ;; Newline
+       ((= char 10)
+        (forward-line)
+        (beginning-of-line))
+       ;; Number
+       ((and (>= char 48)
+             (<= char 57))
+        (context-coloring-test-assert-position-level
+         (point) (string-to-number char-string))
+        (forward-char))
+       ;; 'C' = Constant comment
+       ((= char 67)
+        (context-coloring-test-assert-position-constant-comment (point))
+        (forward-char))
+       ;; 'c' = Comment
+       ((= char 99)
+        (context-coloring-test-assert-position-comment (point))
+        (forward-char))
+       ;; 'n' = nil
+       ((= char 110)
+        (context-coloring-test-assert-position-nil (point))
+        (forward-char))
+       ;; 's' = String
+       ((= char 115)
+        (context-coloring-test-assert-position-string (point))
+        (forward-char))
+       (t
+        (forward-char)))
+      (setq index (1+ index)))))
 
 (context-coloring-test-deftest-js-js2 function-scopes
   (lambda ()
