@@ -282,71 +282,6 @@ initial colorization if colorization should occur."
         (forward-char)))
       (setq index (1+ index)))))
 
-(defmacro context-coloring-test-assert-region (&rest body)
-  "Assert something about the face of points in a region.
-Provides the free variables `i', `length', `point', `face' and
-`actual-level' to the code in BODY."
-  `(let ((i 0)
-         (length (- end start)))
-     (while (< i length)
-       (let* ((point (+ i start))
-              (face (get-text-property point 'face)))
-         ,@body)
-       (setq i (+ i 1)))))
-
-(defun context-coloring-test-assert-region-level (start end level)
-  "Assert that all points in the range [START, END) are of level
-LEVEL."
-  (context-coloring-test-assert-region
-   (let (actual-level)
-     (when (not (when face
-                  (let* ((face-string (symbol-name face))
-                         (matches (string-match
-                                   context-coloring-level-face-regexp
-                                   face-string)))
-                    (when matches
-                      (setq actual-level (string-to-number
-                                          (substring face-string
-                                                     (match-beginning 1)
-                                                     (match-end 1))))
-                      (= level actual-level)))))
-       (ert-fail (format (concat "Expected level in region [%s, %s), "
-                                 "which is \"%s\", to be %s; "
-                                 "but at point %s, it was %s")
-                         start end
-                         (buffer-substring-no-properties start end) level
-                         point actual-level))))))
-
-(defun context-coloring-test-assert-region-face (start end expected-face)
-  "Assert that all points in the range [START, END) have the face
-EXPECTED-FACE."
-  (context-coloring-test-assert-region
-   (when (not (eq face expected-face))
-     (ert-fail (format (concat "Expected face in region [%s, %s), "
-                               "which is \"%s\", to be %s; "
-                               "but at point %s, it was %s")
-                       start end
-                       (buffer-substring-no-properties start end) expected-face
-                       point face)))))
-
-(defun context-coloring-test-assert-region-comment-delimiter (start end)
-  "Assert that all points in the range [START, END) have
-`font-lock-comment-delimiter-face'."
-  (context-coloring-test-assert-region-face
-   start end 'font-lock-comment-delimiter-face))
-
-(defun context-coloring-test-assert-region-comment (start end)
-  "Assert that all points in the range [START, END) have
-`font-lock-comment-face'."
-  (context-coloring-test-assert-region-face
-   start end 'font-lock-comment-face))
-
-(defun context-coloring-test-assert-region-string (start end)
-  "Assert that all points in the range [START, END) have
-`font-lock-string-face'."
-  (context-coloring-test-assert-region-face
-   start end 'font-lock-string-face))
-
 (defun context-coloring-test-get-last-message ()
   (let ((messages (split-string
                    (buffer-substring-no-properties
@@ -1009,41 +944,54 @@ see that function."
 
 (context-coloring-test-deftest-js-js2 catch
   (lambda ()
-    (context-coloring-test-assert-region-level 20 27 1)
-    (context-coloring-test-assert-region-level 27 51 2)
-    (context-coloring-test-assert-region-level 51 52 1)
-    (context-coloring-test-assert-region-level 52 73 2)
-    (context-coloring-test-assert-region-level 73 101 3)
-    (context-coloring-test-assert-region-level 101 102 1)
-    (context-coloring-test-assert-region-level 102 117 3)
-    (context-coloring-test-assert-region-level 117 123 2)))
+    (context-coloring-test-assert-coloring "
+(xxxxxxxx () {
+    111 11 22222 222 2
+        222 1 2 22
+        222 22 33333 333 3
+            333 1 3 33
+        3
+    2
+}());")))
 
 (context-coloring-test-deftest-js-js2 key-names
   (lambda ()
-    (context-coloring-test-assert-region-level 20 63 1)))
+    (context-coloring-test-assert-coloring "
+(xxxxxxxx () {
+    111111 1
+        11 11
+        1 1 1
+    11
+}());")))
 
 (context-coloring-test-deftest-js-js2 property-lookup
   (lambda ()
-    (context-coloring-test-assert-region-level 20 26 0)
-    (context-coloring-test-assert-region-level 26 38 1)
-    (context-coloring-test-assert-region-level 38 44 0)
-    (context-coloring-test-assert-region-level 44 52 1)
-    (context-coloring-test-assert-region-level 57 63 0)
-    (context-coloring-test-assert-region-level 63 74 1)))
+    (context-coloring-test-assert-coloring "
+(xxxxxxxx () {
+    0000001111111
+    0000001 111111
+    00000011111111111
+}());")))
 
 (context-coloring-test-deftest-js-js2 key-values
   (lambda ()
-    (context-coloring-test-assert-region-level 78 79 1)))
+    (context-coloring-test-assert-coloring "
+(xxxxxxxx () {
+    xxx x;
+    (xxxxxxxx () {
+        xxxxxx {
+            x: 1
+        };
+    }());
+}());")))
 
 (context-coloring-test-deftest-js-js2 syntactic-comments-and-strings
   (lambda ()
-    (context-coloring-test-assert-region-level 1 8 0)
-    (context-coloring-test-assert-region-comment-delimiter 9 12)
-    (context-coloring-test-assert-region-comment 12 16)
-    (context-coloring-test-assert-region-comment-delimiter 17 20)
-    (context-coloring-test-assert-region-comment 20 27)
-    (context-coloring-test-assert-region-string 28 40)
-    (context-coloring-test-assert-region-level 40 41 0))
+    (context-coloring-test-assert-coloring "
+0000 00
+ccccccc
+cccccccccc
+ssssssssssss0"))
   :fixture "comments-and-strings.js"
   :before (lambda ()
             (setq context-coloring-syntactic-comments t)
@@ -1051,21 +999,22 @@ see that function."
 
 (context-coloring-test-deftest-js-js2 syntactic-comments
   (lambda ()
-    (context-coloring-test-assert-region-level 1 8 0)
-    (context-coloring-test-assert-region-comment-delimiter 9 12)
-    (context-coloring-test-assert-region-comment 12 16)
-    (context-coloring-test-assert-region-comment-delimiter 17 20)
-    (context-coloring-test-assert-region-comment 20 27)
-    (context-coloring-test-assert-region-level 28 41 0))
+    (context-coloring-test-assert-coloring "
+0000 00
+ccccccc
+cccccccccc
+0000000000000"))
   :fixture "comments-and-strings.js"
   :before (lambda ()
             (setq context-coloring-syntactic-comments t)))
 
 (context-coloring-test-deftest-js-js2 syntactic-strings
   (lambda ()
-    (context-coloring-test-assert-region-level 1 28 0)
-    (context-coloring-test-assert-region-string 28 40)
-    (context-coloring-test-assert-region-level 40 41 0))
+    (context-coloring-test-assert-coloring "
+0000 00
+0000000
+0000000000
+ssssssssssss0"))
   :fixture "comments-and-strings.js"
   :before (lambda ()
             (setq context-coloring-syntactic-strings t)))
