@@ -262,13 +262,13 @@ initial colorization if colorization should occur."
         (context-coloring-test-assert-position-level
          (point) (string-to-number char-string))
         (forward-char))
-       ;; ';' = Comment
-       ((= char 59)
-        (context-coloring-test-assert-position-comment (point))
-        (forward-char))
-       ;; 'c' = Constant comment
-       ((= char 99)
+       ;; 'C' = Constant comment
+       ((= char 67)
         (context-coloring-test-assert-position-constant-comment (point))
+        (forward-char))
+       ;; 'c' = Comment
+       ((= char 99)
+        (context-coloring-test-assert-position-comment (point))
         (forward-char))
        ;; 'n' = nil
        ((= char 110)
@@ -991,15 +991,17 @@ see that function."
     (context-coloring-test-assert-coloring "
 (xxxxxxxx () {
     111 1 1 00000001xxx11
-}())")))
+}());")))
 
 (context-coloring-test-deftest-js2 block-scopes
   (lambda ()
-    (context-coloring-colorize)
-    (context-coloring-test-assert-region-level 20 27 1)
-    (context-coloring-test-assert-region-level 27 41 2)
-    (context-coloring-test-assert-region-level 41 42 1)
-    (context-coloring-test-assert-region-level 42 64 2))
+    (context-coloring-test-assert-coloring "
+(xxxxxxxx () {
+    11 111 2
+        222 12
+        222 22
+    2
+}());"))
   :before (lambda ()
             (setq context-coloring-js-block-scopes t))
   :after (lambda ()
@@ -1103,8 +1105,8 @@ see that function."
     ;; Just check that the comment isn't parsed syntactically.
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
-  (xx (x xxxxx-xxxx xx)   ;;;;;;;;;;
-      11 00000-0000 11))) ;;;;;;;;;;"))
+  (xx (x xxxxx-xxxx xx)   cccccccccc
+      11 00000-0000 11))) cccccccccc"))
   :before (lambda ()
             (setq context-coloring-syntactic-comments t)))
 
@@ -1161,7 +1163,7 @@ see that function."
     (let ((context-coloring-emacs-lisp-iterations-per-pause 1))
       (context-coloring-colorize)
       (context-coloring-test-assert-coloring "
-;; `cc' `cc'
+cc `CC' `CC'
 (xxxxx x ())")
       (context-coloring-test-remove-faces)
       (context-coloring-test-insert-unread-space)
@@ -1169,7 +1171,7 @@ see that function."
       ;; The first iteration will color the first part of the comment, but
       ;; that's it.  Then it will be interrupted.
       (context-coloring-test-assert-coloring "
-;; nnnn nnnn
+cc nnnn nnnn
 nnnnnn n nnn")))
   :before (lambda ()
             (setq context-coloring-syntactic-comments t)
