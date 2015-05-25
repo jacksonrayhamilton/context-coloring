@@ -599,8 +599,7 @@ function."
    '((theme-face context-coloring-level-0-face)
      (theme-face face)))
   (context-coloring-test-assert-not-theme-originally-set-p
-   '((theme-face face)))
-  )
+   '((theme-face face))))
 
 (defun context-coloring-test-assert-theme-settings-highest-level
     (settings expected-level)
@@ -648,8 +647,7 @@ function."
   (context-coloring-test-assert-theme-settings-highest-level
    '((theme-face context-coloring-level-0-face)
      (theme-face context-coloring-level-1-face))
-   1)
-  )
+   1))
 
 (defmacro context-coloring-test-deftest-define-theme (name &rest body)
   "Define a test with name NAME and an automatically-generated
