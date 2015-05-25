@@ -409,25 +409,24 @@ FOREGROUND.  Apply ARGUMENTS to
         (funcall done)))
      (context-coloring-mode))))
 
-(define-derived-mode
-  context-coloring-change-detection-mode
-  fundamental-mode
-  "Testing"
-  "Prevent `context-coloring-test-change-detection' from
-  having any unintentional side-effects on mode support.")
+(defmacro context-coloring-test-define-derived-mode (name)
+  (let ((name (intern (format "context-coloring-test-%s-mode" name))))
+    `(define-derived-mode ,name fundamental-mode "Testing")))
+
+(context-coloring-test-define-derived-mode change-detection)
 
 ;; Simply cannot figure out how to trigger an idle timer; would much rather test
 ;; that.  But (current-idle-time) always returns nil in these tests.
 (ert-deftest-async context-coloring-test-change-detection (done)
   (context-coloring-define-dispatch
      'idle-change
-     :modes '(context-coloring-change-detection-mode)
+     :modes '(context-coloring-test-change-detection-mode)
      :executable "node"
      :command "node test/binaries/noop")
   (context-coloring-test-with-fixture-async
    "./fixtures/empty"
    (lambda (teardown)
-     (context-coloring-change-detection-mode)
+     (context-coloring-test-change-detection-mode)
      (add-hook
       'context-coloring-colorize-hook
       (lambda ()
@@ -465,12 +464,7 @@ FOREGROUND.  Apply ARGUMENTS to
     "Context coloring is not available for this major mode"
     "*Messages*")))
 
-(define-derived-mode
-  context-coloring-test-define-dispatch-error-mode
-  fundamental-mode
-  "Testing"
-  "Prevent `context-coloring-test-define-dispatch-error' from
-  having any unintentional side-effects on mode support.")
+(context-coloring-test-define-derived-mode define-dispatch-error)
 
 (ert-deftest context-coloring-test-define-dispatch-error ()
   (context-coloring-test-assert-error
@@ -485,12 +479,7 @@ FOREGROUND.  Apply ARGUMENTS to
       :modes '(context-coloring-test-define-dispatch-error-mode)))
    "No colorizer, scopifier or command defined for dispatch"))
 
-(define-derived-mode
-  context-coloring-test-define-dispatch-scopifier-mode
-  fundamental-mode
-  "Testing"
-  "Prevent `context-coloring-test-define-dispatch-scopifier' from
-  having any unintentional side-effects on mode support.")
+(context-coloring-test-define-derived-mode define-dispatch-scopifier)
 
 (ert-deftest context-coloring-test-define-dispatch-scopifier ()
   (context-coloring-define-dispatch
@@ -502,12 +491,7 @@ FOREGROUND.  Apply ARGUMENTS to
     (context-coloring-mode)
     (context-coloring-colorize)))
 
-(define-derived-mode
-  context-coloring-test-missing-executable-mode
-  fundamental-mode
-  "Testing"
-  "Prevent `context-coloring-test-define-dispatch-scopifier' from
-  having any unintentional side-effects on mode support.")
+(context-coloring-test-define-derived-mode missing-executable)
 
 (ert-deftest context-coloring-test-missing-executable ()
   (context-coloring-define-dispatch
@@ -519,12 +503,7 @@ FOREGROUND.  Apply ARGUMENTS to
     (context-coloring-test-missing-executable-mode)
     (context-coloring-mode)))
 
-(define-derived-mode
-  context-coloring-test-unsupported-version-mode
-  fundamental-mode
-  "Testing"
-  "Prevent `context-coloring-test-unsupported-version' from
-  having any unintentional side-effects on mode support.")
+(context-coloring-test-define-derived-mode unsupported-version)
 
 (ert-deftest-async context-coloring-test-unsupported-version (done)
   (context-coloring-define-dispatch
@@ -551,12 +530,7 @@ FOREGROUND.  Apply ARGUMENTS to
         (funcall done)))
      (context-coloring-mode))))
 
-(define-derived-mode
-  context-coloring-test-disable-mode-mode
-  fundamental-mode
-  "Testing"
-  "Prevent `context-coloring-test-disable-mode' from having any
-  unintentional side-effects on mode support.")
+(context-coloring-test-define-derived-mode disable-mode)
 
 (ert-deftest-async context-coloring-test-disable-mode (done)
   (let (torn-down)
