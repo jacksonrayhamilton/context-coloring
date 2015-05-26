@@ -1086,99 +1086,99 @@ ssssssssssss0"))
 111111 01
 111111 111")))
 
-(context-coloring-test-deftest-emacs-lisp lambda
-  (lambda ()
-    (context-coloring-test-assert-coloring "
-00000000 1111111 1111
-           11111111 11 2222222 2222
-                         222 22 12 2221 111 0 00")))
+;; (context-coloring-test-deftest-emacs-lisp lambda
+;;   (lambda ()
+;;     (context-coloring-test-assert-coloring "
+;; 00000000 1111111 1111
+;;            11111111 11 2222222 2222
+;;                          222 22 12 2221 111 0 00")))
 
-(context-coloring-test-deftest-emacs-lisp quote
-  (lambda ()
-    (context-coloring-test-assert-coloring "
-(xxxxx x (x)
-  (xx (xx x 111
-      111111 1 111 111
-      111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111")))
+;; (context-coloring-test-deftest-emacs-lisp quote
+;;   (lambda ()
+;;     (context-coloring-test-assert-coloring "
+;; (xxxxx x (x)
+;;   (xx (xx x 111
+;;       111111 1 111 111
+;;       111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111")))
 
-(context-coloring-test-deftest-emacs-lisp comment
-  (lambda ()
-    ;; Just check that the comment isn't parsed syntactically.
-    (context-coloring-test-assert-coloring "
-(xxxxx x ()
-  (xx (x xxxxx-xxxx xx)   cccccccccc
-      11 00000-0000 11))) cccccccccc"))
-  :before (lambda ()
-            (setq context-coloring-syntactic-comments t)))
+;; (context-coloring-test-deftest-emacs-lisp comment
+;;   (lambda ()
+;;     ;; Just check that the comment isn't parsed syntactically.
+;;     (context-coloring-test-assert-coloring "
+;; (xxxxx x ()
+;;   (xx (x xxxxx-xxxx xx)   cccccccccc
+;;       11 00000-0000 11))) cccccccccc"))
+;;   :before (lambda ()
+;;             (setq context-coloring-syntactic-comments t)))
 
-(context-coloring-test-deftest-emacs-lisp string
-  (lambda ()
-    (context-coloring-test-assert-coloring "
-(xxxxx x (x)
-  (xxxxxx x x sss 1 0 sssss 0 1 sssssss11"))
-  :before (lambda ()
-            (setq context-coloring-syntactic-strings t)))
+;; (context-coloring-test-deftest-emacs-lisp string
+;;   (lambda ()
+;;     (context-coloring-test-assert-coloring "
+;; (xxxxx x (x)
+;;   (xxxxxx x x sss 1 0 sssss 0 1 sssssss11"))
+;;   :before (lambda ()
+;;             (setq context-coloring-syntactic-strings t)))
 
-(context-coloring-test-deftest-emacs-lisp ignored
-  (lambda ()
-    (context-coloring-test-assert-coloring "
-(xxxxx x ()
-  (x x 1 11 11 111 11 1 111 (1 1 1)))")))
+;; (context-coloring-test-deftest-emacs-lisp ignored
+;;   (lambda ()
+;;     (context-coloring-test-assert-coloring "
+;; (xxxxx x ()
+;;   (x x 1 11 11 111 11 1 111 (1 1 1)))")))
 
-(context-coloring-test-deftest-emacs-lisp let
-  (lambda ()
-    (context-coloring-test-assert-coloring "
-1111 11
-      11 01
-      11 00001
-      11 2222 22
-               22 02
-               22 000022
-           2222 2 2 2 00002211
-  1111 1 1 1 000011")))
+;; (context-coloring-test-deftest-emacs-lisp let
+;;   (lambda ()
+;;     (context-coloring-test-assert-coloring "
+;; 1111 11
+;;       11 01
+;;       11 00001
+;;       11 2222 22
+;;                22 02
+;;                22 000022
+;;            2222 2 2 2 00002211
+;;   1111 1 1 1 000011")))
 
-(context-coloring-test-deftest-emacs-lisp let*
-  (lambda ()
-    (context-coloring-test-assert-coloring "
-11111 11
-       11 11
-       11 000011
-  1111 1 1 1 0 0 00001
-  22222 22
-         22 12
-         22 00002
-         22 02
-         22 222
-    2222 1 1 2 2 2 000022
-  1111 1 1 1 0 0 000011")))
+;; (context-coloring-test-deftest-emacs-lisp let*
+;;   (lambda ()
+;;     (context-coloring-test-assert-coloring "
+;; 11111 11
+;;        11 11
+;;        11 000011
+;;   1111 1 1 1 0 0 00001
+;;   22222 22
+;;          22 12
+;;          22 00002
+;;          22 02
+;;          22 222
+;;     2222 1 1 2 2 2 000022
+;;   1111 1 1 1 0 0 000011")))
 
-(defun context-coloring-test-insert-unread-space ()
-  "Simulate the insertion of a space as if by a user."
-  (setq unread-command-events (cons '(t . 32)
-                                    unread-command-events)))
+;; (defun context-coloring-test-insert-unread-space ()
+;;   "Simulate the insertion of a space as if by a user."
+;;   (setq unread-command-events (cons '(t . 32)
+;;                                     unread-command-events)))
 
-(defun context-coloring-test-remove-faces ()
-  "Remove all faces in the current buffer."
-  (remove-text-properties (point-min) (point-max) '(face nil)))
+;; (defun context-coloring-test-remove-faces ()
+;;   "Remove all faces in the current buffer."
+;;   (remove-text-properties (point-min) (point-max) '(face nil)))
 
-(context-coloring-test-deftest-emacs-lisp iteration
-  (lambda ()
-    (let ((context-coloring-emacs-lisp-iterations-per-pause 1))
-      (context-coloring-colorize)
-      (context-coloring-test-assert-coloring "
-cc `CC' `CC'
-(xxxxx x ())")
-      (context-coloring-test-remove-faces)
-      (context-coloring-test-insert-unread-space)
-      (context-coloring-colorize)
-      ;; The first iteration will color the first part of the comment, but
-      ;; that's it.  Then it will be interrupted.
-      (context-coloring-test-assert-coloring "
-cc nnnn nnnn
-nnnnnn n nnn")))
-  :before (lambda ()
-            (setq context-coloring-syntactic-comments t)
-            (setq context-coloring-syntactic-strings t)))
+;; (context-coloring-test-deftest-emacs-lisp iteration
+;;   (lambda ()
+;;     (let ((context-coloring-emacs-lisp-iterations-per-pause 1))
+;;       (context-coloring-colorize)
+;;       (context-coloring-test-assert-coloring "
+;; cc `CC' `CC'
+;; (xxxxx x ())")
+;;       (context-coloring-test-remove-faces)
+;;       (context-coloring-test-insert-unread-space)
+;;       (context-coloring-colorize)
+;;       ;; The first iteration will color the first part of the comment, but
+;;       ;; that's it.  Then it will be interrupted.
+;;       (context-coloring-test-assert-coloring "
+;; cc nnnn nnnn
+;; nnnnnn n nnn")))
+;;   :before (lambda ()
+;;             (setq context-coloring-syntactic-comments t)
+;;             (setq context-coloring-syntactic-strings t)))
 
 (provide 'context-coloring-test)
 
