@@ -1086,12 +1086,12 @@ ssssssssssss0"))
 111111 01
 111111 111")))
 
-;; (context-coloring-test-deftest-emacs-lisp lambda
-;;   (lambda ()
-;;     (context-coloring-test-assert-coloring "
-;; 00000000 1111111 1111
-;;            11111111 11 2222222 2222
-;;                          222 22 12 2221 111 0 00")))
+(context-coloring-test-deftest-emacs-lisp lambda
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+00000000 1111111 1111
+           11111111 11 2222222 2222
+                         222 22 12 2221 111 0 00")))
 
 ;; (context-coloring-test-deftest-emacs-lisp quote
 ;;   (lambda ()

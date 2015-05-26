@@ -477,13 +477,14 @@ provide visually \"instant\" updates at 60 frames per second.")
      (t
       0))))
 
-(defun context-coloring-elisp-colorize-defun ()
+(defun context-coloring-elisp-colorize-defun (&optional anonymous-p)
   (let ((start (point))
         end
+        stop
         syntax
         syntax-code
-        child-1-pos
-        child-1-end
+        defun-name-pos
+        defun-name-end
         arg-n-pos
         arg-n-end
         arg-n-string)
@@ -491,24 +492,37 @@ provide visually \"instant\" updates at 60 frames per second.")
     ;; Color the whole sexp.
     (forward-sexp)
     (setq end (point))
-    (context-coloring-colorize-region start end 1)
+    (context-coloring-colorize-region
+     start
+     end
+     (context-coloring-elisp-current-scope-level))
     (goto-char start)
     ;; Skip past the "defun".
     (skip-syntax-forward "^w_")
     (forward-sexp)
     (skip-syntax-forward " ")
-    ;; Check for the defun's name.
-    (setq syntax (syntax-after (point)))
-    (setq syntax-code (syntax-class syntax))
+    (setq stop nil)
+    (unless anonymous-p
+      ;; Check for the defun's name.
+      (setq syntax (syntax-after (point)))
+      (setq syntax-code (syntax-class syntax))
+      (cond
+       ((or (= syntax-code context-coloring-WORD-CODE)
+            (= syntax-code context-coloring-SYMBOL-CODE))
+        ;; Color the defun's name with the top-level color.
+        (setq defun-name-pos (point))
+        (forward-sexp)
+        (setq defun-name-end (point))
+        (context-coloring-colorize-region defun-name-pos defun-name-end 0)
+        (skip-syntax-forward " "))
+       (t
+        (setq stop t))))
     (cond
-     ((or (= syntax-code context-coloring-WORD-CODE)
-          (= syntax-code context-coloring-SYMBOL-CODE))
-      ;; Color the defun's name with the top-level color.
-      (setq child-1-pos (point))
-      (forward-sexp)
-      (setq child-1-end (point))
-      (context-coloring-colorize-region child-1-pos child-1-end 0)
-      (skip-syntax-forward " ")
+     (stop
+      ;; Skip it.
+      (goto-char start)
+      (forward-sexp))
+     (t
       (setq syntax (syntax-after (point)))
       (setq syntax-code (syntax-class syntax))
       (cond
@@ -545,12 +559,11 @@ provide visually \"instant\" updates at 60 frames per second.")
        (t
         ;; Skip it.
         (goto-char start)
-        (forward-sexp))))
-     (t
-      ;; Skip it.
-      (goto-char start)
-      (forward-sexp)))
+        (forward-sexp)))))
     (context-coloring-elisp-pop-scope)))
+
+(defun context-coloring-elisp-colorize-lambda ()
+  (context-coloring-elisp-colorize-defun t))
 
 (defun context-coloring-elisp-colorize-sexp ()
   (let ((start (point))
@@ -581,6 +594,9 @@ provide visually \"instant\" updates at 60 frames per second.")
        ((string-match-p context-coloring-emacs-lisp-defun-regexp child-0-string)
         (goto-char start)
         (context-coloring-elisp-colorize-defun))
+       ((string-match-p context-coloring-emacs-lisp-lambda-regexp child-0-string)
+        (goto-char start)
+        (context-coloring-elisp-colorize-lambda))
        ;; Not a special form; just colorize the remaining region.
        (t
         (context-coloring-colorize-region
