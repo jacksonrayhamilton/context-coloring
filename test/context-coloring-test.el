@@ -82,7 +82,7 @@ invoke when it is done."
 (cl-defmacro context-coloring-test-define-deftest (name
                                                    &key mode
                                                    &key extension
-                                                   &key default-fixture
+                                                   &key no-fixture
                                                    &key async
                                                    &key post-colorization
                                                    &key enable-context-coloring-mode
@@ -91,10 +91,10 @@ invoke when it is done."
                                                    &key after-each)
   "Define a deftest defmacro for tests prefixed with NAME. MODE
 is called to set up tests' environments.  EXTENSION denotes the
-suffix for tests' fixture files.  DEFAULT-FIXTURE is used if no
-fixture name is explicitly supplied.  If ASYNC is non-nil, pass a
-callback to the defined tests' bodies for them to call when they
-are done.  If POST-COLORIZATION is non-nil, the tests run after
+suffix for tests' fixture files.  If NO-FIXTURE is non-nil, don't
+use a fixture.  If ASYNC is non-nil, pass a callback to the
+defined tests' bodies for them to call when they are done.  If
+POST-COLORIZATION is non-nil, the tests run after
 `context-coloring-colorize' finishes asynchronously.  If
 ENABLE-CONTEXT-COLORING-MODE is non-nil, `context-coloring-mode'
 is activated before tests.  GET-ARGS provides arguments to apply
@@ -125,11 +125,8 @@ BODY is run after `context-coloring-mode' is activated, or after
 initial colorization if colorization should occur."
                 (cadr mode)
                 (cond
-                 (default-fixture
-                   (format "
-The default fixture is \"%s\", unless FIXTURE is specified to
-override it."
-                           default-fixture))
+                 (no-fixture "
+There is no fixture, unless FIXTURE is specified.")
                  (t
                   (format "
 The default fixture has a filename matching NAME (plus the
@@ -152,7 +149,7 @@ override it."
                                                   (t "sync"))) name)))
              (fixture (cond
                        (fixture (format "./fixtures/%s" fixture))
-                       (,default-fixture (format "./fixtures/%s" ,default-fixture))
+                       (,no-fixture "./fixtures/empty")
                        (t (format ,(format "./fixtures/%%s.%s" extension) name)))))
          ,@(cond
             ((or async post-colorization)
@@ -203,11 +200,11 @@ override it."
 
 (context-coloring-test-define-deftest nil
   :mode 'fundamental-mode
-  :default-fixture "empty")
+  :no-fixture t)
 
 (context-coloring-test-define-deftest async
   :mode 'fundamental-mode
-  :default-fixture "empty"
+  :no-fixture t
   :async t)
 
 (context-coloring-test-define-deftest js
@@ -237,7 +234,7 @@ override it."
 
 (context-coloring-test-define-deftest define-theme
   :mode 'fundamental-mode
-  :default-fixture "empty"
+  :no-fixture t
   :get-args (lambda ()
               (list (context-coloring-test-get-next-theme)))
   :after-each (lambda (theme)
