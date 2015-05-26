@@ -1125,32 +1125,32 @@ ssssssssssss0"))
 (xxxxx x ()
   (x x 1 11 11 111 11 1 111 (1 1 1)))")))
 
-;; (context-coloring-test-deftest-emacs-lisp let
-;;   (lambda ()
-;;     (context-coloring-test-assert-coloring "
-;; 1111 11
-;;       11 01
-;;       11 00001
-;;       11 2222 22
-;;                22 02
-;;                22 000022
-;;            2222 2 2 2 00002211
-;;   1111 1 1 1 000011")))
+(context-coloring-test-deftest-emacs-lisp let
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111 11
+      11 01
+      11 00001
+      11 2222 22
+               22 02
+               22 000022
+           2222 2 2 2 00002211
+  1111 1 1 1 000011")))
 
-;; (context-coloring-test-deftest-emacs-lisp let*
-;;   (lambda ()
-;;     (context-coloring-test-assert-coloring "
-;; 11111 11
-;;        11 11
-;;        11 000011
-;;   1111 1 1 1 0 0 00001
-;;   22222 22
-;;          22 12
-;;          22 00002
-;;          22 02
-;;          22 222
-;;     2222 1 1 2 2 2 000022
-;;   1111 1 1 1 0 0 000011")))
+(context-coloring-test-deftest-emacs-lisp let*
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+11111 11
+       11 11
+       11 000011
+  1111 1 1 1 0 0 00001
+  22222 22
+         22 12
+         22 00002
+         22 02
+         22 222
+    2222 1 1 2 2 2 000022
+  1111 1 1 1 0 0 000011")))
 
 ;; (defun context-coloring-test-insert-unread-space ()
 ;;   "Simulate the insertion of a space as if by a user."
