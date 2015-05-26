@@ -248,6 +248,7 @@ override it."
 ;;; Assertion functions
 
 (defun context-coloring-test-get-last-message ()
+  "Get the last message in the current messages bufffer."
   (let ((messages (split-string
                    (buffer-substring-no-properties
                     (point-min)
@@ -317,6 +318,7 @@ override it."
 ;;; Miscellaneous tests
 
 (defun context-coloring-test-assert-trimmed (result expected)
+  "Assert that RESULT is trimmed like EXPECTED."
   (when (not (string-equal result expected))
     (ert-fail "Expected string to be trimmed, but it wasn't.")))
 
@@ -345,6 +347,7 @@ override it."
            (setq context-coloring-colorize-hook nil)))
 
 (defmacro context-coloring-test-define-derived-mode (name)
+  "Define a derived mode exclusively for tests."
   (let ((name (intern (format "context-coloring-test-%s-mode" name))))
     `(define-derived-mode ,name fundamental-mode "Testing")))
 
@@ -885,21 +888,39 @@ see that function."
                         face)))))
 
 (defun context-coloring-test-assert-position-comment (position)
+  "Assert that the face at POSITION is a comment."
   (context-coloring-test-assert-position-face
    position "\\`font-lock-comment\\(-delimiter\\)?-face\\'"))
 
 (defun context-coloring-test-assert-position-constant-comment (position)
+  "Assert that the face at POSITION is a constant comment."
   (context-coloring-test-assert-position-face position '(font-lock-constant-face
                                                          font-lock-comment-face)))
 
 (defun context-coloring-test-assert-position-string (position)
+  "Assert that the face at POSITION is a string."
   (context-coloring-test-assert-position-face position 'font-lock-string-face))
 
 (defun context-coloring-test-assert-position-nil (position)
+  "Assert that the face at POSITION is nil."
   (context-coloring-test-assert-position-face position nil))
 
 (defun context-coloring-test-assert-coloring (map)
-  "Assert that the current buffer's coloring matches MAP."
+  "Assert that the current buffer's coloring matches MAP.
+
+MAP's newlines should correspond to the current fixture.
+
+The following characters appearing in MAP assert coloring for
+corresponding points in the fixture:
+
+0-9: Level equals number.
+C: Face is constant comment.
+c: Face is comment.
+n: Face is nil.
+s: Face is string.
+
+Any other characters are discarded.  Characters \"x\" and any
+other non-letters are guaranteed to always be discarded."
   ;; Omit the superfluous, formatting-related leading newline.  Can't use
   ;; `save-excursion' here because if an assertion fails it will cause future
   ;; tests to get messed up.
@@ -1132,10 +1153,12 @@ ssssssssssss0"))
   1111 1 1 1 0 0 000011")))
 
 (defun context-coloring-test-insert-unread-space ()
+  "Simulate the insertion of a space as if by a user."
   (setq unread-command-events (cons '(t . 32)
                                     unread-command-events)))
 
 (defun context-coloring-test-remove-faces ()
+  "Remove all faces in the current buffer."
   (remove-text-properties (point-min) (point-max) '(face nil)))
 
 (context-coloring-test-deftest-emacs-lisp iteration
