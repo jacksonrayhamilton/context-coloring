@@ -1093,13 +1093,13 @@ ssssssssssss0"))
            11111111 11 2222222 2222
                          222 22 12 2221 111 0 00")))
 
-;; (context-coloring-test-deftest-emacs-lisp quote
-;;   (lambda ()
-;;     (context-coloring-test-assert-coloring "
-;; (xxxxx x (x)
-;;   (xx (xx x 111
-;;       111111 1 111 111
-;;       111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111")))
+(context-coloring-test-deftest-emacs-lisp quote
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxxxx x (x)
+  (xx (xx x 111
+      111111 1 111 111
+      111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111")))
 
 ;; (context-coloring-test-deftest-emacs-lisp comment
 ;;   (lambda ()
