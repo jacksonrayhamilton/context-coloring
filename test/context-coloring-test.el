@@ -1148,33 +1148,30 @@ ssssssssssss0"))
     2222 1 1 2 2 2 000022
   1111 1 1 1 0 0 000011")))
 
-;; (defun context-coloring-test-insert-unread-space ()
-;;   "Simulate the insertion of a space as if by a user."
-;;   (setq unread-command-events (cons '(t . 32)
-;;                                     unread-command-events)))
+(defun context-coloring-test-insert-unread-space ()
+  "Simulate the insertion of a space as if by a user."
+  (setq unread-command-events (cons '(t . 32)
+                                    unread-command-events)))
 
-;; (defun context-coloring-test-remove-faces ()
-;;   "Remove all faces in the current buffer."
-;;   (remove-text-properties (point-min) (point-max) '(face nil)))
+(defun context-coloring-test-remove-faces ()
+  "Remove all faces in the current buffer."
+  (remove-text-properties (point-min) (point-max) '(face nil)))
 
-;; (context-coloring-test-deftest-emacs-lisp iteration
-;;   (lambda ()
-;;     (let ((context-coloring-emacs-lisp-iterations-per-pause 1))
-;;       (context-coloring-colorize)
-;;       (context-coloring-test-assert-coloring "
-;; cc `CC' `CC'
-;; (xxxxx x ())")
-;;       (context-coloring-test-remove-faces)
-;;       (context-coloring-test-insert-unread-space)
-;;       (context-coloring-colorize)
-;;       ;; The first iteration will color the first part of the comment, but
-;;       ;; that's it.  Then it will be interrupted.
-;;       (context-coloring-test-assert-coloring "
-;; cc nnnn nnnn
-;; nnnnnn n nnn")))
-;;   :before (lambda ()
-;;             (setq context-coloring-syntactic-comments t)
-;;             (setq context-coloring-syntactic-strings t)))
+(context-coloring-test-deftest-emacs-lisp iteration
+  (lambda ()
+    (let ((context-coloring-elisp-sexps-per-pause 2))
+      (context-coloring-colorize)
+      (context-coloring-test-assert-coloring "
+cc `CC' `CC'
+(xxxxx x ())")
+      (context-coloring-test-remove-faces)
+      (context-coloring-test-insert-unread-space)
+      (context-coloring-colorize)
+      ;; Coloring is interrupted after the first "sexp" (the comment in this
+      ;; case).
+      (context-coloring-test-assert-coloring "
+cc `CC' `CC'
+nnnnnn n nnn"))))
 
 (provide 'context-coloring-test)
 
