@@ -333,6 +333,10 @@ provide visually \"instant\" updates at 60 frames per second.")
 (defconst context-coloring-OPEN-PARENTHESIS-CODE 4)
 (defconst context-coloring-CLOSE-PARENTHESIS-CODE 5)
 (defconst context-coloring-EXPRESSION-PREFIX-CODE 6)
+(defconst context-coloring-STRING-QUOTE-CODE 7)
+(defconst context-coloring-ESCAPE-CODE 9)
+(defconst context-coloring-COMMENT-START-CODE 11)
+(defconst context-coloring-COMMENT-END-CODE 12)
 
 (defconst context-coloring-APOSTROPHE-CHAR (string-to-char "'"))
 (defconst context-coloring-OPEN-PARENTHESIS-CHAR (string-to-char "("))
@@ -632,10 +636,37 @@ provide visually \"instant\" updates at 60 frames per second.")
      (t
       (forward-char)))))
 
+(defun context-coloring-elisp-colorize-comment ()
+  (let ((start (point)))
+    (skip-syntax-forward "^>")
+    (context-coloring-maybe-colorize-comments-and-strings
+     start
+     (point))))
+
+(defun context-coloring-elisp-colorize-string ()
+  (let ((start (point))
+        (syntax-code (context-coloring-get-syntax-code)))
+    ;; Move past the opening string delimiter.
+    (forward-char)
+    (while (progn
+             (skip-syntax-forward "^\\\"")
+             (cond
+              ((= syntax-code context-coloring-ESCAPE-CODE)
+               ;; If there was an escape char, keep going.
+               (forward-char 2)
+               t)
+              ((= syntax-code context-coloring-STRING-QUOTE-CODE)
+               ;; If the string ended, move outside it.
+               (forward-char)
+               nil))))
+    (context-coloring-maybe-colorize-comments-and-strings
+     start
+     (point))))
+
 (defun context-coloring-elisp-colorize-region (start end)
   (let (syntax-code)
     (goto-char start)
-    (while (> end (progn (skip-syntax-forward "^()w_'" end)
+    (while (> end (progn (skip-syntax-forward "^()w_'<\"" end)
                          (point)))
       (setq syntax-code (context-coloring-get-syntax-code))
       (cond
@@ -644,6 +675,10 @@ provide visually \"instant\" updates at 60 frames per second.")
             (= syntax-code context-coloring-SYMBOL-CODE)
             (= syntax-code context-coloring-EXPRESSION-PREFIX-CODE))
         (context-coloring-elisp-colorize-sexp))
+       ((= syntax-code context-coloring-COMMENT-START-CODE)
+        (context-coloring-elisp-colorize-comment))
+       ((= syntax-code context-coloring-STRING-QUOTE-CODE)
+        (context-coloring-elisp-colorize-string))
        (t
         (forward-char))))))
 

@@ -1101,23 +1101,19 @@ ssssssssssss0"))
       111111 1 111 111
       111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111")))
 
-;; (context-coloring-test-deftest-emacs-lisp comment
-;;   (lambda ()
-;;     ;; Just check that the comment isn't parsed syntactically.
-;;     (context-coloring-test-assert-coloring "
-;; (xxxxx x ()
-;;   (xx (x xxxxx-xxxx xx)   cccccccccc
-;;       11 00000-0000 11))) cccccccccc"))
-;;   :before (lambda ()
-;;             (setq context-coloring-syntactic-comments t)))
+(context-coloring-test-deftest-emacs-lisp comment
+  (lambda ()
+    ;; Just check that the comment isn't parsed syntactically.
+    (context-coloring-test-assert-coloring "
+(xxxxx x ()
+  (xx (x xxxxx-xxxx xx)   cccccccccc
+      11 00000-0000 11))) cccccccccc")))
 
-;; (context-coloring-test-deftest-emacs-lisp string
-;;   (lambda ()
-;;     (context-coloring-test-assert-coloring "
-;; (xxxxx x (x)
-;;   (xxxxxx x x sss 1 0 sssss 0 1 sssssss11"))
-;;   :before (lambda ()
-;;             (setq context-coloring-syntactic-strings t)))
+(context-coloring-test-deftest-emacs-lisp string
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxxxx x (x)
+  (xxxxxx x x sss 1 0 sssss 0 1 sssssss11")))
 
 (context-coloring-test-deftest-emacs-lisp ignored
   (lambda ()
