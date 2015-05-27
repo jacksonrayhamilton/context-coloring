@@ -658,12 +658,13 @@ provide visually \"instant\" updates at 60 frames per second.")
 
 (defun context-coloring-elisp-colorize-string ()
   (let ((start (point))
-        (syntax-code (context-coloring-get-syntax-code)))
+        syntax-code)
     (context-coloring-elisp-increment-sexp-count)
     ;; Move past the opening string delimiter.
     (forward-char)
     (while (progn
              (skip-syntax-forward "^\\\"")
+             (setq syntax-code (context-coloring-get-syntax-code))
              (cond
               ((= syntax-code context-coloring-ESCAPE-CODE)
                ;; If there was an escape char, keep going.
