@@ -1,5 +1,6 @@
 (let (a
       ;; comment
+      (s "s")
       (b a)
       (c free)
       (d (let (a

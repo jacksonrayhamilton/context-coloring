@@ -1140,6 +1140,7 @@ ssssssssssss0"))
     (context-coloring-test-assert-coloring "
 1111 11
       cccccccccc
+      11 sss1
       11 01
       11 00001
       11 2222 22
