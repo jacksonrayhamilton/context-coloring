@@ -653,29 +653,15 @@ provide visually \"instant\" updates at 60 frames per second.")
 (defun context-coloring-elisp-colorize-comment ()
   (let ((start (point)))
     (context-coloring-elisp-increment-sexp-count)
-    (skip-syntax-forward "^>")
+    (context-coloring-forward-sws)
     (context-coloring-maybe-colorize-comments-and-strings
      start
      (point))))
 
 (defun context-coloring-elisp-colorize-string ()
-  (let ((start (point))
-        syntax-code)
+  (let ((start (point)))
     (context-coloring-elisp-increment-sexp-count)
-    ;; Move past the opening string delimiter.
-    (forward-char)
-    (while (progn
-             (skip-syntax-forward "^\\\"")
-             (setq syntax-code (context-coloring-get-syntax-code))
-             (cond
-              ((= syntax-code context-coloring-ESCAPE-CODE)
-               ;; If there was an escape char, keep going.
-               (forward-char 2)
-               t)
-              ((= syntax-code context-coloring-STRING-QUOTE-CODE)
-               ;; If the string ended, move outside it.
-               (forward-char)
-               nil))))
+    (forward-sexp)
     (context-coloring-maybe-colorize-comments-and-strings
      start
      (point))))
