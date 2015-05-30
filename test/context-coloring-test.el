@@ -1103,7 +1103,9 @@ ssssssssssss0"))
 
 (xxxxxx '(sss cc
           sss cc
-          ))")))
+          ))
+
+(xxxxxx () 111111 11111)")))
 
 (context-coloring-test-deftest-emacs-lisp comment
   (lambda ()
