@@ -37,6 +37,9 @@
   "Resolve PATH from this file's directory."
   (expand-file-name path context-coloring-benchmark-path))
 
+(defun context-coloring-benchmark-next-tick (callback)
+  (run-with-timer nil nil callback))
+
 (defun context-coloring-benchmark-series (sequence callback)
   "Call each function in SEQUENCE, then call CALLBACK.  Each
 function is passed a single callback parameter for it to call
@@ -48,8 +51,7 @@ when it is done."
     (funcall
      (car sequence)
      (lambda ()
-       (run-with-timer
-        nil nil
+       (context-coloring-benchmark-next-tick
         (lambda ()
           (context-coloring-benchmark-series
            (cdr sequence)
@@ -67,8 +69,7 @@ for it to call when it is done."
      iteratee
      (car sequence)
      (lambda ()
-       (run-with-timer
-        nil nil
+       (context-coloring-benchmark-next-tick
         (lambda ()
           (context-coloring-benchmark-mapc
            (cdr sequence)
@@ -167,11 +168,32 @@ CALLBACK when all are done."
    context-coloring-benchmark-js-fixtures
    callback))
 
+(defconst context-coloring-benchmark-emacs-lisp-fixtures
+  '("./fixtures/lisp.el"
+    "./fixtures/faces.el"
+    "./fixtures/subr.el"
+    "./fixtures/simple.el")
+  "Arbitrary Emacs Lisp files for performance scrutiny.")
+
+(defun context-coloring-benchmark-emacs-lisp-mode-run (callback)
+  "Benchmark `emacs-lisp-mode', then call CALLBACK."
+  (context-coloring-benchmark
+   "emacs-lisp-mode"
+   (lambda ()
+     "Preparation logic for `emacs-lisp-mode'."
+     (add-hook 'emacs-lisp-mode-hook 'context-coloring-mode))
+   (lambda ()
+     "Cleanup logic for `emacs-lisp-mode'."
+     (remove-hook 'emacs-lisp-mode-hook 'context-coloring-mode))
+   context-coloring-benchmark-emacs-lisp-fixtures
+   callback))
+
 (defun context-coloring-benchmark-run ()
   "Benchmark all modes, then exit."
   (context-coloring-benchmark-series
    '(context-coloring-benchmark-js-mode-run
-     context-coloring-benchmark-js2-mode-run)
+     context-coloring-benchmark-js2-mode-run
+     context-coloring-benchmark-emacs-lisp-mode-run)
    (lambda ()
      (kill-emacs))))
 

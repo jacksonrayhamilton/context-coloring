@@ -712,7 +712,12 @@ provide visually \"instant\" updates at 60 frames per second.")
 (defun context-coloring-elisp-colorize (start end)
   (setq context-coloring-elisp-sexp-count 0)
   (setq context-coloring-elisp-scope-stack '())
-  (context-coloring-elisp-colorize-region start end))
+  (let ((inhibit-point-motion-hooks t)
+        (case-fold-search nil)
+        ;; This is a recursive-descent parser, so give it a big stack.
+        (max-lisp-eval-depth (max max-lisp-eval-depth 3000))
+        (max-specpdl-size (max max-specpdl-size 3000)))
+    (context-coloring-elisp-colorize-region start end)))
 
 (defun context-coloring-elisp-colorize-changed-region (start end)
   (with-silent-modifications
