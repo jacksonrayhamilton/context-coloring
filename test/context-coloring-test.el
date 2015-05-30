@@ -1107,6 +1107,12 @@ ssssssssssss0"))
 
 (xxxxxx () 111111 11111)")))
 
+(context-coloring-test-deftest-emacs-lisp splice
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxxxxx ()
+  111111 00001 100001)")))
+
 (context-coloring-test-deftest-emacs-lisp comment
   (lambda ()
     ;; Just check that the comment isn't parsed syntactically.
