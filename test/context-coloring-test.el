@@ -1099,7 +1099,11 @@ ssssssssssss0"))
 (xxxxx x (x)
   (xx (xx x 111
       111111 1 111 111
-      111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111")))
+      111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111
+
+(xxxxxx '(sss cc
+          sss cc
+          ))")))
 
 (context-coloring-test-deftest-emacs-lisp comment
   (lambda ()
