@@ -423,7 +423,7 @@ override it."
     (context-coloring-define-dispatch
      'define-dispatch-scopifier
      :modes '(context-coloring-test-define-dispatch-scopifier-mode)
-     :scopifier (lambda () (vector)))
+     :scopifier (lambda () (list)))
     (context-coloring-test-define-dispatch-scopifier-mode)
     (context-coloring-mode)
     (context-coloring-colorize)))

@@ -409,6 +409,7 @@ provide visually \"instant\" updates at 60 frames per second.")
            arg-string)
       (funcall callback arg-string))))
 
+;; TODO: These seem to spiral into an infinite loop sometimes.
 (defun context-coloring-elisp-parse-let-varlist (type)
   (let ((varlist '())
         syntax-code)
@@ -723,36 +724,47 @@ provide visually \"instant\" updates at 60 frames per second.")
     (save-excursion
       (context-coloring-elisp-colorize (point-min) (point-max)))))
 
-(defalias 'ccecb 'context-coloring-elisp-colorize-buffer)
-
 
 ;;; Shell command scopification / colorization
 
 (defun context-coloring-apply-tokens (tokens)
-  "Process a vector of TOKENS to apply context-based coloring to
+  "Process a list of TOKENS to apply context-based coloring to
 the current buffer.  Tokens are 3 integers: start, end, level.
-The vector is flat, with a new token occurring after every 3rd
+The list is flat, with a new token occurring after every 3rd
 element."
   (with-silent-modifications
-    (let ((i 0)
-          (len (length tokens)))
-      (while (< i len)
-        (context-coloring-colorize-region
-         (elt tokens i)
-         (elt tokens (+ i 1))
-         (elt tokens (+ i 2)))
-        (setq i (+ i 3))))
+    (while tokens
+      (context-coloring-colorize-region
+       (prog1 (car tokens) (setq tokens (cdr tokens)))
+       (prog1 (car tokens) (setq tokens (cdr tokens)))
+       (prog1 (car tokens) (setq tokens (cdr tokens)))))
     (context-coloring-maybe-colorize-comments-and-strings)))
 
 (defun context-coloring-parse-array (array)
   "Parse ARRAY as a flat JSON array of numbers."
-  (let ((braceless (substring (context-coloring-trim array) 1 -1)))
+  (let ((braceless (substring-no-properties (context-coloring-trim array) 1 -1)))
     (cond
      ((> (length braceless) 0)
-      (vconcat
-       (mapcar 'string-to-number (split-string braceless ","))))
+      (let* (;; Use a leading comma to simplify the below loop's
+             ;; delimiter-checking.
+             (chars (vconcat (concat "," braceless)))
+             (index (length chars))
+             (number 0)
+             (multiplier 1)
+             numbers)
+        (while (> index 0)
+          (setq index (1- index))
+          (cond
+           ((= (elt chars index) context-coloring-COMMA-CHAR)
+            (setq numbers (cons number numbers))
+            (setq number 0)
+            (setq multiplier 1))
+           (t
+            (setq number (+ number (* (- (elt chars index) 48) multiplier)))
+            (setq multiplier (* multiplier 10)))))
+        numbers))
      (t
-      (vector)))))
+      (list)))))
 
 (defvar-local context-coloring-scopifier-process nil
   "The single scopifier process that can be running.")
