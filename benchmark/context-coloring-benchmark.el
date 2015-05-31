@@ -91,6 +91,9 @@ with STATISTICS."
        (insert (format "For fixture \"%s\":\n" fixture))
        (insert "\n")
        (insert "General statistics:\n")
+       (insert (format "File size: %s bytes\n" (plist-get statistics :file-size)))
+       (insert (format "Lines: %s\n" (plist-get statistics :lines)))
+       (insert (format "Words: %s\n" (plist-get statistics :words)))
        (insert (format "Colorization times: %s\n"
                        (context-coloring-join
                         (mapcar (lambda (number)
@@ -135,12 +138,16 @@ CALLBACK when all are done."
                  (cond
                   ((= count 5)
                    (advice-remove 'context-coloring-colorize advice)
-                   (kill-buffer)
                    (context-coloring-benchmark-log-results
                     result-file
                     fixture
-                    `(:colorization-times ,colorization-times
-                      :average-colorization-time ,(/ (apply '+ colorization-times) 5)))
+                    (list
+                     :file-size (nth 7 (file-attributes fixture))
+                     :lines (count-lines (point-min) (point-max))
+                     :words (count-words (point-min) (point-max))
+                     :colorization-times colorization-times
+                     :average-colorization-time (/ (apply '+ colorization-times) 5)))
+                   (kill-buffer)
                    (funcall callback))
                   (t
                    (setq colorization-start-time (float-time))
