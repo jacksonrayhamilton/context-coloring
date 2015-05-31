@@ -76,18 +76,35 @@ for it to call when it is done."
            iteratee
            callback))))))))
 
-(defun context-coloring-benchmark-log-results (result-file fixture)
-  "Log benchmarking results to RESULT-FILE for fixture FIXTURE."
-  (elp-results)
-  (let ((results-buffer (current-buffer)))
-    (with-temp-buffer
-      (insert (concat fixture "\n"))
-      (prepend-to-buffer results-buffer (point-min) (point-max)))
-    (with-temp-buffer
-      (insert "\n")
-      (append-to-buffer results-buffer (point-min) (point-max))))
-  (make-directory (context-coloring-benchmark-resolve-path "./logs") t)
-  (append-to-file nil nil result-file))
+(defun context-coloring-benchmark-log-results (result-file fixture statistics)
+  "Log benchmarking results to RESULT-FILE for fixture FIXTURE
+with STATISTICS."
+  (let ((results (prog1
+                     (progn
+                       (elp-results)
+                       (buffer-substring-no-properties (point-min) (point-max)))
+                   (kill-buffer))))
+    (make-directory (context-coloring-benchmark-resolve-path "./logs") t)
+    (append-to-file
+     (with-temp-buffer
+       (goto-char (point-min))
+       (insert (format "For fixture \"%s\":\n" fixture))
+       (insert "\n")
+       (insert "General statistics:\n")
+       (insert (format "Colorization times: %s\n"
+                       (context-coloring-join
+                        (mapcar (lambda (number)
+                                  (format "%.4f" number))
+                                (plist-get statistics :colorization-times)) ", ")))
+       (insert (format "Average colorization time: %.4f\n"
+                       (plist-get statistics :average-colorization-time)))
+       (insert "\n")
+       (insert "Function statistics:\n")
+       (insert "(Function Name / Call Count / Elapsed Time / Average Time):\n")
+       (insert results)
+       (insert "\n")
+       (buffer-substring-no-properties (point-min) (point-max)))
+     nil result-file)))
 
 (defun context-coloring-benchmark (title setup teardown fixtures callback)
   "Execute a benchmark titled TITLE with SETUP and TEARDOWN
@@ -102,6 +119,8 @@ CALLBACK when all are done."
      fixtures
      (lambda (path callback)
        (let ((fixture (context-coloring-benchmark-resolve-path path))
+             colorization-start-time
+             (colorization-times '())
              advice)
          (setq
           advice
@@ -111,6 +130,7 @@ CALLBACK when all are done."
                original-function
                (lambda ()
                  (setq count (+ count 1))
+                 (push (- (float-time) colorization-start-time) colorization-times)
                  ;; Test 5 times.
                  (cond
                   ((= count 5)
@@ -118,11 +138,15 @@ CALLBACK when all are done."
                    (kill-buffer)
                    (context-coloring-benchmark-log-results
                     result-file
-                    fixture)
+                    fixture
+                    `(:colorization-times ,colorization-times
+                      :average-colorization-time ,(/ (apply '+ colorization-times) 5)))
                    (funcall callback))
                   (t
+                   (setq colorization-start-time (float-time))
                    (funcall 'context-coloring-colorize))))))))
          (advice-add 'context-coloring-colorize :around advice)
+         (setq colorization-start-time (float-time))
          (find-file fixture)))
      (lambda ()
        (funcall teardown)
