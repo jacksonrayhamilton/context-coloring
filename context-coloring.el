@@ -728,43 +728,25 @@ provide visually \"instant\" updates at 60 frames per second.")
 ;;; Shell command scopification / colorization
 
 (defun context-coloring-apply-tokens (tokens)
-  "Process a list of TOKENS to apply context-based coloring to
-the current buffer.  Tokens are 3 integers: start, end, level.
-The list is flat, with a new token occurring after every 3rd
-element."
-  (with-silent-modifications
+  "Process a string of TOKENS to apply context-based coloring to
+the current buffer.  Tokens are 3 integers: start, end, level.  A
+new token occurrs after every 3rd element, and the elements are
+separated by commas."
+  (let* ((tokens (mapcar 'string-to-number (split-string tokens ","))))
     (while tokens
       (context-coloring-colorize-region
-       (prog1 (car tokens) (setq tokens (cdr tokens)))
-       (prog1 (car tokens) (setq tokens (cdr tokens)))
-       (prog1 (car tokens) (setq tokens (cdr tokens)))))
-    (context-coloring-maybe-colorize-comments-and-strings)))
+       (pop tokens)
+       (pop tokens)
+       (pop tokens))))
+  (context-coloring-maybe-colorize-comments-and-strings))
 
 (defun context-coloring-parse-array (array)
-  "Parse ARRAY as a flat JSON array of numbers."
-  (let ((braceless (substring-no-properties (context-coloring-trim array) 1 -1)))
-    (cond
-     ((> (length braceless) 0)
-      (let* (;; Use a leading comma to simplify the below loop's
-             ;; delimiter-checking.
-             (chars (vconcat (concat "," braceless)))
-             (index (length chars))
-             (number 0)
-             (multiplier 1)
-             numbers)
-        (while (> index 0)
-          (setq index (1- index))
-          (cond
-           ((= (elt chars index) context-coloring-COMMA-CHAR)
-            (setq numbers (cons number numbers))
-            (setq number 0)
-            (setq multiplier 1))
-           (t
-            (setq number (+ number (* (- (elt chars index) 48) multiplier)))
-            (setq multiplier (* multiplier 10)))))
-        numbers))
-     (t
-      (list)))))
+  "Parse ARRAY as a flat JSON array of numbers and use the tokens
+to colorize the buffer."
+  (let* ((braceless (substring-no-properties (context-coloring-trim array) 1 -1)))
+    (when (> (length braceless) 0)
+      (with-silent-modifications
+        (context-coloring-apply-tokens braceless)))))
 
 (defvar-local context-coloring-scopifier-process nil
   "The single scopifier process that can be running.")
@@ -823,11 +805,10 @@ Invoke CALLBACK when complete."
     (context-coloring-scopify-shell-command
      command
      (lambda (output)
-       (let ((tokens (context-coloring-parse-array output)))
-         (with-current-buffer buffer
-           (context-coloring-apply-tokens tokens))
-         (setq context-coloring-scopifier-process nil)
-         (when callback (funcall callback))))))
+       (with-current-buffer buffer
+         (context-coloring-parse-array output))
+       (setq context-coloring-scopifier-process nil)
+       (when callback (funcall callback)))))
   (context-coloring-send-buffer-to-scopifier))
 
 
@@ -853,12 +834,11 @@ Invoke CALLBACK when complete."
   "Define a new dispatch named SYMBOL with PROPERTIES.
 
 A \"dispatch\" is a property list describing a strategy for
-coloring a buffer.  There are three possible strategies: Parse
-and color in a single function (`:colorizer'), parse in a
-function that returns scope data (`:scopifier'), or parse with a
-shell command that returns scope data (`:command').  In the
-latter two cases, the scope data will be used to automatically
-color the buffer.
+coloring a buffer.  There are two possible strategies: Parse and
+color in a single function (`:colorizer') or parse with a shell
+command that returns scope data (`:command').  In the latter
+case, the scope data will be used to automatically color the
+buffer.
 
 PROPERTIES must include `:modes' and one of `:colorizer',
 `:scopifier' or `:command'.
@@ -867,9 +847,6 @@ PROPERTIES must include `:modes' and one of `:colorizer',
 
 `:colorizer' - Symbol referring to a function that parses and
 colors the buffer.
-
-`:scopifier' - Symbol referring to a function that parses the
-buffer a returns a flat vector of start, end and level data.
 
 `:executable' - Optional name of an executable required by
 `:command'.
@@ -890,14 +867,12 @@ should be numeric, e.g. \"2\", \"19700101\", \"1.2.3\",
 `context-coloring-mode' is disabled."
   (let ((modes (plist-get properties :modes))
         (colorizer (plist-get properties :colorizer))
-        (scopifier (plist-get properties :scopifier))
         (command (plist-get properties :command)))
     (when (null modes)
       (error "No mode defined for dispatch"))
     (when (not (or colorizer
-                   scopifier
                    command))
-      (error "No colorizer, scopifier or command defined for dispatch"))
+      (error "No colorizer or command defined for dispatch"))
     (puthash symbol properties context-coloring-dispatch-hash-table)
     (dolist (mode modes)
       (puthash mode properties context-coloring-mode-hash-table))))
@@ -1406,18 +1381,13 @@ Invoke CALLBACK when complete.  It is invoked synchronously for
 elisp tracks, and asynchronously for shell command tracks."
   (let* ((dispatch (context-coloring-get-dispatch-for-mode major-mode))
          (colorizer (plist-get dispatch :colorizer))
-         (scopifier (plist-get dispatch :scopifier))
          (command (plist-get dispatch :command))
          interrupted-p)
     (cond
-     ((or colorizer scopifier)
+     (colorizer
       (setq interrupted-p
             (catch 'interrupted
-              (cond
-               (colorizer
-                (funcall colorizer))
-               (scopifier
-                (context-coloring-apply-tokens (funcall scopifier))))))
+              (funcall colorizer)))
       (cond
        (interrupted-p
         (setq context-coloring-changed t))

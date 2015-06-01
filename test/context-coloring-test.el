@@ -414,19 +414,7 @@ override it."
        (context-coloring-define-dispatch
         'define-dispatch-no-strategy
         :modes '(context-coloring-test-define-dispatch-error-mode)))
-     "No colorizer, scopifier or command defined for dispatch")))
-
-(context-coloring-test-define-derived-mode define-dispatch-scopifier)
-
-(context-coloring-test-deftest define-dispatch-scopifier
-  (lambda ()
-    (context-coloring-define-dispatch
-     'define-dispatch-scopifier
-     :modes '(context-coloring-test-define-dispatch-scopifier-mode)
-     :scopifier (lambda () (list)))
-    (context-coloring-test-define-dispatch-scopifier-mode)
-    (context-coloring-mode)
-    (context-coloring-colorize)))
+     "No colorizer or command defined for dispatch")))
 
 (context-coloring-test-define-derived-mode missing-executable)
 
