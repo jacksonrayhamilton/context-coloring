@@ -748,14 +748,22 @@ to colorize the buffer."
       (with-silent-modifications
         (context-coloring-apply-tokens braceless)))))
 
+(defvar-local context-coloring-scopifier-cancel-function nil
+  "Kills the current scopification process.")
+
 (defvar-local context-coloring-scopifier-process nil
   "The single scopifier process that can be running.")
 
 (defun context-coloring-kill-scopifier ()
   "Kill the currently-running scopifier process."
-  (when (not (null context-coloring-scopifier-process))
-    (delete-process context-coloring-scopifier-process)
-    (setq context-coloring-scopifier-process nil)))
+  (cond
+   (context-coloring-scopifier-cancel-function
+    (funcall context-coloring-scopifier-cancel-function)
+    (setq context-coloring-scopifier-cancel-function nil))
+   ;; ((not (null context-coloring-scopifier-process))
+   ;;  (delete-process context-coloring-scopifier-process)
+   ;;  (setq context-coloring-scopifier-process nil))
+   ))
 
 (defun context-coloring-scopify-shell-command (command callback)
   "Invoke a scopifier via COMMAND, read its response
@@ -795,6 +803,72 @@ scopifying."
   (process-send-eof
    context-coloring-scopifier-process))
 
+(defcustom context-coloring-js-scopifier-server-host "localhost"
+  "Host for the JavaScript scopifier server."
+  :group 'context-coloring)
+
+(defcustom context-coloring-js-scopifier-server-port 6969
+  "Port for the JavaScript scopifier server."
+  :group 'context-coloring)
+
+(defun context-coloring-js-start-scopifier-server (callback)
+  (let (stream)
+    (condition-case nil
+        (progn
+          (setq stream (open-network-stream
+                        "scopifier" nil
+                        context-coloring-js-scopifier-server-host
+                        context-coloring-js-scopifier-server-port))
+          (funcall callback stream))
+      (error
+       (context-coloring-scopify-shell-command
+        (context-coloring-join
+         (list "scopifier"
+               "--server"
+               "--host" context-coloring-js-scopifier-server-host
+               "--post" (number-to-string
+                         context-coloring-js-scopifier-server-port))
+         " ")
+        (lambda (_output)
+          (setq stream (open-network-stream
+                        "scopifier" nil
+                        context-coloring-js-scopifier-server-host
+                        context-coloring-js-scopifier-server-port))
+          (funcall callback stream)))))))
+
+(defun context-coloring-send-buffer-to-scopifier-server (callback)
+  ;; TODO: Dispatch configuration.
+  (context-coloring-js-start-scopifier-server
+   (lambda (process)
+     (let* ((body (buffer-substring-no-properties (point-min) (point-max)))
+            (header (concat "POST / HTTP/1.0\r\n"
+                            "Host: localhost\r\n"
+                            "Content-Type: application/x-www-form-urlencoded"
+                            "; charset=UTF8\r\n"
+                            (format "Content-Length: %d\r\n" (length body))
+                            "\r\n"))
+            (output "")
+            (active t))
+       (set-process-filter
+        process
+        (lambda (_process chunk)
+          (setq output (concat output chunk))))
+       (set-process-sentinel
+        process
+        (lambda (_process event)
+          (when (and (equal "connection broken by remote peer\n" event)
+                     active)
+            ;; Strip the response headers.
+            (string-match "\r\n\r\n" output)
+            (setq output (substring-no-properties output (match-end 0)))
+            (funcall callback output))))
+       (process-send-string process (concat header body "\r\n"))
+       (setq context-coloring-scopifier-cancel-function
+             (lambda ()
+               "Cancel this scopification."
+               (setq active nil)))))))
+
+;; TODO: Maybe have a function dedicated to servers instead.
 (defun context-coloring-scopify-and-colorize (command &optional callback)
   "Invoke a scopifier via COMMAND with the current buffer's contents,
 read the scopifier's response asynchronously and apply a parsed
@@ -802,14 +876,12 @@ list of tokens to `context-coloring-apply-tokens'.
 
 Invoke CALLBACK when complete."
   (let ((buffer (current-buffer)))
-    (context-coloring-scopify-shell-command
-     command
+    (context-coloring-send-buffer-to-scopifier-server
      (lambda (output)
        (with-current-buffer buffer
          (context-coloring-parse-array output))
        (setq context-coloring-scopifier-process nil)
-       (when callback (funcall callback)))))
-  (context-coloring-send-buffer-to-scopifier))
+       (when callback (funcall callback))))))
 
 
 ;;; Dispatch
