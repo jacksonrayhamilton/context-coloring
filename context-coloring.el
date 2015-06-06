@@ -349,11 +349,7 @@ the way."
 (defconst context-coloring-elisp-sexps-per-pause 1000
   "Pause after this many iterations to check for user input.
 If user input is pending, stop the parse.  This makes for a
-smoother user experience for large files.
-
-As of this writing, emacs lisp colorization seems to run at about
-60,000 iterations per second.  A default value of 1000 should
-provide visually \"instant\" updates at 60 frames per second.")
+smoother user experience for large files.")
 
 (defvar context-coloring-elisp-sexp-count 0)
 
@@ -426,7 +422,6 @@ provide visually \"instant\" updates at 60 frames per second.")
                 arg-string))
       (funcall callback arg-string))))
 
-;; TODO: These seem to spiral into an infinite loop sometimes.
 (defun context-coloring-elisp-parse-let-varlist (type)
   (let ((varlist '())
         syntax-code)
