@@ -307,8 +307,10 @@ them along the way."
    '("defun" "defun*" "defsubst" "defmacro"
      "cl-defun" "cl-defsubst" "cl-defmacro")))
 
-(defconst context-coloring-elisp-arglist-arg-regexp
-  "\\`[^&:]")
+(defconst context-coloring-elisp-condition-case-regexp
+  (context-coloring-exact-or-regexp
+   '("condition-case"
+     "condition-case-unless-debug")))
 
 (defconst context-coloring-ignored-word-regexp
   (context-coloring-join (list "\\`[-+]?[0-9]"
@@ -412,9 +414,9 @@ provide visually \"instant\" updates at 60 frames per second.")
                       (point)
                       (progn (forward-sexp)
                              (point)))))
-    (when (string-match-p
-           context-coloring-elisp-arglist-arg-regexp
-           arg-string)
+    (when (not (string-match-p
+                context-coloring-ignored-word-regexp
+                arg-string))
       (funcall callback arg-string))))
 
 ;; TODO: These seem to spiral into an infinite loop sometimes.
@@ -572,6 +574,70 @@ provide visually \"instant\" updates at 60 frames per second.")
     ;; Exit.
     (forward-char)))
 
+(defun context-coloring-elisp-colorize-condition-case ()
+  (let ((start (point))
+        end
+        syntax-code
+        variable
+        case-pos
+        case-end)
+    (context-coloring-elisp-push-scope)
+    ;; Color the whole sexp.
+    (forward-sexp)
+    (setq end (point))
+    (context-coloring-colorize-region
+     start
+     end
+     (context-coloring-elisp-current-scope-level))
+    (goto-char start)
+    ;; Enter.
+    (forward-char)
+    (context-coloring-elisp-forward-sws)
+    ;; Skip past the "condition-case".
+    (forward-sexp)
+    (context-coloring-elisp-forward-sws)
+    (setq syntax-code (context-coloring-get-syntax-code))
+    ;; Gracefully ignore missing variables.
+    (when (or (= syntax-code context-coloring-WORD-CODE)
+              (= syntax-code context-coloring-SYMBOL-CODE))
+      (context-coloring-elisp-parse-arg
+       (lambda (parsed-variable)
+         (setq variable parsed-variable)))
+      (context-coloring-elisp-forward-sws))
+    (context-coloring-elisp-colorize-sexp)
+    (context-coloring-elisp-forward-sws)
+    ;; Parse the handlers with the error variable in scope.
+    (when variable
+      (context-coloring-elisp-add-variable variable))
+    (while (/= (setq syntax-code (context-coloring-get-syntax-code))
+               context-coloring-CLOSE-PARENTHESIS-CODE)
+      (cond
+       ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+        (setq case-pos (point))
+        (forward-sexp)
+        (setq case-end (point))
+        (goto-char case-pos)
+        ;; Enter.
+        (forward-char)
+        (context-coloring-elisp-forward-sws)
+        (setq syntax-code (context-coloring-get-syntax-code))
+        (when (/= syntax-code context-coloring-CLOSE-PARENTHESIS-CODE)
+          ;; Skip the condition name(s).
+          (forward-sexp)
+          ;; Color the remaining portion of the handler.
+          (context-coloring-elisp-colorize-region
+           (point)
+           (1- case-end)))
+        ;; Exit.
+        (forward-char))
+       (t
+        ;; Ignore artifacts.
+        (forward-sexp)))
+      (context-coloring-elisp-forward-sws))
+    ;; Exit.
+    (forward-char)
+    (context-coloring-elisp-pop-scope)))
+
 (defun context-coloring-elisp-colorize-parenthesized-sexp ()
   (context-coloring-elisp-increment-sexp-count)
   (let* ((start (point))
@@ -609,6 +675,10 @@ provide visually \"instant\" updates at 60 frames per second.")
            ((string-equal "cond" name-string)
             (goto-char start)
             (context-coloring-elisp-colorize-cond)
+            t)
+           ((string-match-p context-coloring-elisp-condition-case-regexp name-string)
+            (goto-char start)
+            (context-coloring-elisp-colorize-condition-case)
             t)
            (t
             nil)))))
