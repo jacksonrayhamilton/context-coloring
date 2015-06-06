@@ -120,6 +120,78 @@ backgrounds."
   (context-coloring-level-face (min level context-coloring-maximum-face)))
 
 
+;;; Change detection
+
+(defvar-local context-coloring-changed-p nil
+  "Indication that the buffer has changed recently, which implies
+that it should be colored again by
+`context-coloring-colorize-idle-timer' if that timer is being
+used.")
+
+(defvar-local context-coloring-changed-start nil
+  "Beginning of last text that changed.")
+
+(defvar-local context-coloring-changed-end nil
+  "End of last text that changed.")
+
+(defvar-local context-coloring-changed-length nil
+  "Length of last text that changed.")
+
+(defun context-coloring-change-function (start end length)
+  "Register a change so that a buffer can be colorized soon."
+  ;; Tokenization is obsolete if there was a change.
+  (context-coloring-cancel-scopification)
+  (setq context-coloring-changed-start start)
+  (setq context-coloring-changed-end end)
+  (setq context-coloring-changed-length length)
+  (setq context-coloring-changed-p t))
+
+(defun context-coloring-maybe-colorize (buffer)
+  "Colorize the current buffer if it has changed."
+  (when (and (eq buffer (current-buffer))
+             context-coloring-changed-p)
+    (context-coloring-colorize)
+    (setq context-coloring-changed-p nil)
+    (setq context-coloring-changed-start nil)
+    (setq context-coloring-changed-end nil)
+    (setq context-coloring-changed-length nil)))
+
+(defvar-local context-coloring-colorize-idle-timer nil
+  "The currently-running idle timer.")
+
+(defcustom context-coloring-delay 0.25
+  "Delay between a buffer update and colorization.
+
+Increase this if your machine is high-performing.  Decrease it if
+it ain't.
+
+Supported modes: `js-mode', `js3-mode', `emacs-lisp-mode'"
+  :group 'context-coloring)
+
+(defun context-coloring-setup-idle-change-detection ()
+  "Setup idle change detection."
+  (add-hook
+   'after-change-functions 'context-coloring-change-function nil t)
+  (add-hook
+   'kill-buffer-hook 'context-coloring-teardown-idle-change-detection nil t)
+  (setq context-coloring-colorize-idle-timer
+        (run-with-idle-timer
+         context-coloring-delay
+         t
+         'context-coloring-maybe-colorize
+         (current-buffer))))
+
+(defun context-coloring-teardown-idle-change-detection ()
+  "Teardown idle change detection."
+  (context-coloring-cancel-scopification)
+  (when context-coloring-colorize-idle-timer
+    (cancel-timer context-coloring-colorize-idle-timer))
+  (remove-hook
+   'kill-buffer-hook 'context-coloring-teardown-idle-change-detection t)
+  (remove-hook
+   'after-change-functions 'context-coloring-change-function t))
+
+
 ;;; Colorization utilities
 
 (defsubst context-coloring-colorize-region (start end level)
@@ -810,7 +882,7 @@ smoother user experience for large files.")
        (t
         (forward-char))))))
 
-(defun context-coloring-elisp-colorize (start end)
+(defun context-coloring-elisp-colorize-region-initially (start end)
   (setq context-coloring-elisp-sexp-count 0)
   (setq context-coloring-elisp-scope-stack '())
   (let ((inhibit-point-motion-hooks t)
@@ -820,22 +892,24 @@ smoother user experience for large files.")
         (max-specpdl-size (max max-specpdl-size 3000)))
     (context-coloring-elisp-colorize-region start end)))
 
-(defun context-coloring-elisp-colorize-changed-region (start end)
-  (with-silent-modifications
-    (save-excursion
-      (let ((start (progn (goto-char start)
-                          (beginning-of-defun)
-                          (point)))
-            (end (progn (goto-char end)
-                        (end-of-defun)
-                        (point))))
-        (context-coloring-elisp-colorize start end)))))
-
-(defun context-coloring-elisp-colorize-buffer ()
+(defun context-coloring-elisp-colorize ()
+  "Color the current buffer, parsing elisp to determine its
+scopes and variables."
   (interactive)
   (with-silent-modifications
     (save-excursion
-      (context-coloring-elisp-colorize (point-min) (point-max)))))
+      (cond
+       ;; Just colorize the changed region.
+       (context-coloring-changed-p
+        (let ((start (progn (goto-char context-coloring-changed-start)
+                            (beginning-of-defun)
+                            (point)))
+              (end (progn (goto-char context-coloring-changed-end)
+                          (end-of-defun)
+                          (point))))
+          (context-coloring-elisp-colorize-region-initially start end)))
+       (t
+        (context-coloring-elisp-colorize-region-initially (point-min) (point-max)))))))
 
 
 ;;; Shell command scopification / colorization
@@ -1091,25 +1165,6 @@ Invoke CALLBACK when complete; see `context-coloring-dispatch'."
    (lambda ()
      (when callback (funcall callback))
      (run-hooks 'context-coloring-colorize-hook))))
-
-(defvar-local context-coloring-changed nil
-  "Indication that the buffer has changed recently, which implies
-that it should be colored again by
-`context-coloring-colorize-idle-timer' if that timer is being
-used.")
-
-(defun context-coloring-change-function (_start _end _length)
-  "Register a change so that a buffer can be colorized soon."
-  ;; Tokenization is obsolete if there was a change.
-  (context-coloring-cancel-scopification)
-  (setq context-coloring-changed t))
-
-(defun context-coloring-maybe-colorize (buffer)
-  "Colorize the current buffer if it has changed."
-  (when (and (eq buffer (current-buffer))
-             context-coloring-changed)
-    (setq context-coloring-changed nil)
-    (context-coloring-colorize)))
 
 
 ;;; Versioning
@@ -1507,44 +1562,6 @@ precedence, i.e. the car of `custom-enabled-themes'."
            "#dca3a3"))
 
 
-;;; Change detection
-
-(defvar-local context-coloring-colorize-idle-timer nil
-  "The currently-running idle timer.")
-
-(defcustom context-coloring-delay 0.25
-  "Delay between a buffer update and colorization.
-
-Increase this if your machine is high-performing.  Decrease it if
-it ain't.
-
-Supported modes: `js-mode', `js3-mode', `emacs-lisp-mode'"
-  :group 'context-coloring)
-
-(defun context-coloring-setup-idle-change-detection ()
-  "Setup idle change detection."
-  (add-hook
-   'after-change-functions 'context-coloring-change-function nil t)
-  (add-hook
-   'kill-buffer-hook 'context-coloring-teardown-idle-change-detection nil t)
-  (setq context-coloring-colorize-idle-timer
-        (run-with-idle-timer
-         context-coloring-delay
-         t
-         'context-coloring-maybe-colorize
-         (current-buffer))))
-
-(defun context-coloring-teardown-idle-change-detection ()
-  "Teardown idle change detection."
-  (context-coloring-cancel-scopification)
-  (when context-coloring-colorize-idle-timer
-    (cancel-timer context-coloring-colorize-idle-timer))
-  (remove-hook
-   'kill-buffer-hook 'context-coloring-teardown-idle-change-detection t)
-  (remove-hook
-   'after-change-functions 'context-coloring-change-function t))
-
-
 ;;; Built-in dispatches
 
 (context-coloring-define-dispatch
@@ -1570,7 +1587,7 @@ Supported modes: `js-mode', `js3-mode', `emacs-lisp-mode'"
 (context-coloring-define-dispatch
  'emacs-lisp
  :modes '(emacs-lisp-mode)
- :colorizer 'context-coloring-elisp-colorize-buffer
+ :colorizer 'context-coloring-elisp-colorize
  :setup 'context-coloring-setup-idle-change-detection
  :teardown 'context-coloring-teardown-idle-change-detection)
 
@@ -1591,11 +1608,9 @@ elisp tracks, and asynchronously for shell command tracks."
       (setq interrupted-p
             (catch 'interrupted
               (funcall colorizer)))
-      (cond
-       (interrupted-p
-        (setq context-coloring-changed t))
-       (t
-        (when callback (funcall callback)))))
+      (when (and (not interrupted-p)
+                 callback)
+        (funcall callback)))
      (command
       (cond
        ((and host port)
