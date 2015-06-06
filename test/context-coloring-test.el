@@ -1160,7 +1160,9 @@ ssssssssssss0"))
    11 11
    10000 11
    1111 1 00001 11
-   11 11111 1 0000111)")))
+   11 11111 1 000011
+   cc c
+   sss1)")))
 
 (defun context-coloring-test-insert-unread-space ()
   "Simulate the insertion of a space as if by a user."
