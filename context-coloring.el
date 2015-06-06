@@ -1439,7 +1439,7 @@ Supported modes: `js-mode', `js3-mode', `emacs-lisp-mode'"
  :modes '(js-mode js3-mode)
  :executable "scopifier"
  :command "scopifier"
- :version "v1.1.1" ; TODO: v1.2.0
+ :version "v1.2.1"
  :host "localhost"
  :port 6969)
 
