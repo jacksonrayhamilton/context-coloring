@@ -915,11 +915,12 @@ Invoke CALLBACK when complete."
   "Define a new dispatch named SYMBOL with PROPERTIES.
 
 A \"dispatch\" is a property list describing a strategy for
-coloring a buffer.  There are two possible strategies: Parse and
-color in a single function (`:colorizer') or parse with a shell
-command that returns scope data (`:command').  In the latter
-case, the scope data will be used to automatically color the
-buffer.
+coloring a buffer.  There are three possible strategies: Parse
+and color in a single function (`:colorizer'), parse with a shell
+command that returns scope data (`:command'), or parse with a
+server that returns scope data (`:command', `:host' and `:port').
+In the latter two cases, the scope data will be used to
+automatically color the buffer.
 
 PROPERTIES must include `:modes' and one of `:colorizer',
 `:scopifier' or `:command'.
@@ -935,6 +936,10 @@ colors the buffer.
 `:command' - Shell command to execute with the current buffer
 sent via stdin, and with a flat JSON array of start, end and
 level data returned via stdout.
+
+`:host' - Hostname of the scopifier server, e.g. \"localhost\".
+
+`:port' - Port number of the scopifier server, e.g. 80, 1337.
 
 `:version' - Minimum required version that should be printed when
 executing `:command' with a \"--version\" flag.  The version
