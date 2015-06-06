@@ -1173,8 +1173,10 @@ ssssssssssss0"))
   1111111 111111 111 000011
 
 (111111111-1111-111111-11111 111
+    cc c
     (xxx () 222)
-  (11111 (xxx () 222)))")))
+  (11111 (xxx () 222))
+  sss)")))
 
 (defun context-coloring-test-insert-unread-space ()
   "Simulate the insertion of a space as if by a user."

@@ -288,6 +288,14 @@ them along the way."
     (context-coloring-elisp-colorize-comments-and-strings-in-region
      start (point))))
 
+(defsubst context-coloring-elisp-forward-sexp ()
+  "Like `forward-sexp', but colorize comments and strings along
+the way."
+  (let ((start (point)))
+    (forward-sexp)
+    (context-coloring-elisp-colorize-comments-and-strings-in-region
+     start (point))))
+
 (defsubst context-coloring-get-syntax-code ()
   (syntax-class
    ;; Faster version of `syntax-after':
@@ -412,7 +420,7 @@ provide visually \"instant\" updates at 60 frames per second.")
 (defsubst context-coloring-elisp-parse-arg (callback)
   (let* ((arg-string (buffer-substring-no-properties
                       (point)
-                      (progn (forward-sexp)
+                      (progn (context-coloring-elisp-forward-sexp)
                              (point)))))
     (when (not (string-match-p
                 context-coloring-ignored-word-regexp
@@ -614,7 +622,7 @@ provide visually \"instant\" updates at 60 frames per second.")
       (cond
        ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
         (setq case-pos (point))
-        (forward-sexp)
+        (context-coloring-elisp-forward-sexp)
         (setq case-end (point))
         (goto-char case-pos)
         ;; Enter.
@@ -623,7 +631,7 @@ provide visually \"instant\" updates at 60 frames per second.")
         (setq syntax-code (context-coloring-get-syntax-code))
         (when (/= syntax-code context-coloring-CLOSE-PARENTHESIS-CODE)
           ;; Skip the condition name(s).
-          (forward-sexp)
+          (context-coloring-elisp-forward-sexp)
           ;; Color the remaining portion of the handler.
           (context-coloring-elisp-colorize-region
            (point)
@@ -632,7 +640,7 @@ provide visually \"instant\" updates at 60 frames per second.")
         (forward-char))
        (t
         ;; Ignore artifacts.
-        (forward-sexp)))
+        (context-coloring-elisp-forward-sexp)))
       (context-coloring-elisp-forward-sws))
     ;; Exit.
     (forward-char)
