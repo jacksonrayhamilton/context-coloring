@@ -1,6 +1,8 @@
 CASK = cask
 EMACS = emacs
 DEPENDENCIES = .cask/
+SCOPIFIER_PORT = $$(lsof -t -i:6969)
+KILL_SCOPIFIER = if [ -n "${SCOPIFIER_PORT}" ]; then kill ${SCOPIFIER_PORT}; fi
 
 all: uncompile compile test
 
@@ -26,6 +28,7 @@ ${DEPENDENCIES}:
 	${CASK}
 
 test: ${DEPENDENCIES}
+	${KILL_SCOPIFIER}
 	${CASK} exec ${EMACS} -Q -batch \
 	-L . \
 	-l ert \
@@ -36,6 +39,7 @@ test: ${DEPENDENCIES}
 	-f ert-run-tests-batch-and-exit
 
 cover: ${DEPENDENCIES}
+	${KILL_SCOPIFIER}
 	${CASK} exec ${EMACS} -Q -batch \
 	-L . \
 	-l ert \
