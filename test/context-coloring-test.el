@@ -1152,6 +1152,16 @@ ssssssssssss0"))
     2222 1 1 2 2 2 000022
   1111 1 1 1 0 0 000011")))
 
+(context-coloring-test-deftest-emacs-lisp cond
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxx (x)
+  11111
+   11 11
+   10000 11
+   1111 1 00001 11
+   11 11111 1 0000111)")))
+
 (defun context-coloring-test-insert-unread-space ()
   "Simulate the insertion of a space as if by a user."
   (setq unread-command-events (cons '(t . 32)
