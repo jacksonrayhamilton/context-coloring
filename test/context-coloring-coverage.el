@@ -119,7 +119,8 @@
   (setq undercover-force-coverage t)
   (setenv "COVERALLS_REPO_TOKEN" "noop")
   (undercover "context-coloring.el"
-              (:report-file context-coloring-coverage-output-file))
+              (:report-file context-coloring-coverage-output-file)
+              (:send-report nil))
   (add-hook
    'kill-emacs-hook
    (lambda ()
