@@ -25,6 +25,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'context-coloring)
 (require 'ert-async)
 (require 'js2-mode)
@@ -1213,6 +1214,36 @@ cc `CC' `CC'
       (context-coloring-test-assert-coloring "
 cc `CC' `CC'
 nnnnnn n nnn"))))
+
+(context-coloring-test-deftest-emacs-lisp changed
+  (lambda ()
+    (context-coloring-test-remove-faces)
+    ;; Goto line 3.
+    (goto-char (point-min))
+    (forward-line (1- 3))
+    (insert " ")
+    ;; Mock `pos-visible-in-window-p' because in batch mode `get-buffer-window'
+    ;; returns nil.  Emacs must not have a window in that environment.
+    (cl-letf (((symbol-function 'pos-visible-in-window-p)
+               (let ((calls 0))
+                 (lambda ()
+                   (prog1
+                       ;; First and third calls start from center.  Second and
+                       ;; fourth calls are made immediately after moving past
+                       ;; the first defun in either direction "off screen".
+                       (cond
+                        ((= calls 0) t)
+                        ((= calls 1) nil)
+                        ((= calls 2) t)
+                        ((= calls 4) nil))
+                     (setq calls (1+ calls)))))))
+      (context-coloring-colorize))
+    (context-coloring-test-assert-coloring "
+nnnn  n nnn nnnnnnnn
+0000
+
+0000
+nnnnn n nnn nnnnnnnn")))
 
 (provide 'context-coloring-test)
 
