@@ -1,6 +1,4 @@
 (let (a
-      ;; comment
-      (s "s")
       (b a)
       (c free)
       (d (let (a
@@ -8,3 +6,6 @@
                (c free))
            (and a b c free))))
   (and a b c free))
+
+(let ;; comment
+    (_a "s"))

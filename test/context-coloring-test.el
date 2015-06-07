@@ -1128,15 +1128,16 @@ ssssssssssss0"))
   (lambda ()
     (context-coloring-test-assert-coloring "
 1111 11
-      cccccccccc
-      11 sss1
       11 01
       11 00001
       11 2222 22
                22 02
                22 000022
            2222 2 2 2 00002211
-  1111 1 1 1 000011")))
+  1111 1 1 1 000011
+
+1111 cc ccccccc
+    111 sss11")))
 
 (context-coloring-test-deftest-emacs-lisp let*
   (lambda ()

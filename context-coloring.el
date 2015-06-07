@@ -555,7 +555,10 @@ after its own initializer is parsed."
             (= syntax-code context-coloring-SYMBOL-CODE))
         (context-coloring-elisp-parse-bindable
          (lambda (var)
-           (push var varlist)))))
+           (push var varlist))))
+       (t
+        ;; Ignore artifacts.
+        (context-coloring-elisp-forward-sexp)))
       (when (eq type 'let*)
         (context-coloring-elisp-add-variable (pop varlist)))
       (context-coloring-elisp-forward-sws))
