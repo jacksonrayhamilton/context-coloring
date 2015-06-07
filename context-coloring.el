@@ -159,27 +159,34 @@ used.")
 (defvar-local context-coloring-colorize-idle-timer nil
   "The currently-running idle timer.")
 
-(defcustom context-coloring-delay 0.25
-  "Delay between a buffer update and colorization.
+(defcustom context-coloring-default-delay 0.25
+  "Default (sometimes overridden) delay between a buffer update
+and colorization.
 
 Increase this if your machine is high-performing.  Decrease it if
 it ain't.
 
-Supported modes: `js-mode', `js3-mode', `emacs-lisp-mode'"
+Supported modes: `js-mode', `js3-mode'"
   :group 'context-coloring)
+
+(make-obsolete-variable
+ 'context-coloring-delay
+ 'context-coloring-default-delay
+ "6.4.0")
 
 (defun context-coloring-setup-idle-change-detection ()
   "Setup idle change detection."
-  (add-hook
-   'after-change-functions 'context-coloring-change-function nil t)
-  (add-hook
-   'kill-buffer-hook 'context-coloring-teardown-idle-change-detection nil t)
-  (setq context-coloring-colorize-idle-timer
-        (run-with-idle-timer
-         context-coloring-delay
-         t
-         'context-coloring-maybe-colorize
-         (current-buffer))))
+  (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
+    (add-hook
+     'after-change-functions 'context-coloring-change-function nil t)
+    (add-hook
+     'kill-buffer-hook 'context-coloring-teardown-idle-change-detection nil t)
+    (setq context-coloring-colorize-idle-timer
+          (run-with-idle-timer
+           (or (plist-get dispatch :delay) context-coloring-default-delay)
+           t
+           'context-coloring-maybe-colorize
+           (current-buffer)))))
 
 (defun context-coloring-teardown-idle-change-detection ()
   "Teardown idle change detection."
@@ -1128,6 +1135,9 @@ level data returned via stdout.
 
 `:port' - Port number of the scopifier server, e.g. 80, 1337.
 
+`:delay' - Delay between buffer update and colorization, to
+override `context-coloring-default-delay'.
+
 `:version' - Minimum required version that should be printed when
 executing `:command' with a \"--version\" flag.  The version
 should be numeric, e.g. \"2\", \"19700101\", \"1.2.3\",
@@ -1588,6 +1598,7 @@ precedence, i.e. the car of `custom-enabled-themes'."
  'emacs-lisp
  :modes '(emacs-lisp-mode)
  :colorizer 'context-coloring-elisp-colorize
+ :delay 0.016 ;; Thanks to lazy colorization this can be 60 frames per second.
  :setup 'context-coloring-setup-idle-change-detection
  :teardown 'context-coloring-teardown-idle-change-detection)
 

@@ -85,8 +85,8 @@ Add the following to your init file:
   comments using `font-lock`.
 - `context-coloring-syntactic-strings` (default: `t`): If non-nil, also color
   strings using `font-lock`.
-- `context-coloring-delay` (default: `0.25`; supported modes: `js-mode`,
-  `js3-mode`, `emacs-lisp-mode`): Delay between a buffer update and
+- `context-coloring-default-delay` (default: `0.25`; supported modes: `js-mode`,
+  `js3-mode`): Default (sometimes overridden) delay between a buffer update and
   colorization.
 - `context-coloring-js-block-scopes` (default: `nil`; supported modes:
   `js2-mode`): If non-nil, also color block scopes in the scope hierarchy in
