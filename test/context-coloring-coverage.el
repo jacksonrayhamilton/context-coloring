@@ -152,4 +152,4 @@
 
 (provide 'context-coloring-coverage)
 
-;; context-coloring-coverage.el ends here
+;;; context-coloring-coverage.el ends here

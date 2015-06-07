@@ -38,6 +38,7 @@
   (expand-file-name path context-coloring-benchmark-path))
 
 (defun context-coloring-benchmark-next-tick (callback)
+  "Run CALLBACK in the next turn of the event loop."
   (run-with-timer nil nil callback))
 
 (defun context-coloring-benchmark-series (sequence callback)

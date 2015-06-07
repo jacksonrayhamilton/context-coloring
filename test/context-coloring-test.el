@@ -221,7 +221,8 @@ override it."
                  (setq js2-mode-show-strict-warnings nil)))
 
 (defmacro context-coloring-test-deftest-js-js2 (&rest args)
-  "Simultaneously define the same test for js and js2."
+  "Simultaneously define the same test for js and js2 (with
+ARGS)."
   (declare (indent defun))
   `(progn
      (context-coloring-test-deftest-js ,@args)
@@ -347,7 +348,7 @@ override it."
            (setq context-coloring-colorize-hook nil)))
 
 (defmacro context-coloring-test-define-derived-mode (name)
-  "Define a derived mode exclusively for tests."
+  "Define a derived mode exclusively for any test with NAME."
   (let ((name (intern (format "context-coloring-test-%s-mode" name))))
     `(define-derived-mode ,name fundamental-mode "Testing")))
 
@@ -519,8 +520,8 @@ FOREGROUND.  Apply ARGUMENTS to
 
 (defun context-coloring-test-assert-theme-originally-set-p
     (settings &optional negate)
-  "Assert that `context-coloring-theme-originally-set-p' returns
-t for a theme with SETTINGS, or the inverse if NEGATE is
+  "Assert that `context-coloring-theme-originally-set-p' will
+return t for a theme with SETTINGS, or the inverse if NEGATE is
 non-nil."
   (let ((theme (context-coloring-test-get-next-theme)))
     (put theme 'theme-settings settings)
@@ -894,7 +895,7 @@ see that function."
   (context-coloring-test-assert-position-face position nil))
 
 (defun context-coloring-test-assert-coloring (map)
-  "Assert that the current buffer's coloring matches MAP.
+  "Assert that the current buffer's coloring will match MAP.
 
 MAP's newlines should correspond to the current fixture.
 
