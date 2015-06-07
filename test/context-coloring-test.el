@@ -1073,7 +1073,8 @@ ssssssssssss0"))
 0000 0 0 00
 
 111111 01
-111111 111")))
+111111 111
+111111 0 1sss11")))
 
 (context-coloring-test-deftest-emacs-lisp lambda
   (lambda ()
@@ -1122,7 +1123,15 @@ ssssssssssss0"))
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
-  (x x 1 11 11 111 111 11 1 111 (1 1 1)))")))
+  (x x 1 11 11 111 111 11 11 1 111 (1 1 1)))")))
+
+(context-coloring-test-deftest-emacs-lisp sexp
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxx ()
+  `,@sss
+  `,@11
+  `,@11)")))
 
 (context-coloring-test-deftest-emacs-lisp let
   (lambda ()
@@ -1137,7 +1146,7 @@ ssssssssssss0"))
   1111 1 1 1 000011
 
 1111 cc ccccccc
-    111 sss11")))
+    1sss11")))
 
 (context-coloring-test-deftest-emacs-lisp let*
   (lambda ()

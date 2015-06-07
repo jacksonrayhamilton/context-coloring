@@ -428,6 +428,11 @@ bound as variables.")
 (defconst context-coloring-AT-CHAR (string-to-char "@"))
 (defconst context-coloring-BACKTICK-CHAR (string-to-char "`"))
 
+(defsubst context-coloring-elisp-identifier-p (syntax-code)
+  "Check if SYNTAX-CODE is an emacs lisp identifier constituent."
+  (or (= syntax-code context-coloring-WORD-CODE)
+      (= syntax-code context-coloring-SYMBOL-CODE)))
+
 (defvar context-coloring-parse-interruptable-p t
   "Set this to nil to force parse to continue until finished.")
 
@@ -539,8 +544,7 @@ after its own initializer is parsed."
         (forward-char)
         (context-coloring-elisp-forward-sws)
         (setq syntax-code (context-coloring-get-syntax-code))
-        (when (or (= syntax-code context-coloring-WORD-CODE)
-                  (= syntax-code context-coloring-SYMBOL-CODE))
+        (when (context-coloring-elisp-identifier-p syntax-code)
           (context-coloring-elisp-parse-bindable
            (lambda (var)
              (push var varlist)))
@@ -551,8 +555,7 @@ after its own initializer is parsed."
         (context-coloring-elisp-forward-sws)
         ;; Skip past the closing parenthesis.
         (forward-char))
-       ((or (= syntax-code context-coloring-WORD-CODE)
-            (= syntax-code context-coloring-SYMBOL-CODE))
+       ((context-coloring-elisp-identifier-p syntax-code)
         (context-coloring-elisp-parse-bindable
          (lambda (var)
            (push var varlist))))
@@ -576,8 +579,7 @@ after its own initializer is parsed."
     (while (/= (setq syntax-code (context-coloring-get-syntax-code))
                context-coloring-CLOSE-PARENTHESIS-CODE)
       (cond
-       ((or (= syntax-code context-coloring-WORD-CODE)
-            (= syntax-code context-coloring-SYMBOL-CODE))
+       ((context-coloring-elisp-identifier-p syntax-code)
         (context-coloring-elisp-parse-bindable
          (lambda (arg)
            (context-coloring-elisp-add-variable arg))))
@@ -619,8 +621,7 @@ LET-TYPE can be one of `let' or `let*'."
       ;; Check for the defun's name.
       (setq syntax-code (context-coloring-get-syntax-code))
       (cond
-       ((or (= syntax-code context-coloring-WORD-CODE)
-            (= syntax-code context-coloring-SYMBOL-CODE))
+       ((context-coloring-elisp-identifier-p syntax-code)
         ;; Color the defun's name with the top-level color.
         (setq defun-name-pos (point))
         (forward-sexp)
@@ -721,8 +722,7 @@ LET-TYPE can be one of `let' or `let*'."
     (context-coloring-elisp-forward-sws)
     (setq syntax-code (context-coloring-get-syntax-code))
     ;; Gracefully ignore missing variables.
-    (when (or (= syntax-code context-coloring-WORD-CODE)
-              (= syntax-code context-coloring-SYMBOL-CODE))
+    (when (context-coloring-elisp-identifier-p syntax-code)
       (context-coloring-elisp-parse-bindable
        (lambda (parsed-variable)
          (setq variable parsed-variable)))
@@ -775,8 +775,7 @@ LET-TYPE can be one of `let' or `let*'."
                              (context-coloring-get-syntax-code))))
     ;; Figure out if the sexp is a special form.
     (cond
-     ((when (or (= syntax-code context-coloring-WORD-CODE)
-                (= syntax-code context-coloring-SYMBOL-CODE))
+     ((when (context-coloring-elisp-identifier-p syntax-code)
         (let ((name-string (buffer-substring-no-properties
                             (point)
                             (progn (forward-sexp)
@@ -878,29 +877,29 @@ point.  It could be a quoted or backquoted expression."
     (forward-sexp)
     (context-coloring-colorize-comments-and-strings start (point))))
 
+;; Elisp has whitespace, words, symbols, open/close parenthesis, expression
+;; prefix, string quote, comment starters/enders and escape syntax classes only.
+
 (defun context-coloring-elisp-colorize-sexp ()
   "Color the sexp at point."
   (let ((syntax-code (context-coloring-get-syntax-code)))
     (cond
      ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
       (context-coloring-elisp-colorize-parenthesized-sexp))
-     ((or (= syntax-code context-coloring-WORD-CODE)
-          (= syntax-code context-coloring-SYMBOL-CODE))
+     ((context-coloring-elisp-identifier-p syntax-code)
       (context-coloring-elisp-colorize-symbol))
      ((= syntax-code context-coloring-EXPRESSION-PREFIX-CODE)
       (context-coloring-elisp-colorize-expression-prefix))
      ((= syntax-code context-coloring-STRING-QUOTE-CODE)
       (context-coloring-elisp-colorize-string))
      ((= syntax-code context-coloring-ESCAPE-CODE)
-      (forward-char 2))
-     (t
-      (forward-char)))))
+      (forward-char 2)))))
 
 (defun context-coloring-elisp-colorize-comments-and-strings-in-region (start end)
   "Color comments and strings between START and END."
   (let (syntax-code)
     (goto-char start)
-    (while (> end (progn (skip-syntax-forward "^<\"\\" end)
+    (while (> end (progn (skip-syntax-forward "^\"<\\" end)
                          (point)))
       (setq syntax-code (context-coloring-get-syntax-code))
       (cond
@@ -909,22 +908,19 @@ point.  It could be a quoted or backquoted expression."
        ((= syntax-code context-coloring-COMMENT-START-CODE)
         (context-coloring-elisp-colorize-comment))
        ((= syntax-code context-coloring-ESCAPE-CODE)
-        (forward-char 2))
-       (t
-        (forward-char))))))
+        (forward-char 2))))))
 
 (defun context-coloring-elisp-colorize-region (start end)
   "Color everything between START and END."
   (let (syntax-code)
     (goto-char start)
-    (while (> end (progn (skip-syntax-forward "^()w_'<\"\\" end)
+    (while (> end (progn (skip-syntax-forward "^w_('\"<\\" end)
                          (point)))
       (setq syntax-code (context-coloring-get-syntax-code))
       (cond
        ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
         (context-coloring-elisp-colorize-parenthesized-sexp))
-       ((or (= syntax-code context-coloring-WORD-CODE)
-            (= syntax-code context-coloring-SYMBOL-CODE))
+       ((context-coloring-elisp-identifier-p syntax-code)
         (context-coloring-elisp-colorize-symbol))
        ((= syntax-code context-coloring-EXPRESSION-PREFIX-CODE)
         (context-coloring-elisp-colorize-expression-prefix))
@@ -933,9 +929,7 @@ point.  It could be a quoted or backquoted expression."
        ((= syntax-code context-coloring-COMMENT-START-CODE)
         (context-coloring-elisp-colorize-comment))
        ((= syntax-code context-coloring-ESCAPE-CODE)
-        (forward-char 2))
-       (t
-        (forward-char))))))
+        (forward-char 2))))))
 
 (defun context-coloring-elisp-colorize-region-initially (start end)
   "Begin coloring everything between START and END."

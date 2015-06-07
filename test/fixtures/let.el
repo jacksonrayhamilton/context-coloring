@@ -8,4 +8,4 @@
   (and a b c free))
 
 (let ;; comment
-    (_a "s"))
+    ("s"))
