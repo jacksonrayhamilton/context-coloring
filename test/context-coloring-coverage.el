@@ -53,7 +53,7 @@
 
 (defun context-coloring-coverage-join (strings delimiter)
   "Join a list of STRINGS with the string DELIMITER."
-  (mapconcat 'identity strings delimiter))
+  (mapconcat #'identity strings delimiter))
 
 (defun context-coloring-coverage-percentage (dividend divisor)
   "Get the percentage of DIVIDEND / DIVISOR with precision 2."
@@ -109,7 +109,7 @@
   "Generate reports for all files in COVERAGE-DATA."
   (context-coloring-coverage-join
    (mapcar
-    'context-coloring-coverage-format-source-file
+    #'context-coloring-coverage-format-source-file
     (cdr (assq 'source_files coverage-data)))
    "\n"))
 

@@ -199,21 +199,21 @@ override it."
                          (when ,after-each (apply ,after-each ,args))))))))))))))
 
 (context-coloring-test-define-deftest nil
-  :mode 'fundamental-mode
+  :mode #'fundamental-mode
   :no-fixture t)
 
 (context-coloring-test-define-deftest async
-  :mode 'fundamental-mode
+  :mode #'fundamental-mode
   :no-fixture t
   :async t)
 
 (context-coloring-test-define-deftest js
-  :mode 'js-mode
+  :mode #'js-mode
   :extension "js"
   :post-colorization t)
 
 (context-coloring-test-define-deftest js2
-  :mode 'js2-mode
+  :mode #'js2-mode
   :extension "js"
   :enable-context-coloring-mode t
   :before-each (lambda ()
@@ -228,12 +228,12 @@ override it."
      (context-coloring-test-deftest-js2 ,@args)))
 
 (context-coloring-test-define-deftest emacs-lisp
-  :mode 'emacs-lisp-mode
+  :mode #'emacs-lisp-mode
   :extension "el"
   :enable-context-coloring-mode t)
 
 (context-coloring-test-define-deftest define-theme
-  :mode 'fundamental-mode
+  :mode #'fundamental-mode
   :no-fixture t
   :get-args (lambda ()
               (list (context-coloring-test-get-next-theme)))
@@ -500,7 +500,7 @@ is FOREGROUND, or the inverse if NEGATE is non-nil."
                                 "but it didn't")
                         level)))
     (setq actual-foreground (face-attribute face :foreground))
-    (when (funcall (if negate 'identity 'not)
+    (when (funcall (if negate #'identity #'not)
                    (string-equal foreground actual-foreground))
       (ert-fail (format (concat "Expected face for level `%s' "
                                 "%sto have foreground `%s'; "
@@ -514,7 +514,7 @@ is FOREGROUND, or the inverse if NEGATE is non-nil."
   "Assert that LEVEL does not have a face with `:foreground'
 FOREGROUND.  Apply ARGUMENTS to
 `context-coloring-test-assert-face', see that function."
-  (apply 'context-coloring-test-assert-face
+  (apply #'context-coloring-test-assert-face
          (append arguments '(t))))
 
 (defun context-coloring-test-assert-theme-originally-set-p
@@ -524,7 +524,7 @@ t for a theme with SETTINGS, or the inverse if NEGATE is
 non-nil."
   (let ((theme (context-coloring-test-get-next-theme)))
     (put theme 'theme-settings settings)
-    (when (funcall (if negate 'identity 'not)
+    (when (funcall (if negate #'identity #'not)
                    (context-coloring-theme-originally-set-p theme))
       (ert-fail (format (concat "Expected theme `%s' with settings `%s' "
                                 "%sto be considered to have defined a level, "
@@ -538,7 +538,7 @@ non-nil."
 return t for a theme with SETTINGS.  Apply ARGUMENTS to
 `context-coloring-test-assert-theme-originally-set-p', see that
 function."
-  (apply 'context-coloring-test-assert-theme-originally-set-p
+  (apply #'context-coloring-test-assert-theme-originally-set-p
          (append arguments '(t))))
 
 (context-coloring-test-deftest theme-originally-set-p
@@ -567,7 +567,7 @@ EXPECTED-LEVEL."
   "Assert that THEME has the highest level EXPECTED-LEVEL, or the
 inverse if NEGATE is non-nil."
   (let ((highest-level (context-coloring-theme-highest-level theme)))
-    (when (funcall (if negate 'identity 'not) (eq highest-level expected-level))
+    (when (funcall (if negate #'identity #'not) (eq highest-level expected-level))
       (ert-fail (format (concat "Expected theme with settings `%s' "
                                 "%sto have a highest level of `%s', "
                                 "but it %s.")
@@ -580,7 +580,7 @@ inverse if NEGATE is non-nil."
 Apply ARGUMENTS to
 `context-coloring-test-assert-theme-highest-level', see that
 function."
-  (apply 'context-coloring-test-assert-theme-highest-level
+  (apply #'context-coloring-test-assert-theme-highest-level
          (append arguments '(t))))
 
 (context-coloring-test-deftest theme-highest-level
@@ -774,7 +774,7 @@ theme THEME is signaled."
 (defun context-coloring-test-assert-maximum-face (maximum &optional negate)
   "Assert that `context-coloring-maximum-face' is MAXIMUM, or the
 inverse if NEGATE is non-nil."
-  (when (funcall (if negate 'identity 'not)
+  (when (funcall (if negate #'identity #'not)
                  (eq context-coloring-maximum-face maximum))
     (ert-fail (format (concat "Expected `context-coloring-maximum-face' "
                               "%sto be `%s', "
@@ -788,7 +788,7 @@ inverse if NEGATE is non-nil."
   "Assert that `context-coloring-maximum-face' is not MAXIMUM.
 Apply ARGUMENTS to `context-coloring-test-assert-maximum-face',
 see that function."
-  (apply 'context-coloring-test-assert-maximum-face
+  (apply #'context-coloring-test-assert-maximum-face
          (append arguments '(t))))
 
 (context-coloring-test-deftest-define-theme disable-cascade

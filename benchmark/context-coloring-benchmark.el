@@ -137,7 +137,7 @@ CALLBACK when all are done."
                  ;; Test 5 times.
                  (cond
                   ((= count 5)
-                   (advice-remove 'context-coloring-colorize advice)
+                   (advice-remove #'context-coloring-colorize advice)
                    (context-coloring-benchmark-log-results
                     result-file
                     fixture
@@ -146,13 +146,13 @@ CALLBACK when all are done."
                      :lines (count-lines (point-min) (point-max))
                      :words (count-words (point-min) (point-max))
                      :colorization-times colorization-times
-                     :average-colorization-time (/ (apply '+ colorization-times) 5)))
+                     :average-colorization-time (/ (apply #'+ colorization-times) 5)))
                    (kill-buffer)
                    (funcall callback))
                   (t
                    (setq colorization-start-time (float-time))
-                   (funcall 'context-coloring-colorize))))))))
-         (advice-add 'context-coloring-colorize :around advice)
+                   (context-coloring-colorize))))))))
+         (advice-add #'context-coloring-colorize :around advice)
          (setq colorization-start-time (float-time))
          (find-file fixture)))
      (lambda ()
@@ -172,10 +172,10 @@ CALLBACK when all are done."
    "js-mode"
    (lambda ()
      "Preparation logic for `js-mode'."
-     (add-hook 'js-mode-hook 'context-coloring-mode))
+     (add-hook 'js-mode-hook #'context-coloring-mode))
    (lambda ()
      "Cleanup logic for `js-mode'."
-     (remove-hook 'js-mode-hook 'context-coloring-mode))
+     (remove-hook 'js-mode-hook #'context-coloring-mode))
    context-coloring-benchmark-js-fixtures
    callback))
 
@@ -188,10 +188,10 @@ CALLBACK when all are done."
      (setq js2-mode-show-parse-errors nil)
      (setq js2-mode-show-strict-warnings nil)
      (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
-     (add-hook 'js2-mode-hook 'context-coloring-mode))
+     (add-hook 'js2-mode-hook #'context-coloring-mode))
    (lambda ()
      "Cleanup logic for `js2-mode'."
-     (remove-hook 'js2-mode-hook 'context-coloring-mode)
+     (remove-hook 'js2-mode-hook #'context-coloring-mode)
      (setq auto-mode-alist (delete '("\\.js\\'" . js2-mode)
                                    auto-mode-alist))
      (setq js2-mode-show-strict-warnings t)
@@ -212,19 +212,20 @@ CALLBACK when all are done."
    "emacs-lisp-mode"
    (lambda ()
      "Preparation logic for `emacs-lisp-mode'."
-     (add-hook 'emacs-lisp-mode-hook 'context-coloring-mode))
+     (add-hook 'emacs-lisp-mode-hook #'context-coloring-mode))
    (lambda ()
      "Cleanup logic for `emacs-lisp-mode'."
-     (remove-hook 'emacs-lisp-mode-hook 'context-coloring-mode))
+     (remove-hook 'emacs-lisp-mode-hook #'context-coloring-mode))
    context-coloring-benchmark-emacs-lisp-fixtures
    callback))
 
 (defun context-coloring-benchmark-run ()
   "Benchmark all modes, then exit."
   (context-coloring-benchmark-series
-   '(context-coloring-benchmark-js-mode-run
-     context-coloring-benchmark-js2-mode-run
-     context-coloring-benchmark-emacs-lisp-mode-run)
+   (list
+    #'context-coloring-benchmark-js-mode-run
+    #'context-coloring-benchmark-js2-mode-run
+    #'context-coloring-benchmark-emacs-lisp-mode-run)
    (lambda ()
      (kill-emacs))))
 
