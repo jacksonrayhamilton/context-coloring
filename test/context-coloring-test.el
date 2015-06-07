@@ -1245,6 +1245,12 @@ nnnn  n nnn nnnnnnnn
 0000
 nnnnn n nnn nnnnnnnn")))
 
+(context-coloring-test-deftest-emacs-lisp unbalanced-parenthesis
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111 111
+nnnn nn")))
+
 (provide 'context-coloring-test)
 
 ;;; context-coloring-test.el ends here

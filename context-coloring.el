@@ -948,26 +948,30 @@ scopes and variables."
   (interactive)
   (with-silent-modifications
     (save-excursion
-      (cond
-       ;; Just colorize the changed region.
-       (context-coloring-changed-p
-        (let* (;; Prevent `beginning-of-defun' from making poor assumptions.
-               (open-paren-in-column-0-is-defun-start nil)
-               ;; Seek the beginning and end of the previous and next offscreen
-               ;; defuns, so just enough is colored.
-               (start (progn (goto-char context-coloring-changed-start)
-                             (while (and (< (point-min) (point))
-                                         (pos-visible-in-window-p))
-                               (beginning-of-defun))
-                             (point)))
-               (end (progn (goto-char context-coloring-changed-end)
-                           (while (and (> (point-max) (point))
-                                       (pos-visible-in-window-p))
-                             (end-of-defun))
-                           (point))))
-          (context-coloring-elisp-colorize-region-initially start end)))
-       (t
-        (context-coloring-elisp-colorize-region-initially (point-min) (point-max)))))))
+      (condition-case nil
+          (cond
+           ;; Just colorize the changed region.
+           (context-coloring-changed-p
+            (let* (;; Prevent `beginning-of-defun' from making poor assumptions.
+                   (open-paren-in-column-0-is-defun-start nil)
+                   ;; Seek the beginning and end of the previous and next
+                   ;; offscreen defuns, so just enough is colored.
+                   (start (progn (goto-char context-coloring-changed-start)
+                                 (while (and (< (point-min) (point))
+                                             (pos-visible-in-window-p))
+                                   (beginning-of-defun))
+                                 (point)))
+                   (end (progn (goto-char context-coloring-changed-end)
+                               (while (and (> (point-max) (point))
+                                           (pos-visible-in-window-p))
+                                 (end-of-defun))
+                               (point))))
+              (context-coloring-elisp-colorize-region-initially start end)))
+           (t
+            (context-coloring-elisp-colorize-region-initially (point-min) (point-max))))
+        ;; Scan errors can happen virtually anywhere if parenthesis are
+        ;; unbalanced.  Just swallow them.  (`progn' for test coverage.)
+        (scan-error (progn))))))
 
 
 ;;; Shell command scopification / colorization
