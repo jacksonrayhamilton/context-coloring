@@ -1190,6 +1190,13 @@ ssssssssssss0"))
   (11111 (xxx () 222))
   sss)")))
 
+(context-coloring-test-deftest-emacs-lisp dolist
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111111 111111
+  2222222 2222 1111 2222222
+    3333333 33 33 222 1111 2222223321")))
+
 (defun context-coloring-test-insert-unread-space ()
   "Simulate the insertion of a space as if by a user."
   (setq unread-command-events (cons '(t . 32)

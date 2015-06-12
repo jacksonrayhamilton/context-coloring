@@ -402,6 +402,10 @@ the way."
    '("condition-case"
      "condition-case-unless-debug")))
 
+(defconst context-coloring-elisp-dolist-regexp
+  (context-coloring-exact-or-regexp
+   '("dolist" "dotimes")))
+
 (defconst context-coloring-elisp-ignored-word-regexp
   (context-coloring-join (list "\\`[-+]?[0-9]"
                                "\\`[&:].+"
@@ -761,6 +765,64 @@ LET-TYPE can be one of `let' or `let*'."
     (forward-char)
     (context-coloring-elisp-pop-scope)))
 
+(defun context-coloring-elisp-colorize-scope (callback)
+  "Color the whole scope at point with its one color.  Handle a
+header in CALLBACK."
+  (let ((start (point))
+        (end (progn (forward-sexp)
+                    (point))))
+    (context-coloring-elisp-push-scope)
+    ;; Splash the whole thing in one color.
+    (context-coloring-colorize-region
+     start
+     end
+     (context-coloring-elisp-get-current-scope-level))
+    ;; Even if the parse is interrupted, this region should still be colored
+    ;; syntactically.
+    (context-coloring-elisp-colorize-comments-and-strings-in-region
+     start
+     end)
+    (goto-char start)
+    ;; Enter.
+    (forward-char)
+    (context-coloring-elisp-forward-sws)
+    ;; Skip past the function name.
+    (forward-sexp)
+    (context-coloring-elisp-forward-sws)
+    (funcall callback)
+    (context-coloring-elisp-colorize-region (point) (1- end))
+    ;; Exit.
+    (forward-char)
+    (context-coloring-elisp-pop-scope)))
+
+(defun context-coloring-elisp-colorize-dolist ()
+  "Color the `dolist' at point."
+  (let (syntax-code
+        (index 0))
+    (context-coloring-elisp-colorize-scope
+     (lambda ()
+       (setq syntax-code (context-coloring-get-syntax-code))
+       (when (= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+         (forward-char)
+         (context-coloring-elisp-forward-sws)
+         (while (/= (setq syntax-code (context-coloring-get-syntax-code))
+                    context-coloring-CLOSE-PARENTHESIS-CODE)
+           (cond
+            ((and
+              (or (= index 0) (= index 2))
+              (context-coloring-elisp-identifier-p syntax-code))
+             ;; Add the first or third name to the scope.
+             (context-coloring-elisp-parse-bindable
+              (lambda (variable)
+                (context-coloring-elisp-add-variable variable))))
+            (t
+             ;; Color artifacts.
+             (context-coloring-elisp-colorize-sexp)))
+           (context-coloring-elisp-forward-sws)
+           (setq index (1+ index)))
+         ;; Exit.
+         (forward-char))))))
+
 (defun context-coloring-elisp-colorize-parenthesized-sexp ()
   "Color the sexp enclosed by parenthesis at point."
   (context-coloring-elisp-increment-sexp-count)
@@ -804,6 +866,10 @@ LET-TYPE can be one of `let' or `let*'."
            ((string-match-p context-coloring-elisp-condition-case-regexp name-string)
             (goto-char start)
             (context-coloring-elisp-colorize-condition-case)
+            t)
+           ((string-match-p context-coloring-elisp-dolist-regexp name-string)
+            (goto-char start)
+            (context-coloring-elisp-colorize-dolist)
             t)
            (t
             nil)))))
