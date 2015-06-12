@@ -594,95 +594,100 @@ after its own initializer is parsed."
     ;; Exit.
     (forward-char)))
 
-(defun context-coloring-elisp-colorize-defun-like (&optional anonymous-p
-                                                             let-type)
-  "Color the defun-like function at point.  ANONYMOUS-P indicates
-the function doesn't name itself (e.g. `lambda', `let').
-LET-TYPE can be one of `let' or `let*'."
+(defun context-coloring-elisp-skip-callee-name ()
+  "Skip past the opening parenthesis and name of a function."
+  ;; Enter.
+  (forward-char)
+  (context-coloring-elisp-forward-sws)
+  ;; Skip past the function name.
+  (forward-sexp)
+  (context-coloring-elisp-forward-sws))
+
+(defun context-coloring-elisp-colorize-scope (callback)
+  "Color the whole scope at point with its one color.  Handle a
+header in CALLBACK."
   (let ((start (point))
-        end
-        stop
-        syntax-code
-        defun-name-pos
-        defun-name-end)
+        (end (progn (forward-sexp)
+                    (point))))
     (context-coloring-elisp-push-scope)
-    ;; Color the whole sexp.
-    (forward-sexp)
-    (setq end (point))
+    ;; Splash the whole thing in one color.
     (context-coloring-colorize-region
      start
      end
      (context-coloring-elisp-get-current-scope-level))
+    ;; Even if the parse is interrupted, this region should still be colored
+    ;; syntactically.
+    (context-coloring-elisp-colorize-comments-and-strings-in-region
+     start
+     end)
     (goto-char start)
-    ;; Enter.
+    (context-coloring-elisp-skip-callee-name)
+    (funcall callback)
+    (context-coloring-elisp-colorize-region (point) (1- end))
+    ;; Exit.
     (forward-char)
-    (context-coloring-elisp-forward-sws)
-    ;; Skip past the "defun".
-    (forward-sexp)
-    (context-coloring-elisp-forward-sws)
-    (setq stop nil)
-    (unless anonymous-p
-      ;; Check for the defun's name.
-      (setq syntax-code (context-coloring-get-syntax-code))
-      (cond
-       ((context-coloring-elisp-identifier-p syntax-code)
-        ;; Color the defun's name with the top-level color.
-        (setq defun-name-pos (point))
-        (forward-sexp)
-        (setq defun-name-end (point))
-        (context-coloring-colorize-region defun-name-pos defun-name-end 0)
-        (context-coloring-elisp-forward-sws))
-       (t
-        (setq stop t))))
-    (cond
-     (stop
-      ;; Skip it.
-      (goto-char start)
-      (context-coloring-elisp-forward-sexp))
-     (t
-      (setq syntax-code (context-coloring-get-syntax-code))
-      (cond
-       ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
-        (cond
-         (let-type
-          (context-coloring-elisp-parse-let-varlist let-type))
-         (t
-          (context-coloring-elisp-parse-arglist)))
-        ;; Colorize the rest of the function.
-        (context-coloring-elisp-colorize-region (point) (1- end))
-        ;; Exit the defun.
-        (forward-char))
-       (t
-        ;; Skip it.
-        (goto-char start)
-        (context-coloring-elisp-forward-sexp)))))
     (context-coloring-elisp-pop-scope)))
 
+(defun context-coloring-elisp-parse-header (callback start)
+  "Parse a function header at point with CALLBACK.  If there is
+no header, skip past the sexp at START."
+  (cond
+   ((= (context-coloring-get-syntax-code) context-coloring-OPEN-PARENTHESIS-CODE)
+    (funcall callback))
+   (t
+    ;; Skip it.
+    (goto-char start)
+    (context-coloring-elisp-forward-sexp))))
+
 (defun context-coloring-elisp-colorize-defun ()
-  "Color the `defun' (or defun-like function) at point."
-  (context-coloring-elisp-colorize-defun-like))
+  "Color the `defun' at point."
+  (let ((start (point)))
+    (context-coloring-elisp-colorize-scope
+     (lambda ()
+       (cond
+        ((context-coloring-elisp-identifier-p (context-coloring-get-syntax-code))
+         ;; Color the defun's name with the top-level color.
+         (context-coloring-colorize-region
+          (point)
+          (progn (forward-sexp)
+                 (point))
+          0)
+         (context-coloring-elisp-forward-sws)
+         (context-coloring-elisp-parse-header
+          'context-coloring-elisp-parse-arglist start))
+        (t
+         ;; Skip it.
+         (goto-char start)
+         (context-coloring-elisp-forward-sexp)))))))
+
+(defun context-coloring-elisp-colorize-lambda-like (callback)
+  "Color the lambda-like function at point."
+  (let ((start (point)))
+    (context-coloring-elisp-colorize-scope
+     (lambda ()
+       (context-coloring-elisp-parse-header callback start)))))
 
 (defun context-coloring-elisp-colorize-lambda ()
   "Color the `lambda' at point."
-  (context-coloring-elisp-colorize-defun-like t))
+  (context-coloring-elisp-colorize-lambda-like
+   'context-coloring-elisp-parse-arglist))
 
 (defun context-coloring-elisp-colorize-let ()
   "Color the `let' at point."
-  (context-coloring-elisp-colorize-defun-like t 'let))
+  (context-coloring-elisp-colorize-lambda-like
+   (lambda ()
+     (context-coloring-elisp-parse-let-varlist 'let))))
 
 (defun context-coloring-elisp-colorize-let* ()
   "Color the `let*' at point."
-  (context-coloring-elisp-colorize-defun-like t 'let*))
+  (context-coloring-elisp-colorize-lambda-like
+   (lambda ()
+     (context-coloring-elisp-parse-let-varlist 'let*))))
 
 (defun context-coloring-elisp-colorize-cond ()
   "Color the `cond' at point."
   (let (syntax-code)
-    ;; Enter.
-    (forward-char)
-    (context-coloring-elisp-forward-sws)
-    ;; Skip past the "cond".
-    (forward-sexp)
-    (context-coloring-elisp-forward-sws)
+    (context-coloring-elisp-skip-callee-name)
     (while (/= (setq syntax-code (context-coloring-get-syntax-code))
                context-coloring-CLOSE-PARENTHESIS-CODE)
       (cond
@@ -703,97 +708,49 @@ LET-TYPE can be one of `let' or `let*'."
 
 (defun context-coloring-elisp-colorize-condition-case ()
   "Color the `condition-case' at point."
-  (let ((start (point))
-        end
-        syntax-code
+  (let (syntax-code
         variable
         case-pos
         case-end)
-    (context-coloring-elisp-push-scope)
-    ;; Color the whole sexp.
-    (forward-sexp)
-    (setq end (point))
-    (context-coloring-colorize-region
-     start
-     end
-     (context-coloring-elisp-get-current-scope-level))
-    (goto-char start)
-    ;; Enter.
-    (forward-char)
-    (context-coloring-elisp-forward-sws)
-    ;; Skip past the "condition-case".
-    (forward-sexp)
-    (context-coloring-elisp-forward-sws)
-    (setq syntax-code (context-coloring-get-syntax-code))
-    ;; Gracefully ignore missing variables.
-    (when (context-coloring-elisp-identifier-p syntax-code)
-      (context-coloring-elisp-parse-bindable
-       (lambda (parsed-variable)
-         (setq variable parsed-variable)))
-      (context-coloring-elisp-forward-sws))
-    (context-coloring-elisp-colorize-sexp)
-    (context-coloring-elisp-forward-sws)
-    ;; Parse the handlers with the error variable in scope.
-    (when variable
-      (context-coloring-elisp-add-variable variable))
-    (while (/= (setq syntax-code (context-coloring-get-syntax-code))
-               context-coloring-CLOSE-PARENTHESIS-CODE)
-      (cond
-       ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
-        (setq case-pos (point))
-        (context-coloring-elisp-forward-sexp)
-        (setq case-end (point))
-        (goto-char case-pos)
-        ;; Enter.
-        (forward-char)
-        (context-coloring-elisp-forward-sws)
-        (setq syntax-code (context-coloring-get-syntax-code))
-        (when (/= syntax-code context-coloring-CLOSE-PARENTHESIS-CODE)
-          ;; Skip the condition name(s).
-          (context-coloring-elisp-forward-sexp)
-          ;; Color the remaining portion of the handler.
-          (context-coloring-elisp-colorize-region
-           (point)
-           (1- case-end)))
-        ;; Exit.
-        (forward-char))
-       (t
-        ;; Ignore artifacts.
-        (context-coloring-elisp-forward-sexp)))
-      (context-coloring-elisp-forward-sws))
-    ;; Exit.
-    (forward-char)
-    (context-coloring-elisp-pop-scope)))
-
-(defun context-coloring-elisp-colorize-scope (callback)
-  "Color the whole scope at point with its one color.  Handle a
-header in CALLBACK."
-  (let ((start (point))
-        (end (progn (forward-sexp)
-                    (point))))
-    (context-coloring-elisp-push-scope)
-    ;; Splash the whole thing in one color.
-    (context-coloring-colorize-region
-     start
-     end
-     (context-coloring-elisp-get-current-scope-level))
-    ;; Even if the parse is interrupted, this region should still be colored
-    ;; syntactically.
-    (context-coloring-elisp-colorize-comments-and-strings-in-region
-     start
-     end)
-    (goto-char start)
-    ;; Enter.
-    (forward-char)
-    (context-coloring-elisp-forward-sws)
-    ;; Skip past the function name.
-    (forward-sexp)
-    (context-coloring-elisp-forward-sws)
-    (funcall callback)
-    (context-coloring-elisp-colorize-region (point) (1- end))
-    ;; Exit.
-    (forward-char)
-    (context-coloring-elisp-pop-scope)))
+    (context-coloring-elisp-colorize-scope
+     (lambda ()
+       (setq syntax-code (context-coloring-get-syntax-code))
+       ;; Gracefully ignore missing variables.
+       (when (context-coloring-elisp-identifier-p syntax-code)
+         (context-coloring-elisp-parse-bindable
+          (lambda (parsed-variable)
+            (setq variable parsed-variable)))
+         (context-coloring-elisp-forward-sws))
+       (context-coloring-elisp-colorize-sexp)
+       (context-coloring-elisp-forward-sws)
+       ;; Parse the handlers with the error variable in scope.
+       (when variable
+         (context-coloring-elisp-add-variable variable))
+       (while (/= (setq syntax-code (context-coloring-get-syntax-code))
+                  context-coloring-CLOSE-PARENTHESIS-CODE)
+         (cond
+          ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+           (setq case-pos (point))
+           (context-coloring-elisp-forward-sexp)
+           (setq case-end (point))
+           (goto-char case-pos)
+           ;; Enter.
+           (forward-char)
+           (context-coloring-elisp-forward-sws)
+           (setq syntax-code (context-coloring-get-syntax-code))
+           (when (/= syntax-code context-coloring-CLOSE-PARENTHESIS-CODE)
+             ;; Skip the condition name(s).
+             (context-coloring-elisp-forward-sexp)
+             ;; Color the remaining portion of the handler.
+             (context-coloring-elisp-colorize-region
+              (point)
+              (1- case-end)))
+           ;; Exit.
+           (forward-char))
+          (t
+           ;; Ignore artifacts.
+           (context-coloring-elisp-forward-sexp)))
+         (context-coloring-elisp-forward-sws))))))
 
 (defun context-coloring-elisp-colorize-dolist ()
   "Color the `dolist' at point."
