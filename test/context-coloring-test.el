@@ -375,7 +375,7 @@ ARGS)."
           (funcall done)))
        (insert " ")
        (set-window-buffer (selected-window) (current-buffer))
-       (context-coloring-maybe-colorize (current-buffer))))
+       (context-coloring-maybe-colorize-with-buffer (current-buffer))))
     (context-coloring-mode))
   :after (lambda ()
            (setq context-coloring-colorize-hook nil)))

@@ -125,8 +125,8 @@ themes have been disabled.")
 (defvar-local context-coloring-changed-p nil
   "Indication that the buffer has changed recently, which implies
 that it should be colored again by
-`context-coloring-colorize-idle-timer' if that timer is being
-used.")
+`context-coloring-maybe-colorize-idle-timer' if that timer is
+being used.")
 
 (defvar-local context-coloring-changed-start nil
   "Beginning of last text that changed.")
@@ -148,18 +148,20 @@ START, END and LENGTH are recorded for later use."
   (setq context-coloring-changed-length length)
   (setq context-coloring-changed-p t))
 
-(defun context-coloring-maybe-colorize (buffer)
-  "Colorize the current buffer if it is BUFFER and has changed."
-  (when (and (eq buffer (current-buffer))
-             context-coloring-changed-p)
-    (context-coloring-colorize)
+(defun context-coloring-maybe-colorize-with-buffer (buffer)
+  "Color BUFFER and if it has changed."
+  (when context-coloring-changed-p
+    (context-coloring-colorize-with-buffer buffer)
     (setq context-coloring-changed-p nil)
     (setq context-coloring-changed-start nil)
     (setq context-coloring-changed-end nil)
     (setq context-coloring-changed-length nil)))
 
+(defvar-local context-coloring-maybe-colorize-idle-timer nil
+  "The currently-running idle timer for conditional coloring.")
+
 (defvar-local context-coloring-colorize-idle-timer nil
-  "The currently-running idle timer.")
+  "The currently-running idle timer for unconditional coloring.")
 
 (defcustom context-coloring-default-delay 0.25
   "Default (sometimes overridden) delay between a buffer update
@@ -176,6 +178,21 @@ Supported modes: `js-mode', `js3-mode'"
  'context-coloring-default-delay
  "6.4.0")
 
+(defun context-coloring-cancel-timer (timer)
+  "Cancel TIMER."
+  (when timer
+    (cancel-timer timer)))
+
+(defun context-coloring-schedule-coloring (time)
+  "Schedule coloring to occur once after Emacs is idle for TIME."
+  (context-coloring-cancel-timer context-coloring-colorize-idle-timer)
+  (setq context-coloring-colorize-idle-timer
+        (run-with-idle-timer
+         time
+         nil
+         #'context-coloring-colorize-with-buffer
+         (current-buffer))))
+
 (defun context-coloring-setup-idle-change-detection ()
   "Setup idle change detection."
   (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
@@ -183,18 +200,19 @@ Supported modes: `js-mode', `js3-mode'"
      'after-change-functions #'context-coloring-change-function nil t)
     (add-hook
      'kill-buffer-hook #'context-coloring-teardown-idle-change-detection nil t)
-    (setq context-coloring-colorize-idle-timer
+    (setq context-coloring-maybe-colorize-idle-timer
           (run-with-idle-timer
            (or (plist-get dispatch :delay) context-coloring-default-delay)
            t
-           #'context-coloring-maybe-colorize
+           #'context-coloring-maybe-colorize-with-buffer
            (current-buffer)))))
 
 (defun context-coloring-teardown-idle-change-detection ()
   "Teardown idle change detection."
   (context-coloring-cancel-scopification)
-  (when context-coloring-colorize-idle-timer
-    (cancel-timer context-coloring-colorize-idle-timer))
+  (dolist (timer (list context-coloring-colorize-idle-timer
+                       context-coloring-maybe-colorize-idle-timer))
+    (context-coloring-cancel-timer timer))
   (remove-hook
    'kill-buffer-hook #'context-coloring-teardown-idle-change-detection t)
   (remove-hook
@@ -1015,7 +1033,12 @@ scopes and variables."
                                  (forward-line 1))
                                (end-of-defun)
                                (point))))
-              (context-coloring-elisp-colorize-region-initially start end)))
+              (context-coloring-elisp-colorize-region-initially start end)
+              ;; Fast coloring is nice, but if the code is not well-formed
+              ;; (e.g. an unclosed string literal is parsed at any time) then
+              ;; there could be leftover incorrectly-colored code offscreen.  So
+              ;; do a clean sweep as soon as appropriate.
+              (context-coloring-schedule-coloring context-coloring-default-delay)))
            (t
             (context-coloring-elisp-colorize-region-initially (point-min) (point-max))))
         ;; Scan errors can happen virtually anywhere if parenthesis are
@@ -1278,6 +1301,13 @@ Invoke CALLBACK when complete; see `context-coloring-dispatch'."
    (lambda ()
      (when callback (funcall callback))
      (run-hooks 'context-coloring-colorize-hook))))
+
+(defun context-coloring-colorize-with-buffer (buffer)
+  "Color BUFFER."
+  ;; Don't select deleted buffers.
+  (when (get-buffer buffer)
+    (with-current-buffer buffer
+      (context-coloring-colorize))))
 
 
 ;;; Versioning
