@@ -1077,6 +1077,13 @@ ssssssssssss0"))
 111111 111
 111111 0 1sss11")))
 
+(context-coloring-test-deftest-emacs-lisp defadvice
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111111111 0 1111111 111111 11111 111 111111111
+  2222 222 122
+    22 1 2221")))
+
 (context-coloring-test-deftest-emacs-lisp lambda
   (lambda ()
     (context-coloring-test-assert-coloring "

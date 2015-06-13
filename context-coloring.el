@@ -662,6 +662,42 @@ no header, skip past the sexp at START."
          (goto-char start)
          (context-coloring-elisp-forward-sexp)))))))
 
+(defun context-coloring-elisp-colorize-defadvice ()
+  "Color the `defadvice' at point."
+  (let ((start (point)))
+    (context-coloring-elisp-colorize-scope
+     (lambda ()
+       (cond
+        ((context-coloring-elisp-identifier-p (context-coloring-get-syntax-code))
+         ;; Color the advised function's name with the top-level color.
+         (context-coloring-colorize-region
+          (point)
+          (progn (forward-sexp)
+                 (point))
+          0)
+         (context-coloring-elisp-forward-sws)
+         (context-coloring-elisp-parse-header
+          (lambda ()
+            (let (syntax-code)
+              ;; Enter.
+              (forward-char)
+              (while (/= (setq syntax-code (context-coloring-get-syntax-code))
+                         context-coloring-CLOSE-PARENTHESIS-CODE)
+                (cond
+                 ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+                  (context-coloring-elisp-parse-arglist))
+                 (t
+                  ;; Ignore artifacts.
+                  (context-coloring-elisp-forward-sexp)))
+                (context-coloring-elisp-forward-sws))
+              ;; Exit.
+              (forward-char)))
+          start))
+        (t
+         ;; Skip it.
+         (goto-char start)
+         (context-coloring-elisp-forward-sexp)))))))
+
 (defun context-coloring-elisp-colorize-lambda-like (callback)
   "Color the lambda-like function at point, parsing the header
 with CALLBACK."
@@ -830,6 +866,10 @@ with CALLBACK."
            ((string-match-p context-coloring-elisp-dolist-regexp name-string)
             (goto-char start)
             (context-coloring-elisp-colorize-dolist)
+            t)
+           ((string-equal "defadvice" name-string)
+            (goto-char start)
+            (context-coloring-elisp-colorize-defadvice)
             t)
            (t
             nil)))))
