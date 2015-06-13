@@ -1,3 +1,6 @@
+(quote (lambda () free))
+(let () (backquote (,free)))
+
 (defun a (a)
   (or (eq a 'b)
       (equal a '(a b))

@@ -819,6 +819,17 @@ with CALLBACK."
          ;; Exit.
          (forward-char))))))
 
+(defun context-coloring-elisp-colorize-quote ()
+  "Color the `quote' at point."
+  (let* ((start (point))
+         (end (progn (forward-sexp)
+                     (point))))
+    (context-coloring-colorize-region
+     start
+     end
+     (context-coloring-elisp-get-current-scope-level))
+    (context-coloring-elisp-colorize-comments-and-strings-in-region start end)))
+
 (defun context-coloring-elisp-colorize-parenthesized-sexp ()
   "Color the sexp enclosed by parenthesis at point."
   (context-coloring-elisp-increment-sexp-count)
@@ -871,6 +882,14 @@ with CALLBACK."
             (goto-char start)
             (context-coloring-elisp-colorize-defadvice)
             t)
+           ((string-equal "quote" name-string)
+            (goto-char start)
+            (context-coloring-elisp-colorize-quote)
+            t)
+           ((string-equal "backquote" name-string)
+            (goto-char start)
+            (context-coloring-elisp-colorize-backquote)
+            t)
            (t
             nil)))))
      ;; Not a special form; just colorize the remaining region.
@@ -900,35 +919,44 @@ with CALLBACK."
        (context-coloring-elisp-get-variable-level
         symbol-string))))))
 
+(defun context-coloring-elisp-colorize-backquote-form ()
+  "Color the backquote form at point."
+  (let ((start (point))
+        (end (progn (forward-sexp)
+                    (point)))
+        char)
+    (goto-char start)
+    (while (> end (progn (forward-char)
+                         (point)))
+      (setq char (char-after))
+      (when (= char context-coloring-COMMA-CHAR)
+        (forward-char)
+        (when (= (char-after) context-coloring-AT-CHAR)
+          ;; If we don't do this "@" could be interpreted as a symbol.
+          (forward-char))
+        (context-coloring-elisp-forward-sws)
+        (context-coloring-elisp-colorize-sexp)))
+    ;; We could probably do this as part of the above loop but it'd be
+    ;; repetitive.
+    (context-coloring-elisp-colorize-comments-and-strings-in-region
+     start end)))
+
+(defun context-coloring-elisp-colorize-backquote ()
+  "Color the `backquote' at point."
+  (context-coloring-elisp-skip-callee-name)
+  (context-coloring-elisp-colorize-backquote-form)
+  ;; Exit.
+  (forward-char))
+
 (defun context-coloring-elisp-colorize-expression-prefix ()
   "Color the expression prefix and the following expression at
 point.  It could be a quoted or backquoted expression."
   (context-coloring-elisp-increment-sexp-count)
-  (let ((char (char-after))
-        start
-        end)
-    (cond
-     ((/= char context-coloring-BACKTICK-CHAR)
-      (context-coloring-elisp-forward-sexp))
-     (t
-      (setq start (point))
-      (setq end (progn (forward-sexp)
-                       (point)))
-      (goto-char start)
-      (while (> end (progn (forward-char)
-                           (point)))
-        (setq char (char-after))
-        (when (= char context-coloring-COMMA-CHAR)
-          (forward-char)
-          (when (= (char-after) context-coloring-AT-CHAR)
-            ;; If we don't do this "@" could be interpreted as a symbol.
-            (forward-char))
-          (context-coloring-elisp-forward-sws)
-          (context-coloring-elisp-colorize-sexp)))
-      ;; We could probably do this as part of the above loop but it'd be
-      ;; repetitive.
-      (context-coloring-elisp-colorize-comments-and-strings-in-region
-       start end)))))
+  (cond
+   ((/= (char-after) context-coloring-BACKTICK-CHAR)
+    (context-coloring-elisp-forward-sexp))
+   (t
+    (context-coloring-elisp-colorize-backquote-form))))
 
 (defun context-coloring-elisp-colorize-comment ()
   "Color the comment at point."

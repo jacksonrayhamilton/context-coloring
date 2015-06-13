@@ -1094,6 +1094,9 @@ ssssssssssss0"))
 (context-coloring-test-deftest-emacs-lisp quote
   (lambda ()
     (context-coloring-test-assert-coloring "
+(xxxxx 0000000 00 00000)
+(xxx () (xxxxxxxxx (,0000)))
+
 (xxxxx x (x)
   (xx (xx x 111
       111111 1 111 111
