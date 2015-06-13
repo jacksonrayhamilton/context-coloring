@@ -1305,10 +1305,11 @@ version number required for the current major mode."
         (context-coloring-shell-command
          (context-coloring-join (list command "--version") " ")
          (lambda (output)
-           (if (context-coloring-check-version version output)
-               (progn
-                 (when callback (funcall callback t)))
-             (when callback (funcall callback nil)))
+           (cond
+            ((context-coloring-check-version version output)
+             (when callback (funcall callback t)))
+            (t
+             (when callback (funcall callback nil))))
            (run-hooks 'context-coloring-check-scopifier-version-hook)))))))
 
 
@@ -1511,13 +1512,14 @@ precedence, i.e. the car of `custom-enabled-themes'."
   "Update `context-coloring-maximum-face'."
   (when (custom-theme-p theme) ; Guard against non-existent themes.
     (let ((enabled-theme (car custom-enabled-themes)))
-      (if (context-coloring-theme-p enabled-theme)
-          (progn
-            (context-coloring-enable-theme enabled-theme))
+      (cond
+       ((context-coloring-theme-p enabled-theme)
+        (context-coloring-enable-theme enabled-theme))
+       (t
         ;; Assume we are back to no theme; act as if nothing ever happened.
         ;; This is still prone to intervention, but rather extraordinarily.
         (setq context-coloring-maximum-face
-              context-coloring-original-maximum-face)))))
+              context-coloring-original-maximum-face))))))
 
 (context-coloring-define-theme
  'ample
