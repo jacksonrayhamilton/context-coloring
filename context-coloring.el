@@ -226,11 +226,13 @@ the END point (exclusive) with the face corresponding to LEVEL."
   :group 'context-coloring)
 
 (defun context-coloring-font-lock-syntactic-comment-function (state)
-  "Tell `font-lock' to color a comment but not a string."
+  "Tell `font-lock' to color a comment but not a string according
+to STATE."
   (if (nth 3 state) nil font-lock-comment-face))
 
 (defun context-coloring-font-lock-syntactic-string-function (state)
-  "Tell `font-lock' to color a string but not a comment."
+  "Tell `font-lock' to color a string but not a comment according
+to STATE."
   (if (nth 3 state) font-lock-string-face nil))
 
 (defsubst context-coloring-colorize-comments-and-strings (&optional min max)
@@ -433,7 +435,7 @@ bound as variables.")
 (defconst context-coloring-BACKTICK-CHAR (string-to-char "`"))
 
 (defsubst context-coloring-elisp-identifier-p (syntax-code)
-  "Check if SYNTAX-CODE is an emacs lisp identifier constituent."
+  "Check if SYNTAX-CODE is an elisp identifier constituent."
   (or (= syntax-code context-coloring-WORD-CODE)
       (= syntax-code context-coloring-SYMBOL-CODE)))
 
@@ -661,7 +663,8 @@ no header, skip past the sexp at START."
          (context-coloring-elisp-forward-sexp)))))))
 
 (defun context-coloring-elisp-colorize-lambda-like (callback)
-  "Color the lambda-like function at point."
+  "Color the lambda-like function at point, parsing the header
+with CALLBACK."
   (let ((start (point)))
     (context-coloring-elisp-colorize-scope
      (lambda ()
