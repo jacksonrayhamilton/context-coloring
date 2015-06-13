@@ -394,20 +394,6 @@ the way."
   (context-coloring-join
    (mapcar #'context-coloring-exact-regexp words) "\\|"))
 
-(defconst context-coloring-elisp-defun-regexp
-  (context-coloring-exact-or-regexp
-   '("defun" "defun*" "defsubst" "defmacro"
-     "cl-defun" "cl-defsubst" "cl-defmacro")))
-
-(defconst context-coloring-elisp-condition-case-regexp
-  (context-coloring-exact-or-regexp
-   '("condition-case"
-     "condition-case-unless-debug")))
-
-(defconst context-coloring-elisp-dolist-regexp
-  (context-coloring-exact-or-regexp
-   '("dolist" "dotimes")))
-
 (defconst context-coloring-elisp-ignored-word-regexp
   (context-coloring-join (list "\\`[-+]?[0-9]"
                                "\\`[&:].+"
@@ -818,6 +804,24 @@ with CALLBACK."
      (context-coloring-elisp-get-current-scope-level))
     (context-coloring-elisp-colorize-comments-and-strings-in-region start end)))
 
+(defvar context-coloring-elisp-callee-dispatch-hash-table
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (callee '("defun" "defun*" "defsubst" "defmacro" "cl-defun" "cl-defsubst" "cl-defmacro"))
+      (puthash callee #'context-coloring-elisp-colorize-defun table))
+    (dolist (callee '("condition-case" "condition-case-unless-debug"))
+      (puthash callee #'context-coloring-elisp-colorize-condition-case table))
+    (dolist (callee '("dolist" "dotimes"))
+      (puthash callee #'context-coloring-elisp-colorize-dolist table))
+    (puthash "let" #'context-coloring-elisp-colorize-let table)
+    (puthash "let*" #'context-coloring-elisp-colorize-let* table)
+    (puthash "lambda" #'context-coloring-elisp-colorize-lambda table)
+    (puthash "cond" #'context-coloring-elisp-colorize-cond table)
+    (puthash "defadvice" #'context-coloring-elisp-colorize-defadvice table)
+    (puthash "quote" #'context-coloring-elisp-colorize-quote table)
+    (puthash "backquote" #'context-coloring-elisp-colorize-backquote table)
+    table)
+  "Map function names to their coloring functions.")
+
 (defun context-coloring-elisp-colorize-parenthesized-sexp ()
   "Color the sexp enclosed by parenthesis at point."
   (context-coloring-elisp-increment-sexp-count)
@@ -829,57 +833,19 @@ with CALLBACK."
                              ;; Coloring is unnecessary here, it'll happen
                              ;; presently.
                              (context-coloring-forward-sws)
-                             (context-coloring-get-syntax-code))))
+                             (context-coloring-get-syntax-code)))
+         dispatch-function)
     ;; Figure out if the sexp is a special form.
     (cond
-     ((when (context-coloring-elisp-identifier-p syntax-code)
-        (let ((name-string (buffer-substring-no-properties
-                            (point)
-                            (progn (forward-sexp)
-                                   (point)))))
-          (cond
-           ((string-match-p context-coloring-elisp-defun-regexp name-string)
-            (goto-char start)
-            (context-coloring-elisp-colorize-defun)
-            t)
-           ((string-equal "let" name-string)
-            (goto-char start)
-            (context-coloring-elisp-colorize-let)
-            t)
-           ((string-equal "let*" name-string)
-            (goto-char start)
-            (context-coloring-elisp-colorize-let*)
-            t)
-           ((string-equal "lambda" name-string)
-            (goto-char start)
-            (context-coloring-elisp-colorize-lambda)
-            t)
-           ((string-equal "cond" name-string)
-            (goto-char start)
-            (context-coloring-elisp-colorize-cond)
-            t)
-           ((string-match-p context-coloring-elisp-condition-case-regexp name-string)
-            (goto-char start)
-            (context-coloring-elisp-colorize-condition-case)
-            t)
-           ((string-match-p context-coloring-elisp-dolist-regexp name-string)
-            (goto-char start)
-            (context-coloring-elisp-colorize-dolist)
-            t)
-           ((string-equal "defadvice" name-string)
-            (goto-char start)
-            (context-coloring-elisp-colorize-defadvice)
-            t)
-           ((string-equal "quote" name-string)
-            (goto-char start)
-            (context-coloring-elisp-colorize-quote)
-            t)
-           ((string-equal "backquote" name-string)
-            (goto-char start)
-            (context-coloring-elisp-colorize-backquote)
-            t)
-           (t
-            nil)))))
+     ((and (context-coloring-elisp-identifier-p syntax-code)
+           (setq dispatch-function (gethash
+                                    (buffer-substring-no-properties
+                                     (point)
+                                     (progn (forward-sexp)
+                                            (point)))
+                                    context-coloring-elisp-callee-dispatch-hash-table)))
+      (goto-char start)
+      (funcall dispatch-function))
      ;; Not a special form; just colorize the remaining region.
      (t
       (context-coloring-colorize-region
