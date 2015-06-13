@@ -1713,66 +1713,87 @@ elisp tracks, and asynchronously for shell command tracks."
 
 ;;;###autoload
 (define-minor-mode context-coloring-mode
-  "Context-based code coloring, inspired by Douglas Crockford."
-  nil " Context" nil
-  (if (not context-coloring-mode)
-      (progn
-        (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
-          (when dispatch
-            (let ((command (plist-get dispatch :command))
-                  (teardown (plist-get dispatch :teardown)))
-              (when command
-                (context-coloring-teardown-idle-change-detection))
-              (when teardown
-                (funcall teardown)))))
-        (font-lock-mode)
-        (jit-lock-mode t))
+  "Toggle contextual code coloring.
+With a prefix argument ARG, enable Context Coloring mode if ARG
+is positive, and disable it otherwise.  If called from Lisp,
+enable the mode if ARG is omitted or nil.
 
+Context Coloring mode is a buffer-local minor mode.  When
+enabled, code is colored by scope.  Scopes are colored
+hierarchically.  Variables referenced from nested scopes retain
+the color of their defining scopes.  Certain syntax, like
+comments and strings, is still colored with `font-lock'.
+
+The entire buffer is colored initially.  Changes to the buffer
+trigger recoloring.
+
+Certain custom themes have predefined colors from their palettes
+to use for coloring.  See `context-coloring-theme-hash-table' for
+the supported themes.  If the currently-enabled custom theme is
+not among these, you can define colors for it with
+`context-coloring-define-theme', which see.
+
+New language / major mode support can be added with
+`context-coloring-define-dispatch', which see.
+
+Feature inspired by Douglas Crockford."
+  nil " Context" nil
+  (cond
+   (context-coloring-mode
     ;; Font lock is incompatible with this mode; the converse is also true.
     (font-lock-mode 0)
     (jit-lock-mode nil)
-
     ;; ...but we do use font-lock functions here.
     (font-lock-set-defaults)
-
     ;; Safely change the value of this function as necessary.
     (make-local-variable 'font-lock-syntactic-face-function)
-
     (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
-      (if dispatch
-          (progn
-            (let ((command (plist-get dispatch :command))
-                  (version (plist-get dispatch :version))
-                  (executable (plist-get dispatch :executable))
-                  (setup (plist-get dispatch :setup))
-                  (colorize-initially-p t))
-              (when command
-                ;; Shell commands recolor on change, idly.
-                (cond
-                 ((and executable
-                       (null (executable-find executable)))
-                  (message "Executable \"%s\" not found" executable)
-                  (setq colorize-initially-p nil))
-                 (version
-                  (context-coloring-check-scopifier-version
-                   (lambda (sufficient-p)
-                     (if sufficient-p
-                         (progn
-                           (context-coloring-setup-idle-change-detection)
-                           (context-coloring-colorize))
-                       (message "Update to the minimum version of \"%s\" (%s)"
-                                executable version))))
-                  (setq colorize-initially-p nil))
-                 (t
-                  (context-coloring-setup-idle-change-detection))))
-              (when setup
-                (funcall setup))
-              ;; Colorize once initially.
-              (when colorize-initially-p
-                (let ((context-coloring-parse-interruptable-p nil))
-                  (context-coloring-colorize)))))
-        (when (null dispatch)
-          (message "Context coloring is not available for this major mode"))))))
+      (cond
+       (dispatch
+        (let ((command (plist-get dispatch :command))
+              (version (plist-get dispatch :version))
+              (executable (plist-get dispatch :executable))
+              (setup (plist-get dispatch :setup))
+              (colorize-initially-p t))
+          (when command
+            ;; Shell commands recolor on change, idly.
+            (cond
+             ((and executable
+                   (null (executable-find executable)))
+              (message "Executable \"%s\" not found" executable)
+              (setq colorize-initially-p nil))
+             (version
+              (context-coloring-check-scopifier-version
+               (lambda (sufficient-p)
+                 (cond
+                  (sufficient-p
+                   (context-coloring-setup-idle-change-detection)
+                   (context-coloring-colorize))
+                  (t
+                   (message "Update to the minimum version of \"%s\" (%s)"
+                            executable version)))))
+              (setq colorize-initially-p nil))
+             (t
+              (context-coloring-setup-idle-change-detection))))
+          (when setup
+            (funcall setup))
+          ;; Colorize once initially.
+          (when colorize-initially-p
+            (let ((context-coloring-parse-interruptable-p nil))
+              (context-coloring-colorize)))))
+       (t
+        (message "Context coloring is not available for this major mode")))))
+   (t
+    (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
+      (when dispatch
+        (let ((command (plist-get dispatch :command))
+              (teardown (plist-get dispatch :teardown)))
+          (when command
+            (context-coloring-teardown-idle-change-detection))
+          (when teardown
+            (funcall teardown)))))
+    (font-lock-mode)
+    (jit-lock-mode t))))
 
 (provide 'context-coloring)
 
