@@ -41,7 +41,7 @@
 
 (defun context-coloring-join (strings delimiter)
   "Join a list of STRINGS with the string DELIMITER."
-  (mapconcat 'identity strings delimiter))
+  (mapconcat #'identity strings delimiter))
 
 (defsubst context-coloring-trim-right (string)
   "Remove leading whitespace from STRING."
@@ -93,7 +93,7 @@ backgrounds."
 
 (defvar context-coloring-original-maximum-face nil
   "Fallback value for `context-coloring-maximum-face' when all
-  themes have been disabled.")
+themes have been disabled.")
 
 (setq context-coloring-maximum-face 7)
 
@@ -118,6 +118,105 @@ backgrounds."
   "Return the symbol for a face with LEVEL, bounded by
 `context-coloring-maximum-face'."
   (context-coloring-level-face (min level context-coloring-maximum-face)))
+
+
+;;; Change detection
+
+(defvar-local context-coloring-changed-p nil
+  "Indication that the buffer has changed recently, which implies
+that it should be colored again by
+`context-coloring-maybe-colorize-idle-timer' if that timer is
+being used.")
+
+(defvar-local context-coloring-changed-start nil
+  "Beginning of last text that changed.")
+
+(defvar-local context-coloring-changed-end nil
+  "End of last text that changed.")
+
+(defvar-local context-coloring-changed-length nil
+  "Length of last text that changed.")
+
+(defun context-coloring-change-function (start end length)
+  "Register a change so that a buffer can be colorized soon.
+
+START, END and LENGTH are recorded for later use."
+  ;; Tokenization is obsolete if there was a change.
+  (context-coloring-cancel-scopification)
+  (setq context-coloring-changed-start start)
+  (setq context-coloring-changed-end end)
+  (setq context-coloring-changed-length length)
+  (setq context-coloring-changed-p t))
+
+(defun context-coloring-maybe-colorize-with-buffer (buffer)
+  "Color BUFFER and if it has changed."
+  (when context-coloring-changed-p
+    (context-coloring-colorize-with-buffer buffer)
+    (setq context-coloring-changed-p nil)
+    (setq context-coloring-changed-start nil)
+    (setq context-coloring-changed-end nil)
+    (setq context-coloring-changed-length nil)))
+
+(defvar-local context-coloring-maybe-colorize-idle-timer nil
+  "The currently-running idle timer for conditional coloring.")
+
+(defvar-local context-coloring-colorize-idle-timer nil
+  "The currently-running idle timer for unconditional coloring.")
+
+(defcustom context-coloring-default-delay 0.25
+  "Default (sometimes overridden) delay between a buffer update
+and colorization.
+
+Increase this if your machine is high-performing.  Decrease it if
+it ain't.
+
+Supported modes: `js-mode', `js3-mode'"
+  :group 'context-coloring)
+
+(make-obsolete-variable
+ 'context-coloring-delay
+ 'context-coloring-default-delay
+ "6.4.0")
+
+(defun context-coloring-cancel-timer (timer)
+  "Cancel TIMER."
+  (when timer
+    (cancel-timer timer)))
+
+(defun context-coloring-schedule-coloring (time)
+  "Schedule coloring to occur once after Emacs is idle for TIME."
+  (context-coloring-cancel-timer context-coloring-colorize-idle-timer)
+  (setq context-coloring-colorize-idle-timer
+        (run-with-idle-timer
+         time
+         nil
+         #'context-coloring-colorize-with-buffer
+         (current-buffer))))
+
+(defun context-coloring-setup-idle-change-detection ()
+  "Setup idle change detection."
+  (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
+    (add-hook
+     'after-change-functions #'context-coloring-change-function nil t)
+    (add-hook
+     'kill-buffer-hook #'context-coloring-teardown-idle-change-detection nil t)
+    (setq context-coloring-maybe-colorize-idle-timer
+          (run-with-idle-timer
+           (or (plist-get dispatch :delay) context-coloring-default-delay)
+           t
+           #'context-coloring-maybe-colorize-with-buffer
+           (current-buffer)))))
+
+(defun context-coloring-teardown-idle-change-detection ()
+  "Teardown idle change detection."
+  (context-coloring-cancel-scopification)
+  (dolist (timer (list context-coloring-colorize-idle-timer
+                       context-coloring-maybe-colorize-idle-timer))
+    (context-coloring-cancel-timer timer))
+  (remove-hook
+   'kill-buffer-hook #'context-coloring-teardown-idle-change-detection t)
+  (remove-hook
+   'after-change-functions #'context-coloring-change-function t))
 
 
 ;;; Colorization utilities
@@ -145,17 +244,20 @@ the END point (exclusive) with the face corresponding to LEVEL."
   :group 'context-coloring)
 
 (defun context-coloring-font-lock-syntactic-comment-function (state)
-  "Tell `font-lock' to color a comment but not a string."
+  "Tell `font-lock' to color a comment but not a string according
+to STATE."
   (if (nth 3 state) nil font-lock-comment-face))
 
 (defun context-coloring-font-lock-syntactic-string-function (state)
-  "Tell `font-lock' to color a string but not a comment."
+  "Tell `font-lock' to color a string but not a comment according
+to STATE."
   (if (nth 3 state) font-lock-string-face nil))
 
-(defsubst context-coloring-maybe-colorize-comments-and-strings (&optional min max)
+(defsubst context-coloring-colorize-comments-and-strings (&optional min max)
   "Color the current buffer's comments or strings if
 `context-coloring-syntactic-comments' or
-`context-coloring-syntactic-strings' are non-nil."
+`context-coloring-syntactic-strings' are non-nil.  MIN defaults
+to the beginning of the buffer and MAX defaults to the end."
   (when (or context-coloring-syntactic-comments
             context-coloring-syntactic-strings)
     (let ((min (or min (point-min)))
@@ -164,10 +266,10 @@ the END point (exclusive) with the face corresponding to LEVEL."
            (cond
             ((and context-coloring-syntactic-comments
                   (not context-coloring-syntactic-strings))
-             'context-coloring-font-lock-syntactic-comment-function)
+             #'context-coloring-font-lock-syntactic-comment-function)
             ((and context-coloring-syntactic-strings
                   (not context-coloring-syntactic-comments))
-             'context-coloring-font-lock-syntactic-string-function)
+             #'context-coloring-font-lock-syntactic-string-function)
             (t
              font-lock-syntactic-face-function))))
       (save-excursion
@@ -244,7 +346,7 @@ variable."
   "Color the current buffer using the abstract syntax tree
 generated by `js2-mode'."
   ;; Reset the hash table; the old one could be obsolete.
-  (setq context-coloring-js2-scope-level-hash-table (make-hash-table :test 'eq))
+  (setq context-coloring-js2-scope-level-hash-table (make-hash-table :test #'eq))
   (setq context-coloring-point-max (point-max))
   (with-silent-modifications
     (js2-visit-ast
@@ -271,540 +373,746 @@ generated by `js2-mode'."
                 (context-coloring-js2-scope-level defining-scope))))))
          ;; The `t' indicates to search children.
          t)))
-    (context-coloring-maybe-colorize-comments-and-strings)))
+    (context-coloring-colorize-comments-and-strings)))
 
 
 ;;; Emacs Lisp colorization
-
-(defsubst context-coloring-make-scope (depth level)
-  (list
-   :depth depth
-   :level level
-   :variables (make-hash-table)))
-
-(defsubst context-coloring-scope-get-level (scope)
-  (plist-get scope :level))
-
-(defsubst context-coloring-scope-add-variable (scope variable)
-  (puthash variable t (plist-get scope :variables)))
-
-(defsubst context-coloring-scope-get-variable (scope variable)
-  (gethash variable (plist-get scope :variables)))
-
-(defsubst context-coloring-get-variable-level (scope-stack variable)
-  (let* (scope
-         level)
-    (while (and scope-stack (not level))
-      (setq scope (car scope-stack))
-      (cond
-       ((context-coloring-scope-get-variable scope variable)
-        (setq level (context-coloring-scope-get-level scope)))
-       (t
-        (setq scope-stack (cdr scope-stack)))))
-    ;; Assume a global variable.
-    (or level 0)))
-
-(defsubst context-coloring-make-backtick (end enabled)
-  (list
-   :end end
-   :enabled enabled))
-
-(defsubst context-coloring-backtick-get-end (backtick)
-  (plist-get backtick :end))
-
-(defsubst context-coloring-backtick-get-enabled (backtick)
-  (plist-get backtick :enabled))
-
-(defsubst context-coloring-backtick-enabled-p (backtick-stack)
-  (context-coloring-backtick-get-enabled (car backtick-stack)))
-
-(defsubst context-coloring-make-let-varlist (depth type)
-  (list
-   :depth depth
-   :type type
-   :vars '()))
-
-(defsubst context-coloring-let-varlist-get-type (let-varlist)
-  (plist-get let-varlist :type))
-
-(defsubst context-coloring-let-varlist-add-var (let-varlist var)
-  (plist-put let-varlist :vars (cons var (plist-get let-varlist :vars))))
-
-(defsubst context-coloring-let-varlist-pop-vars (let-varlist)
-  (let ((type (context-coloring-let-varlist-get-type let-varlist))
-        (vars (plist-get let-varlist :vars)))
-    (cond
-     ;; `let' binds all at once at the end.
-     ((eq type 'let)
-      (prog1
-          vars
-        (plist-put let-varlist :vars '())))
-     ;; `let*' binds incrementally.
-     ((eq type 'let*)
-      (prog1
-          (list (car vars))
-        (plist-put let-varlist :vars (cdr vars)))))))
 
 (defsubst context-coloring-forward-sws ()
   "Move forward through whitespace and comments."
   (while (forward-comment 1)))
 
-(defsubst context-coloring-forward-sexp-position ()
-  "Like vanilla `forward-sexp', but just return the position."
-  (scan-sexps (point) 1))
+(defsubst context-coloring-elisp-forward-sws ()
+  "Move forward through whitespace and comments, colorizing
+comments along the way."
+  (let ((start (point)))
+    (context-coloring-forward-sws)
+    (context-coloring-colorize-comments-and-strings start (point))))
 
-(defsubst context-coloring-emacs-lisp-identifier-syntax-p (syntax-code)
-  (or (= 2 syntax-code)
-      (= 3 syntax-code)))
+(defsubst context-coloring-elisp-forward-sexp ()
+  "Like `forward-sexp', but colorize comments and strings along
+the way."
+  (let ((start (point)))
+    (forward-sexp)
+    (context-coloring-elisp-colorize-comments-and-strings-in-region
+     start (point))))
 
-(defsubst context-coloring-open-parenthesis-p (syntax-code)
-  (= 4 syntax-code))
-
-(defsubst context-coloring-close-parenthesis-p (syntax-code)
-  (= 5 syntax-code))
-
-(defsubst context-coloring-expression-prefix-p (syntax-code)
-  (= 6 syntax-code))
-
-(defsubst context-coloring-at-open-parenthesis-p ()
-  (= 4 (logand #xFFFF (car (syntax-after (point))))))
-
-(defsubst context-coloring-ppss-depth (ppss)
-  ;; Same as (nth 0 ppss).
-  (car ppss))
-
-(defsubst context-coloring-at-stack-depth-p (stack depth)
-  (= (plist-get (car stack) :depth) depth))
+(defsubst context-coloring-get-syntax-code ()
+  "Get the syntax code at point."
+  (syntax-class
+   ;; Faster version of `syntax-after':
+   (aref (syntax-table) (char-after (point)))))
 
 (defsubst context-coloring-exact-regexp (word)
-  "Create a regexp that matches exactly WORD."
+  "Create a regexp matching exactly WORD."
   (concat "\\`" (regexp-quote word) "\\'"))
 
 (defsubst context-coloring-exact-or-regexp (words)
-  "Create a regexp that matches any exact word in WORDS."
+  "Create a regexp matching any exact word in WORDS."
   (context-coloring-join
-   (mapcar 'context-coloring-exact-regexp words) "\\|"))
+   (mapcar #'context-coloring-exact-regexp words) "\\|"))
 
-(defconst context-coloring-emacs-lisp-defun-regexp
-  (context-coloring-exact-or-regexp
-   '("defun" "defun*" "defsubst" "defmacro"
-     "cl-defun" "cl-defsubst" "cl-defmacro")))
+(defconst context-coloring-elisp-ignored-word-regexp
+  (context-coloring-join (list "\\`[-+]?[0-9]"
+                               "\\`[&:].+"
+                               (context-coloring-exact-or-regexp
+                                '("t" "nil" "." "?")))
+                         "\\|")
+  "Match words that might be considered symbols but can't be
+bound as variables.")
 
-(defconst context-coloring-emacs-lisp-lambda-regexp
-  (context-coloring-exact-regexp "lambda"))
+(defconst context-coloring-WORD-CODE 2)
+(defconst context-coloring-SYMBOL-CODE 3)
+(defconst context-coloring-OPEN-PARENTHESIS-CODE 4)
+(defconst context-coloring-CLOSE-PARENTHESIS-CODE 5)
+(defconst context-coloring-EXPRESSION-PREFIX-CODE 6)
+(defconst context-coloring-STRING-QUOTE-CODE 7)
+(defconst context-coloring-ESCAPE-CODE 9)
+(defconst context-coloring-COMMENT-START-CODE 11)
+(defconst context-coloring-COMMENT-END-CODE 12)
 
-(defconst context-coloring-emacs-lisp-let-regexp
-  (context-coloring-exact-regexp "let"))
+(defconst context-coloring-OCTOTHORPE-CHAR (string-to-char "#"))
+(defconst context-coloring-APOSTROPHE-CHAR (string-to-char "'"))
+(defconst context-coloring-OPEN-PARENTHESIS-CHAR (string-to-char "("))
+(defconst context-coloring-COMMA-CHAR (string-to-char ","))
+(defconst context-coloring-AT-CHAR (string-to-char "@"))
+(defconst context-coloring-BACKTICK-CHAR (string-to-char "`"))
 
-(defconst context-coloring-emacs-lisp-let*-regexp
-  (context-coloring-exact-regexp "let*"))
-
-(defconst context-coloring-arglist-arg-regexp
-  "\\`[^&:]")
-
-(defconst context-coloring-ignored-word-regexp
-  (concat "\\`[-+]?[0-9]\\|" (context-coloring-exact-or-regexp
-                              '("t" "nil" "." "?"))))
-
-(defconst context-coloring-COMMA-CHAR 44)
-(defconst context-coloring-BACKTICK-CHAR 96)
+(defsubst context-coloring-elisp-identifier-p (syntax-code)
+  "Check if SYNTAX-CODE is an elisp identifier constituent."
+  (or (= syntax-code context-coloring-WORD-CODE)
+      (= syntax-code context-coloring-SYMBOL-CODE)))
 
 (defvar context-coloring-parse-interruptable-p t
   "Set this to nil to force parse to continue until finished.")
 
-(defconst context-coloring-emacs-lisp-iterations-per-pause 1000
+(defconst context-coloring-elisp-sexps-per-pause 1000
   "Pause after this many iterations to check for user input.
 If user input is pending, stop the parse.  This makes for a
-smoother user experience for large files.
+smoother user experience for large files.")
 
-As of this writing, emacs lisp colorization seems to run at about
-60,000 iterations per second.  A default value of 1000 should
-provide visually \"instant\" updates at 60 frames per second.")
+(defvar context-coloring-elisp-sexp-count 0
+  "Current number of sexps leading up to the next pause.")
 
-;; TODO: Add cases for special forms like `cond'.
-;; TODO: Backticks only go one level deep.
-;; TODO: Refactor this function into smaller, focused ones so we can parse
-;; recursively and easily.
-(defun context-coloring-emacs-lisp-colorize ()
-  "Color the current buffer by parsing emacs lisp sexps."
+(defsubst context-coloring-elisp-increment-sexp-count ()
+  "Maybe check if the current parse should be interrupted as a
+result of pending user input."
+  (setq context-coloring-elisp-sexp-count
+        (1+ context-coloring-elisp-sexp-count))
+  (when (and (zerop (% context-coloring-elisp-sexp-count
+                       context-coloring-elisp-sexps-per-pause))
+             context-coloring-parse-interruptable-p
+             (input-pending-p))
+    (throw 'interrupted t)))
+
+(defvar context-coloring-elisp-scope-stack '()
+  "List of scopes in the current parse.")
+
+(defsubst context-coloring-elisp-make-scope (level)
+  "Make a scope object for LEVEL."
+  (list
+   :level level
+   :variables '()))
+
+(defsubst context-coloring-elisp-scope-get-level (scope)
+  "Get the level of SCOPE object."
+  (plist-get scope :level))
+
+(defsubst context-coloring-elisp-scope-add-variable (scope variable)
+  "Add to SCOPE a VARIABLE."
+  (plist-put scope :variables (cons variable (plist-get scope :variables))))
+
+(defsubst context-coloring-elisp-scope-has-variable (scope variable)
+  "Check if SCOPE has VARIABLE."
+  (member variable (plist-get scope :variables)))
+
+(defsubst context-coloring-elisp-get-variable-level (variable)
+  "Search up the scope chain for the first instance of VARIABLE
+and return its level, or 0 (global) if it isn't found."
+  (let* ((scope-stack context-coloring-elisp-scope-stack)
+         scope
+         level)
+    (while (and scope-stack (not level))
+      (setq scope (car scope-stack))
+      (cond
+       ((context-coloring-elisp-scope-has-variable scope variable)
+        (setq level (context-coloring-elisp-scope-get-level scope)))
+       (t
+        (setq scope-stack (cdr scope-stack)))))
+    ;; Assume a global variable.
+    (or level 0)))
+
+(defsubst context-coloring-elisp-get-current-scope-level ()
+  "Get the nesting level of the current scope."
+  (cond
+   ((car context-coloring-elisp-scope-stack)
+    (context-coloring-elisp-scope-get-level (car context-coloring-elisp-scope-stack)))
+   (t
+    0)))
+
+(defsubst context-coloring-elisp-push-scope ()
+  "Add a new scope to the bottom of the scope chain."
+  (push (context-coloring-elisp-make-scope
+         (1+ (context-coloring-elisp-get-current-scope-level)))
+        context-coloring-elisp-scope-stack))
+
+(defsubst context-coloring-elisp-pop-scope ()
+  "Remove the scope on the bottom of the scope chain."
+  (pop context-coloring-elisp-scope-stack))
+
+(defsubst context-coloring-elisp-add-variable (variable)
+  "Add VARIABLE to the current scope."
+  (context-coloring-elisp-scope-add-variable
+   (car context-coloring-elisp-scope-stack)
+   variable))
+
+(defsubst context-coloring-elisp-parse-bindable (callback)
+  "Parse the symbol at point, and if the symbol can be bound,
+invoke CALLBACK with it."
+  (let* ((arg-string (buffer-substring-no-properties
+                      (point)
+                      (progn (context-coloring-elisp-forward-sexp)
+                             (point)))))
+    (when (not (string-match-p
+                context-coloring-elisp-ignored-word-regexp
+                arg-string))
+      (funcall callback arg-string))))
+
+(defun context-coloring-elisp-parse-let-varlist (type)
+  "Parse the list of variable initializers at point.  If TYPE is
+`let', all the variables are bound after all their initializers
+are parsed; if TYPE is `let*', each variable is bound immediately
+after its own initializer is parsed."
+  (let ((varlist '())
+        syntax-code)
+    ;; Enter.
+    (forward-char)
+    (while (/= (setq syntax-code (context-coloring-get-syntax-code))
+               context-coloring-CLOSE-PARENTHESIS-CODE)
+      (cond
+       ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+        (forward-char)
+        (context-coloring-elisp-forward-sws)
+        (setq syntax-code (context-coloring-get-syntax-code))
+        (when (context-coloring-elisp-identifier-p syntax-code)
+          (context-coloring-elisp-parse-bindable
+           (lambda (var)
+             (push var varlist)))
+          (context-coloring-elisp-forward-sws)
+          (setq syntax-code (context-coloring-get-syntax-code))
+          (when (/= syntax-code context-coloring-CLOSE-PARENTHESIS-CODE)
+            (context-coloring-elisp-colorize-sexp)))
+        (context-coloring-elisp-forward-sws)
+        ;; Skip past the closing parenthesis.
+        (forward-char))
+       ((context-coloring-elisp-identifier-p syntax-code)
+        (context-coloring-elisp-parse-bindable
+         (lambda (var)
+           (push var varlist))))
+       (t
+        ;; Ignore artifacts.
+        (context-coloring-elisp-forward-sexp)))
+      (when (eq type 'let*)
+        (context-coloring-elisp-add-variable (pop varlist)))
+      (context-coloring-elisp-forward-sws))
+    (when (eq type 'let)
+      (while varlist
+        (context-coloring-elisp-add-variable (pop varlist))))
+    ;; Exit.
+    (forward-char)))
+
+(defun context-coloring-elisp-parse-arglist ()
+  "Parse the list of function arguments at point."
+  (let (syntax-code)
+    ;; Enter.
+    (forward-char)
+    (while (/= (setq syntax-code (context-coloring-get-syntax-code))
+               context-coloring-CLOSE-PARENTHESIS-CODE)
+      (cond
+       ((context-coloring-elisp-identifier-p syntax-code)
+        (context-coloring-elisp-parse-bindable
+         (lambda (arg)
+           (context-coloring-elisp-add-variable arg))))
+       (t
+        ;; Ignore artifacts.
+        (context-coloring-elisp-forward-sexp)))
+      (context-coloring-elisp-forward-sws))
+    ;; Exit.
+    (forward-char)))
+
+(defun context-coloring-elisp-skip-callee-name ()
+  "Skip past the opening parenthesis and name of a function."
+  ;; Enter.
+  (forward-char)
+  (context-coloring-elisp-forward-sws)
+  ;; Skip past the function name.
+  (forward-sexp)
+  (context-coloring-elisp-forward-sws))
+
+(defun context-coloring-elisp-colorize-scope (callback)
+  "Color the whole scope at point with its one color.  Handle a
+header in CALLBACK."
+  (let ((start (point))
+        (end (progn (forward-sexp)
+                    (point))))
+    (context-coloring-elisp-push-scope)
+    ;; Splash the whole thing in one color.
+    (context-coloring-colorize-region
+     start
+     end
+     (context-coloring-elisp-get-current-scope-level))
+    ;; Even if the parse is interrupted, this region should still be colored
+    ;; syntactically.
+    (context-coloring-elisp-colorize-comments-and-strings-in-region
+     start
+     end)
+    (goto-char start)
+    (context-coloring-elisp-skip-callee-name)
+    (funcall callback)
+    (context-coloring-elisp-colorize-region (point) (1- end))
+    ;; Exit.
+    (forward-char)
+    (context-coloring-elisp-pop-scope)))
+
+(defun context-coloring-elisp-parse-header (callback start)
+  "Parse a function header at point with CALLBACK.  If there is
+no header, skip past the sexp at START."
+  (cond
+   ((= (context-coloring-get-syntax-code) context-coloring-OPEN-PARENTHESIS-CODE)
+    (funcall callback))
+   (t
+    ;; Skip it.
+    (goto-char start)
+    (context-coloring-elisp-forward-sexp))))
+
+(defun context-coloring-elisp-colorize-defun-like (callback)
+  "Color the defun-like function at point, parsing the header
+with CALLBACK."
+  (let ((start (point)))
+    (context-coloring-elisp-colorize-scope
+     (lambda ()
+       (cond
+        ((context-coloring-elisp-identifier-p (context-coloring-get-syntax-code))
+         ;; Color the defun's name with the top-level color.
+         (context-coloring-colorize-region
+          (point)
+          (progn (forward-sexp)
+                 (point))
+          0)
+         (context-coloring-elisp-forward-sws)
+         (context-coloring-elisp-parse-header callback start))
+        (t
+         ;; Skip it.
+         (goto-char start)
+         (context-coloring-elisp-forward-sexp)))))))
+
+(defun context-coloring-elisp-colorize-defun ()
+  "Color the `defun' at point."
+  (context-coloring-elisp-colorize-defun-like
+   'context-coloring-elisp-parse-arglist))
+
+(defun context-coloring-elisp-colorize-defadvice ()
+  "Color the `defadvice' at point."
+  (context-coloring-elisp-colorize-defun-like
+   (lambda ()
+     (let (syntax-code)
+       ;; Enter.
+       (forward-char)
+       (while (/= (setq syntax-code (context-coloring-get-syntax-code))
+                  context-coloring-CLOSE-PARENTHESIS-CODE)
+         (cond
+          ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+           (context-coloring-elisp-parse-arglist))
+          (t
+           ;; Ignore artifacts.
+           (context-coloring-elisp-forward-sexp)))
+         (context-coloring-elisp-forward-sws))
+       ;; Exit.
+       (forward-char)))))
+
+(defun context-coloring-elisp-colorize-lambda-like (callback)
+  "Color the lambda-like function at point, parsing the header
+with CALLBACK."
+  (let ((start (point)))
+    (context-coloring-elisp-colorize-scope
+     (lambda ()
+       (context-coloring-elisp-parse-header callback start)))))
+
+(defun context-coloring-elisp-colorize-lambda ()
+  "Color the `lambda' at point."
+  (context-coloring-elisp-colorize-lambda-like
+   'context-coloring-elisp-parse-arglist))
+
+(defun context-coloring-elisp-colorize-let ()
+  "Color the `let' at point."
+  (context-coloring-elisp-colorize-lambda-like
+   (lambda ()
+     (context-coloring-elisp-parse-let-varlist 'let))))
+
+(defun context-coloring-elisp-colorize-let* ()
+  "Color the `let*' at point."
+  (context-coloring-elisp-colorize-lambda-like
+   (lambda ()
+     (context-coloring-elisp-parse-let-varlist 'let*))))
+
+(defun context-coloring-elisp-colorize-cond ()
+  "Color the `cond' at point."
+  (let (syntax-code)
+    (context-coloring-elisp-skip-callee-name)
+    (while (/= (setq syntax-code (context-coloring-get-syntax-code))
+               context-coloring-CLOSE-PARENTHESIS-CODE)
+      (cond
+       ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+        ;; Colorize inside the parens.
+        (let ((start (point)))
+          (forward-sexp)
+          (context-coloring-elisp-colorize-region
+           (1+ start) (1- (point)))
+          ;; Exit.
+          (forward-char)))
+       (t
+        ;; Ignore artifacts.
+        (context-coloring-elisp-forward-sexp)))
+      (context-coloring-elisp-forward-sws))
+    ;; Exit.
+    (forward-char)))
+
+(defun context-coloring-elisp-colorize-condition-case ()
+  "Color the `condition-case' at point."
+  (let (syntax-code
+        variable
+        case-pos
+        case-end)
+    (context-coloring-elisp-colorize-scope
+     (lambda ()
+       (setq syntax-code (context-coloring-get-syntax-code))
+       ;; Gracefully ignore missing variables.
+       (when (context-coloring-elisp-identifier-p syntax-code)
+         (context-coloring-elisp-parse-bindable
+          (lambda (parsed-variable)
+            (setq variable parsed-variable)))
+         (context-coloring-elisp-forward-sws))
+       (context-coloring-elisp-colorize-sexp)
+       (context-coloring-elisp-forward-sws)
+       ;; Parse the handlers with the error variable in scope.
+       (when variable
+         (context-coloring-elisp-add-variable variable))
+       (while (/= (setq syntax-code (context-coloring-get-syntax-code))
+                  context-coloring-CLOSE-PARENTHESIS-CODE)
+         (cond
+          ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+           (setq case-pos (point))
+           (context-coloring-elisp-forward-sexp)
+           (setq case-end (point))
+           (goto-char case-pos)
+           ;; Enter.
+           (forward-char)
+           (context-coloring-elisp-forward-sws)
+           (setq syntax-code (context-coloring-get-syntax-code))
+           (when (/= syntax-code context-coloring-CLOSE-PARENTHESIS-CODE)
+             ;; Skip the condition name(s).
+             (context-coloring-elisp-forward-sexp)
+             ;; Color the remaining portion of the handler.
+             (context-coloring-elisp-colorize-region
+              (point)
+              (1- case-end)))
+           ;; Exit.
+           (forward-char))
+          (t
+           ;; Ignore artifacts.
+           (context-coloring-elisp-forward-sexp)))
+         (context-coloring-elisp-forward-sws))))))
+
+(defun context-coloring-elisp-colorize-dolist ()
+  "Color the `dolist' at point."
+  (let (syntax-code
+        (index 0))
+    (context-coloring-elisp-colorize-scope
+     (lambda ()
+       (setq syntax-code (context-coloring-get-syntax-code))
+       (when (= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+         (forward-char)
+         (context-coloring-elisp-forward-sws)
+         (while (/= (setq syntax-code (context-coloring-get-syntax-code))
+                    context-coloring-CLOSE-PARENTHESIS-CODE)
+           (cond
+            ((and
+              (or (= index 0) (= index 2))
+              (context-coloring-elisp-identifier-p syntax-code))
+             ;; Add the first or third name to the scope.
+             (context-coloring-elisp-parse-bindable
+              (lambda (variable)
+                (context-coloring-elisp-add-variable variable))))
+            (t
+             ;; Color artifacts.
+             (context-coloring-elisp-colorize-sexp)))
+           (context-coloring-elisp-forward-sws)
+           (setq index (1+ index)))
+         ;; Exit.
+         (forward-char))))))
+
+(defun context-coloring-elisp-colorize-quote ()
+  "Color the `quote' at point."
+  (let* ((start (point))
+         (end (progn (forward-sexp)
+                     (point))))
+    (context-coloring-colorize-region
+     start
+     end
+     (context-coloring-elisp-get-current-scope-level))
+    (context-coloring-elisp-colorize-comments-and-strings-in-region start end)))
+
+(defvar context-coloring-elisp-callee-dispatch-hash-table
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (callee '("defun" "defun*" "defsubst" "defmacro" "cl-defun" "cl-defsubst" "cl-defmacro"))
+      (puthash callee #'context-coloring-elisp-colorize-defun table))
+    (dolist (callee '("condition-case" "condition-case-unless-debug"))
+      (puthash callee #'context-coloring-elisp-colorize-condition-case table))
+    (dolist (callee '("dolist" "dotimes"))
+      (puthash callee #'context-coloring-elisp-colorize-dolist table))
+    (puthash "let" #'context-coloring-elisp-colorize-let table)
+    (puthash "let*" #'context-coloring-elisp-colorize-let* table)
+    (puthash "lambda" #'context-coloring-elisp-colorize-lambda table)
+    (puthash "cond" #'context-coloring-elisp-colorize-cond table)
+    (puthash "defadvice" #'context-coloring-elisp-colorize-defadvice table)
+    (puthash "quote" #'context-coloring-elisp-colorize-quote table)
+    (puthash "backquote" #'context-coloring-elisp-colorize-backquote table)
+    table)
+  "Map function names to their coloring functions.")
+
+(defun context-coloring-elisp-colorize-parenthesized-sexp ()
+  "Color the sexp enclosed by parenthesis at point."
+  (context-coloring-elisp-increment-sexp-count)
+  (let* ((start (point))
+         (end (progn (forward-sexp)
+                     (point)))
+         (syntax-code (progn (goto-char start)
+                             (forward-char)
+                             ;; Coloring is unnecessary here, it'll happen
+                             ;; presently.
+                             (context-coloring-forward-sws)
+                             (context-coloring-get-syntax-code)))
+         dispatch-function)
+    ;; Figure out if the sexp is a special form.
+    (cond
+     ((and (context-coloring-elisp-identifier-p syntax-code)
+           (setq dispatch-function (gethash
+                                    (buffer-substring-no-properties
+                                     (point)
+                                     (progn (forward-sexp)
+                                            (point)))
+                                    context-coloring-elisp-callee-dispatch-hash-table)))
+      (goto-char start)
+      (funcall dispatch-function))
+     ;; Not a special form; just colorize the remaining region.
+     (t
+      (context-coloring-colorize-region
+       start
+       end
+       (context-coloring-elisp-get-current-scope-level))
+      (context-coloring-elisp-colorize-region (point) (1- end))
+      (forward-char)))))
+
+(defun context-coloring-elisp-colorize-symbol ()
+  "Color the symbol at point."
+  (context-coloring-elisp-increment-sexp-count)
+  (let* ((symbol-pos (point))
+         (symbol-end (progn (forward-sexp)
+                            (point)))
+         (symbol-string (buffer-substring-no-properties
+                         symbol-pos
+                         symbol-end)))
+    (cond
+     ((string-match-p context-coloring-elisp-ignored-word-regexp symbol-string))
+     (t
+      (context-coloring-colorize-region
+       symbol-pos
+       symbol-end
+       (context-coloring-elisp-get-variable-level
+        symbol-string))))))
+
+(defun context-coloring-elisp-colorize-backquote-form ()
+  "Color the backquote form at point."
+  (let ((start (point))
+        (end (progn (forward-sexp)
+                    (point)))
+        char)
+    (goto-char start)
+    (while (> end (progn (forward-char)
+                         (point)))
+      (setq char (char-after))
+      (when (= char context-coloring-COMMA-CHAR)
+        (forward-char)
+        (when (= (char-after) context-coloring-AT-CHAR)
+          ;; If we don't do this "@" could be interpreted as a symbol.
+          (forward-char))
+        (context-coloring-elisp-forward-sws)
+        (context-coloring-elisp-colorize-sexp)))
+    ;; We could probably do this as part of the above loop but it'd be
+    ;; repetitive.
+    (context-coloring-elisp-colorize-comments-and-strings-in-region
+     start end)))
+
+(defun context-coloring-elisp-colorize-backquote ()
+  "Color the `backquote' at point."
+  (context-coloring-elisp-skip-callee-name)
+  (context-coloring-elisp-colorize-backquote-form)
+  ;; Exit.
+  (forward-char))
+
+(defun context-coloring-elisp-colorize-expression-prefix ()
+  "Color the expression prefix and the following expression at
+point.  It could be a quoted or backquoted expression."
+  (context-coloring-elisp-increment-sexp-count)
+  (cond
+   ((/= (char-after) context-coloring-BACKTICK-CHAR)
+    (context-coloring-elisp-forward-sexp))
+   (t
+    (context-coloring-elisp-colorize-backquote-form))))
+
+(defun context-coloring-elisp-colorize-comment ()
+  "Color the comment at point."
+  (context-coloring-elisp-increment-sexp-count)
+  (context-coloring-elisp-forward-sws))
+
+(defun context-coloring-elisp-colorize-string ()
+  "Color the string at point."
+  (context-coloring-elisp-increment-sexp-count)
+  (let ((start (point)))
+    (forward-sexp)
+    (context-coloring-colorize-comments-and-strings start (point))))
+
+;; Elisp has whitespace, words, symbols, open/close parenthesis, expression
+;; prefix, string quote, comment starters/enders and escape syntax classes only.
+
+(defun context-coloring-elisp-colorize-sexp ()
+  "Color the sexp at point."
+  (let ((syntax-code (context-coloring-get-syntax-code)))
+    (cond
+     ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+      (context-coloring-elisp-colorize-parenthesized-sexp))
+     ((context-coloring-elisp-identifier-p syntax-code)
+      (context-coloring-elisp-colorize-symbol))
+     ((= syntax-code context-coloring-EXPRESSION-PREFIX-CODE)
+      (context-coloring-elisp-colorize-expression-prefix))
+     ((= syntax-code context-coloring-STRING-QUOTE-CODE)
+      (context-coloring-elisp-colorize-string))
+     ((= syntax-code context-coloring-ESCAPE-CODE)
+      (forward-char 2)))))
+
+(defun context-coloring-elisp-colorize-comments-and-strings-in-region (start end)
+  "Color comments and strings between START and END."
+  (let (syntax-code)
+    (goto-char start)
+    (while (> end (progn (skip-syntax-forward "^\"<\\" end)
+                         (point)))
+      (setq syntax-code (context-coloring-get-syntax-code))
+      (cond
+       ((= syntax-code context-coloring-STRING-QUOTE-CODE)
+        (context-coloring-elisp-colorize-string))
+       ((= syntax-code context-coloring-COMMENT-START-CODE)
+        (context-coloring-elisp-colorize-comment))
+       ((= syntax-code context-coloring-ESCAPE-CODE)
+        (forward-char 2))))))
+
+(defun context-coloring-elisp-colorize-region (start end)
+  "Color everything between START and END."
+  (let (syntax-code)
+    (goto-char start)
+    (while (> end (progn (skip-syntax-forward "^w_('\"<\\" end)
+                         (point)))
+      (setq syntax-code (context-coloring-get-syntax-code))
+      (cond
+       ((= syntax-code context-coloring-OPEN-PARENTHESIS-CODE)
+        (context-coloring-elisp-colorize-parenthesized-sexp))
+       ((context-coloring-elisp-identifier-p syntax-code)
+        (context-coloring-elisp-colorize-symbol))
+       ((= syntax-code context-coloring-EXPRESSION-PREFIX-CODE)
+        (context-coloring-elisp-colorize-expression-prefix))
+       ((= syntax-code context-coloring-STRING-QUOTE-CODE)
+        (context-coloring-elisp-colorize-string))
+       ((= syntax-code context-coloring-COMMENT-START-CODE)
+        (context-coloring-elisp-colorize-comment))
+       ((= syntax-code context-coloring-ESCAPE-CODE)
+        (forward-char 2))))))
+
+(defun context-coloring-elisp-colorize-region-initially (start end)
+  "Begin coloring everything between START and END."
+  (setq context-coloring-elisp-sexp-count 0)
+  (setq context-coloring-elisp-scope-stack '())
+  (let ((inhibit-point-motion-hooks t)
+        (case-fold-search nil)
+        ;; This is a recursive-descent parser, so give it a big stack.
+        (max-lisp-eval-depth (max max-lisp-eval-depth 3000))
+        (max-specpdl-size (max max-specpdl-size 3000)))
+    (context-coloring-elisp-colorize-region start end)))
+
+(defun context-coloring-elisp-colorize ()
+  "Color the current buffer, parsing elisp to determine its
+scopes and variables."
+  (interactive)
   (with-silent-modifications
     (save-excursion
-      ;; TODO: Can probably make this lazy to the nearest defun.
-      (goto-char (point-min))
-      (let* ((inhibit-point-motion-hooks t)
-             (end (point-max))
-             (iteration-count 0)
-             (last-fontified-position (point))
-             beginning-of-current-defun
-             end-of-current-defun
-             (last-ppss-pos (point))
-             (ppss (syntax-ppss))
-             ppss-depth
-             ;; -1 never matches a depth.  This is a minor optimization.
-             (scope-stack `(,(context-coloring-make-scope -1 0)))
-             (backtick-stack '())
-             (let-varlist-stack '())
-             (let-var-stack '())
-             popped-vars
-             one-word-found-p
-             in-defun-p
-             in-lambda-p
-             in-let-p
-             in-let*-p
-             defun-arglist
-             defun-arg
-             let-varlist
-             let-varlist-type
-             variable
-             variable-end
-             variable-string
-             variable-scope-level
-             token-pos
-             token-syntax
-             token-syntax-code
-             token-char
-             child-0-pos
-             child-0-end
-             child-0-syntax
-             child-0-syntax-code
-             child-0-string
-             child-1-pos
-             child-1-end
-             child-1-syntax
-             child-1-syntax-code
-             child-2-end)
-        (while (> end (progn (skip-syntax-forward "^()w_'" end)
-                             (point)))
-          ;; Sparingly-executed tasks.
-          (setq iteration-count (1+ iteration-count))
-          (when (zerop (% iteration-count
-                          context-coloring-emacs-lisp-iterations-per-pause))
-            ;; Fontify until the end of the current defun because doing it in
-            ;; chunks based soley on point could result in partial
-            ;; re-fontifications over the contents of scopes.
-            (save-excursion
-              (end-of-defun)
-              (setq end-of-current-defun (point))
-              (beginning-of-defun)
-              (setq beginning-of-current-defun (point)))
-
-            ;; Fontify in chunks.
-            (context-coloring-maybe-colorize-comments-and-strings
-             last-fontified-position
-             (cond
-              ;; We weren't actually in a defun, so don't color the next one, as
-              ;; that could result in `font-lock' properties being added to it.
-              ((> beginning-of-current-defun (point))
-               (point))
-              (t
-               end-of-current-defun)))
-            (setq last-fontified-position (point))
-            (when (and context-coloring-parse-interruptable-p
-                       (input-pending-p))
-              (throw 'interrupted t)))
-
-          (setq token-pos (point))
-          (setq token-syntax (syntax-after token-pos))
-          (setq token-syntax-code (logand #xFFFF (car token-syntax)))
-          (setq token-char (char-after))
-          (setq ppss (parse-partial-sexp last-ppss-pos token-pos nil nil ppss))
-          (setq last-ppss-pos token-pos)
+      (condition-case nil
           (cond
-
-           ;; Resolve an invalid state.
-           ((cond
-             ;; Inside string?
-             ((nth 3 ppss)
-              (skip-syntax-forward "^\"" end)
-              (forward-char)
-              t)
-             ;; Inside comment?
-             ((nth 4 ppss)
-              (skip-syntax-forward "^>" end)
-              t)))
-
-           ;; Need to check early in case there's a comma.
-           ((context-coloring-expression-prefix-p token-syntax-code)
-            (forward-char)
-            (cond
-             ;; Skip top-level symbols.
-             ((not (or backtick-stack
-                       (= token-char context-coloring-BACKTICK-CHAR)))
-              (goto-char (context-coloring-forward-sexp-position)))
-             ;; Push a backtick state.
-             ((or (= token-char context-coloring-BACKTICK-CHAR)
-                  (= token-char context-coloring-COMMA-CHAR))
-              (setq backtick-stack (cons (context-coloring-make-backtick
-                                          (context-coloring-forward-sexp-position)
-                                          (= token-char context-coloring-BACKTICK-CHAR))
-                                         backtick-stack)))))
-
-           ;; Pop a backtick state.
-           ((and backtick-stack
-                 (>= (point) (context-coloring-backtick-get-end (car backtick-stack))))
-            (setq backtick-stack (cdr backtick-stack)))
-
-           ;; Restricted by an enabled backtick.
-           ((and backtick-stack
-                 (context-coloring-backtick-enabled-p backtick-stack))
-            (forward-char))
-
-           ((context-coloring-open-parenthesis-p token-syntax-code)
-            (forward-char)
-            ;; Look for function calls.
-            (context-coloring-forward-sws)
-            (setq child-0-pos (point))
-            (setq child-0-syntax (syntax-after child-0-pos))
-            (setq child-0-syntax-code (logand #xFFFF (car child-0-syntax)))
-            (cond
-             ((context-coloring-emacs-lisp-identifier-syntax-p child-0-syntax-code)
-              (setq one-word-found-p t)
-              (setq child-0-end (scan-sexps child-0-pos 1))
-              (setq child-0-string (buffer-substring-no-properties child-0-pos child-0-end))
-              (cond
-               ;; Parse a var in a `let' varlist.
-               ((and
-                 let-varlist-stack
-                 (context-coloring-at-stack-depth-p
-                  let-varlist-stack
-                  ;; 1- because we're inside the varlist.
-                  (1- (context-coloring-ppss-depth ppss))))
-                (context-coloring-let-varlist-add-var
-                 (car let-varlist-stack)
-                 (intern child-0-string))
-                (setq let-var-stack (cons (context-coloring-ppss-depth ppss)
-                                          let-var-stack)))
-               ((string-match-p context-coloring-emacs-lisp-defun-regexp child-0-string)
-                (setq in-defun-p t))
-               ((string-match-p context-coloring-emacs-lisp-lambda-regexp child-0-string)
-                (setq in-lambda-p t))
-               ((string-match-p context-coloring-emacs-lisp-let-regexp child-0-string)
-                (setq in-let-p t)
-                (setq let-varlist-type 'let))
-               ((string-match-p context-coloring-emacs-lisp-let*-regexp child-0-string)
-                (setq in-let*-p t)
-                (setq let-varlist-type 'let*)))))
-            (when (or in-defun-p
-                      in-lambda-p
-                      in-let-p
-                      in-let*-p)
-              (setq scope-stack (cons (context-coloring-make-scope
-                                       (context-coloring-ppss-depth ppss)
-                                       (1+ (context-coloring-scope-get-level
-                                            (car scope-stack))))
-                                      scope-stack)))
-            ;; TODO: Maybe wasteful but doing this conditionally doesn't make
-            ;; much of a difference.
-            (context-coloring-colorize-region token-pos
-                                              (scan-sexps token-pos 1)
-                                              (context-coloring-scope-get-level
-                                               (car scope-stack)))
-            (cond
-             ((or in-defun-p
-                  in-lambda-p)
-              (goto-char child-0-end)
-              (when in-defun-p
-                ;; Look for a function name.
-                (context-coloring-forward-sws)
-                (setq child-1-pos (point))
-                (setq child-1-syntax (syntax-after child-1-pos))
-                (setq child-1-syntax-code (logand #xFFFF (car child-1-syntax)))
-                (cond
-                 ((context-coloring-emacs-lisp-identifier-syntax-p child-1-syntax-code)
-                  (setq child-1-end (scan-sexps child-1-pos 1))
-                  ;; Defuns are global, so use level 0.
-                  (context-coloring-colorize-region child-1-pos child-1-end 0)
-                  (goto-char child-1-end))))
-              ;; Look for an arglist.
-              (context-coloring-forward-sws)
-              (when (context-coloring-at-open-parenthesis-p)
-                ;; (Actually it should be `child-1-end' for `lambda'.)
-                (setq child-2-end (context-coloring-forward-sexp-position))
-                (setq defun-arglist (read (buffer-substring-no-properties
-                                           (point)
-                                           child-2-end)))
-                (while defun-arglist
-                  (setq defun-arg (car defun-arglist))
-                  (when (and (symbolp defun-arg)
-                             (string-match-p
-                              context-coloring-arglist-arg-regexp
-                              (symbol-name defun-arg)))
-                    (context-coloring-scope-add-variable
-                     (car scope-stack)
-                     defun-arg))
-                  (setq defun-arglist (cdr defun-arglist)))
-                (goto-char child-2-end))
-              ;; Cleanup.
-              (setq in-defun-p nil)
-              (setq in-lambda-p nil))
-             ((or in-let-p
-                  in-let*-p)
-              (goto-char child-0-end)
-              ;; Look for a varlist.
-              (context-coloring-forward-sws)
-              (setq child-1-pos (point))
-              (setq child-1-syntax (syntax-after child-1-pos))
-              (setq child-1-syntax-code (logand #xFFFF (car child-1-syntax)))
-              (when (context-coloring-open-parenthesis-p child-1-syntax-code)
-                ;; Begin parsing the varlist.
-                (forward-char)
-                (setq let-varlist-stack (cons (context-coloring-make-let-varlist
-                                               ;; 1+ because we parsed it at a
-                                               ;; higher depth.
-                                               (1+ (context-coloring-ppss-depth ppss))
-                                               let-varlist-type)
-                                              let-varlist-stack)))
-              ;; Cleanup.
-              (setq in-let-p nil)
-              (setq in-let*-p nil))
-             (t
-              (goto-char (cond
-                          ;; If there was a word, continue parsing after it.
-                          (one-word-found-p
-                           (1+ child-0-end))
-                          (t
-                           (1+ token-pos))))))
-            ;; Cleanup.
-            (setq one-word-found-p nil))
-
-           ((context-coloring-emacs-lisp-identifier-syntax-p token-syntax-code)
-            (setq variable-end (context-coloring-forward-sexp-position))
-            (setq variable-string (buffer-substring-no-properties
-                                   token-pos
-                                   variable-end))
-            (cond
-             ;; Ignore constants such as numbers, keywords, t, nil.  These can't
-             ;; be rebound, so they should be treated like syntax.
-             ((string-match-p context-coloring-ignored-word-regexp variable-string))
-             ((keywordp (read variable-string)))
-             (t
-              (setq variable (intern variable-string))
-              (cond
-               ;; Parse a `let' varlist's uninitialized var.
-               ((and
-                 let-varlist-stack
-                 (context-coloring-at-stack-depth-p
-                  let-varlist-stack
-                  ;; 1- because we're inside the varlist.
-                  (1- (context-coloring-ppss-depth ppss))))
-                (setq let-varlist (car let-varlist-stack))
-                (setq let-varlist-type (context-coloring-let-varlist-get-type let-varlist))
-                (cond
-                 ;; Defer `let' binding until the end of the varlist.
-                 ((eq let-varlist-type 'let)
-                  (context-coloring-let-varlist-add-var let-varlist variable))
-                 ;; Bind a `let*' right away.
-                 ((eq let-varlist-type 'let*)
-                  (context-coloring-scope-add-variable (car scope-stack) variable))))
-               (t
-                (setq variable-scope-level
-                      (context-coloring-get-variable-level scope-stack variable))
-                (when (/= variable-scope-level (context-coloring-scope-get-level
-                                                (car scope-stack)))
-                  (context-coloring-colorize-region
-                   token-pos
-                   variable-end
-                   variable-scope-level))))))
-            (goto-char variable-end))
-
-           ((context-coloring-close-parenthesis-p token-syntax-code)
-            (forward-char)
-            (setq ppss (parse-partial-sexp last-ppss-pos (point) nil nil ppss))
-            (setq last-ppss-pos (point))
-            (setq ppss-depth (context-coloring-ppss-depth ppss))
-            ;; TODO: Order might matter here but I'm not certain.
-            (when (context-coloring-at-stack-depth-p scope-stack ppss-depth)
-              (setq scope-stack (cdr scope-stack)))
-            (when (and
-                   let-var-stack
-                   (= (car let-var-stack) ppss-depth))
-              (setq let-var-stack (cdr let-var-stack))
-              (when (eq (context-coloring-let-varlist-get-type (car let-varlist-stack))
-                        'let*)
-                (setq popped-vars (context-coloring-let-varlist-pop-vars
-                                   (car let-varlist-stack)))))
-            (when (and
-                   let-varlist-stack
-                   (context-coloring-at-stack-depth-p let-varlist-stack ppss-depth))
-              (setq popped-vars (context-coloring-let-varlist-pop-vars
-                                 (car let-varlist-stack)))
-              (setq let-varlist-stack (cdr let-varlist-stack)))
-            (while popped-vars
-              (context-coloring-scope-add-variable (car scope-stack) (car popped-vars))
-              (setq popped-vars (cdr popped-vars))))
-
-           ))
-        ;; Fontify the last stretch.
-        (context-coloring-maybe-colorize-comments-and-strings
-         last-fontified-position
-         (point))))))
+           ;; Just colorize the changed region.
+           (context-coloring-changed-p
+            (let* (;; Prevent `beginning-of-defun' from making poor assumptions.
+                   (open-paren-in-column-0-is-defun-start nil)
+                   ;; Seek the beginning and end of the previous and next
+                   ;; offscreen defuns, so just enough is colored.
+                   (start (progn (goto-char context-coloring-changed-start)
+                                 (while (and (< (point-min) (point))
+                                             (pos-visible-in-window-p))
+                                   (end-of-line 0))
+                                 (beginning-of-defun)
+                                 (point)))
+                   (end (progn (goto-char context-coloring-changed-end)
+                               (while (and (> (point-max) (point))
+                                           (pos-visible-in-window-p))
+                                 (forward-line 1))
+                               (end-of-defun)
+                               (point))))
+              (context-coloring-elisp-colorize-region-initially start end)
+              ;; Fast coloring is nice, but if the code is not well-formed
+              ;; (e.g. an unclosed string literal is parsed at any time) then
+              ;; there could be leftover incorrectly-colored code offscreen.  So
+              ;; do a clean sweep as soon as appropriate.
+              (context-coloring-schedule-coloring context-coloring-default-delay)))
+           (t
+            (context-coloring-elisp-colorize-region-initially (point-min) (point-max))))
+        ;; Scan errors can happen virtually anywhere if parenthesis are
+        ;; unbalanced.  Just swallow them.  (`progn' for test coverage.)
+        (scan-error (progn))))))
 
 
 ;;; Shell command scopification / colorization
 
 (defun context-coloring-apply-tokens (tokens)
-  "Process a vector of TOKENS to apply context-based coloring to
-the current buffer.  Tokens are 3 integers: start, end, level.
-The vector is flat, with a new token occurring after every 3rd
-element."
-  (with-silent-modifications
-    (let ((i 0)
-          (len (length tokens)))
-      (while (< i len)
-        (context-coloring-colorize-region
-         (elt tokens i)
-         (elt tokens (+ i 1))
-         (elt tokens (+ i 2)))
-        (setq i (+ i 3))))
-    (context-coloring-maybe-colorize-comments-and-strings)))
+  "Process a string of TOKENS to apply context-based coloring to
+the current buffer.  Tokens are 3 integers: start, end, level.  A
+new token occurrs after every 3rd element, and the elements are
+separated by commas."
+  (let* ((tokens (mapcar #'string-to-number (split-string tokens ","))))
+    (while tokens
+      (context-coloring-colorize-region
+       (pop tokens)
+       (pop tokens)
+       (pop tokens))))
+  (context-coloring-colorize-comments-and-strings))
 
 (defun context-coloring-parse-array (array)
-  "Parse ARRAY as a flat JSON array of numbers."
-  (let ((braceless (substring (context-coloring-trim array) 1 -1)))
-    (cond
-     ((> (length braceless) 0)
-      (vconcat
-       (mapcar 'string-to-number (split-string braceless ","))))
-     (t
-      (vector)))))
+  "Parse ARRAY as a flat JSON array of numbers and use the tokens
+to colorize the buffer."
+  (let* ((braceless (substring-no-properties (context-coloring-trim array) 1 -1)))
+    (when (> (length braceless) 0)
+      (with-silent-modifications
+        (context-coloring-apply-tokens braceless)))))
+
+(defvar-local context-coloring-scopifier-cancel-function nil
+  "Kills the current scopification process.")
 
 (defvar-local context-coloring-scopifier-process nil
   "The single scopifier process that can be running.")
 
-(defun context-coloring-kill-scopifier ()
-  "Kill the currently-running scopifier process."
+(defun context-coloring-cancel-scopification ()
+  "Stop the currently-running scopifier from scopifying."
+  (when context-coloring-scopifier-cancel-function
+    (funcall context-coloring-scopifier-cancel-function)
+    (setq context-coloring-scopifier-cancel-function nil))
   (when (not (null context-coloring-scopifier-process))
     (delete-process context-coloring-scopifier-process)
     (setq context-coloring-scopifier-process nil)))
 
-(defun context-coloring-scopify-shell-command (command callback)
-  "Invoke a scopifier via COMMAND, read its response
-asynchronously and invoke CALLBACK with its output."
-
-  ;; Prior running tokenization is implicitly obsolete if this function is
-  ;; called.
-  (context-coloring-kill-scopifier)
-
-  ;; Start the process.
-  (setq context-coloring-scopifier-process
-        (start-process-shell-command "scopifier" nil command))
-
-  (let ((output ""))
-
+(defun context-coloring-shell-command (command callback)
+  "Invoke COMMAND, read its response asynchronously and invoke
+CALLBACK with its output.  Return the command process."
+  (let ((process (start-process-shell-command "context-coloring-process" nil command))
+        (output ""))
     ;; The process may produce output in multiple chunks.  This filter
     ;; accumulates the chunks into a message.
     (set-process-filter
-     context-coloring-scopifier-process
+     process
      (lambda (_process chunk)
        (setq output (concat output chunk))))
-
     ;; When the process's message is complete, this sentinel parses it as JSON
     ;; and applies the tokens to the buffer.
     (set-process-sentinel
-     context-coloring-scopifier-process
+     process
      (lambda (_process event)
        (when (equal "finished\n" event)
-         (funcall callback output))))))
+         (funcall callback output))))
+    process))
+
+(defun context-coloring-scopify-shell-command (command callback)
+  "Invoke a scopifier via COMMAND, read its response
+asynchronously and invoke CALLBACK with its output."
+  ;; Prior running tokenization is implicitly obsolete if this function is
+  ;; called.
+  (context-coloring-cancel-scopification)
+  ;; Start the process.
+  (setq context-coloring-scopifier-process
+        (context-coloring-shell-command command callback)))
 
 (defun context-coloring-send-buffer-to-scopifier ()
   "Give the scopifier process its input so it can begin
@@ -815,31 +1123,103 @@ scopifying."
   (process-send-eof
    context-coloring-scopifier-process))
 
-(defun context-coloring-scopify-and-colorize (command &optional callback)
-  "Invoke a scopifier via COMMAND with the current buffer's contents,
-read the scopifier's response asynchronously and apply a parsed
-list of tokens to `context-coloring-apply-tokens'.
+(defun context-coloring-start-scopifier-server (command host port callback)
+  "Connect to or start a scopifier server with COMMAND, HOST and PORT.
+Invoke CALLBACK with a network stream when the server is ready
+for connections."
+  (let* ((connect
+          (lambda ()
+            (let ((stream (open-network-stream "context-coloring-stream" nil host port)))
+              (funcall callback stream)))))
+    ;; Try to connect in case a server is running, otherwise start one.
+    (condition-case nil
+        (progn
+          (funcall connect))
+      (error
+       (let ((server (start-process-shell-command
+                      "context-coloring-scopifier-server" nil
+                      (context-coloring-join
+                       (list command
+                             "--server"
+                             "--host" host
+                             "--port" (number-to-string port))
+                       " ")))
+             (output ""))
+         ;; Connect as soon as the "listening" message is printed.
+         (set-process-filter
+          server
+          (lambda (_process chunk)
+            (setq output (concat output chunk))
+            (when (string-match-p (format "^Scopifier listening at %s:%s$" host port) output)
+              (funcall connect)))))))))
 
-Invoke CALLBACK when complete."
+(defun context-coloring-send-buffer-to-scopifier-server (command host port callback)
+  "Send the current buffer to the scopifier server running with
+COMMAND, HOST and PORT.  Invoke CALLBACK with the server's
+response (a stringified JSON array)."
+  (context-coloring-start-scopifier-server
+   command host port
+   (lambda (process)
+     (let* ((body (buffer-substring-no-properties (point-min) (point-max)))
+            (header (concat "POST / HTTP/1.0\r\n"
+                            "Host: localhost\r\n"
+                            "Content-Type: application/x-www-form-urlencoded"
+                            "; charset=UTF8\r\n"
+                            (format "Content-Length: %d\r\n" (length body))
+                            "\r\n"))
+            (output "")
+            (active t))
+       (set-process-filter
+        process
+        (lambda (_process chunk)
+          (setq output (concat output chunk))))
+       (set-process-sentinel
+        process
+        (lambda (_process event)
+          (when (and (equal "connection broken by remote peer\n" event)
+                     active)
+            ;; Strip the response headers.
+            (string-match "\r\n\r\n" output)
+            (setq output (substring-no-properties output (match-end 0)))
+            (funcall callback output))))
+       (process-send-string process (concat header body "\r\n"))
+       (setq context-coloring-scopifier-cancel-function
+             (lambda ()
+               "Cancel this scopification."
+               (setq active nil)))))))
+
+(defun context-coloring-scopify-and-colorize-server (command host port &optional callback)
+  "Color the current buffer via the server started with COMMAND,
+HOST and PORT.  Invoke CALLBACK when complete."
+  (let ((buffer (current-buffer)))
+    (context-coloring-send-buffer-to-scopifier-server
+     command host port
+     (lambda (output)
+       (with-current-buffer buffer
+         (context-coloring-parse-array output))
+       (when callback (funcall callback))))))
+
+(defun context-coloring-scopify-and-colorize (command &optional callback)
+  "Color the current buffer via COMMAND.  Invoke CALLBACK when
+complete."
   (let ((buffer (current-buffer)))
     (context-coloring-scopify-shell-command
      command
      (lambda (output)
-       (let ((tokens (context-coloring-parse-array output)))
-         (with-current-buffer buffer
-           (context-coloring-apply-tokens tokens))
-         (setq context-coloring-scopifier-process nil)
-         (when callback (funcall callback))))))
+       (with-current-buffer buffer
+         (context-coloring-parse-array output))
+       (setq context-coloring-scopifier-process nil)
+       (when callback (funcall callback)))))
   (context-coloring-send-buffer-to-scopifier))
 
 
 ;;; Dispatch
 
-(defvar context-coloring-dispatch-hash-table (make-hash-table :test 'eq)
+(defvar context-coloring-dispatch-hash-table (make-hash-table :test #'eq)
   "Map dispatch strategy names to their corresponding property
-  lists, which contain details about the strategies.")
+lists, which contain details about the strategies.")
 
-(defvar context-coloring-mode-hash-table (make-hash-table :test 'eq)
+(defvar context-coloring-mode-hash-table (make-hash-table :test #'eq)
   "Map major mode names to dispatch property lists.")
 
 (defun context-coloring-get-dispatch-for-mode (mode)
@@ -856,11 +1236,11 @@ Invoke CALLBACK when complete."
 
 A \"dispatch\" is a property list describing a strategy for
 coloring a buffer.  There are three possible strategies: Parse
-and color in a single function (`:colorizer'), parse in a
-function that returns scope data (`:scopifier'), or parse with a
-shell command that returns scope data (`:command').  In the
-latter two cases, the scope data will be used to automatically
-color the buffer.
+and color in a single function (`:colorizer'), parse with a shell
+command that returns scope data (`:command'), or parse with a
+server that returns scope data (`:command', `:host' and `:port').
+In the latter two cases, the scope data will be used to
+automatically color the buffer.
 
 PROPERTIES must include `:modes' and one of `:colorizer',
 `:scopifier' or `:command'.
@@ -870,15 +1250,19 @@ PROPERTIES must include `:modes' and one of `:colorizer',
 `:colorizer' - Symbol referring to a function that parses and
 colors the buffer.
 
-`:scopifier' - Symbol referring to a function that parses the
-buffer a returns a flat vector of start, end and level data.
-
 `:executable' - Optional name of an executable required by
 `:command'.
 
 `:command' - Shell command to execute with the current buffer
 sent via stdin, and with a flat JSON array of start, end and
 level data returned via stdout.
+
+`:host' - Hostname of the scopifier server, e.g. \"localhost\".
+
+`:port' - Port number of the scopifier server, e.g. 80, 1337.
+
+`:delay' - Delay between buffer update and colorization, to
+override `context-coloring-default-delay'.
 
 `:version' - Minimum required version that should be printed when
 executing `:command' with a \"--version\" flag.  The version
@@ -892,14 +1276,12 @@ should be numeric, e.g. \"2\", \"19700101\", \"1.2.3\",
 `context-coloring-mode' is disabled."
   (let ((modes (plist-get properties :modes))
         (colorizer (plist-get properties :colorizer))
-        (scopifier (plist-get properties :scopifier))
         (command (plist-get properties :command)))
     (when (null modes)
       (error "No mode defined for dispatch"))
     (when (not (or colorizer
-                   scopifier
                    command))
-      (error "No colorizer, scopifier or command defined for dispatch"))
+      (error "No colorizer or command defined for dispatch"))
     (puthash symbol properties context-coloring-dispatch-hash-table)
     (dolist (mode modes)
       (puthash mode properties context-coloring-mode-hash-table))))
@@ -920,24 +1302,12 @@ Invoke CALLBACK when complete; see `context-coloring-dispatch'."
      (when callback (funcall callback))
      (run-hooks 'context-coloring-colorize-hook))))
 
-(defvar-local context-coloring-changed nil
-  "Indication that the buffer has changed recently, which implies
-that it should be colored again by
-`context-coloring-colorize-idle-timer' if that timer is being
-used.")
-
-(defun context-coloring-change-function (_start _end _length)
-  "Register a change so that a buffer can be colorized soon."
-  ;; Tokenization is obsolete if there was a change.
-  (context-coloring-kill-scopifier)
-  (setq context-coloring-changed t))
-
-(defun context-coloring-maybe-colorize (buffer)
-  "Colorize the current buffer if it has changed."
-  (when (and (eq buffer (current-buffer))
-             context-coloring-changed)
-    (setq context-coloring-changed nil)
-    (context-coloring-colorize)))
+(defun context-coloring-colorize-with-buffer (buffer)
+  "Color BUFFER."
+  ;; Don't select deleted buffers.
+  (when (get-buffer buffer)
+    (with-current-buffer buffer
+      (context-coloring-colorize))))
 
 
 ;;; Versioning
@@ -983,19 +1353,20 @@ version number required for the current major mode."
     (when dispatch
       (let ((version (plist-get dispatch :version))
             (command (plist-get dispatch :command)))
-        (context-coloring-scopify-shell-command
+        (context-coloring-shell-command
          (context-coloring-join (list command "--version") " ")
          (lambda (output)
-           (if (context-coloring-check-version version output)
-               (progn
-                 (when callback (funcall callback t)))
-             (when callback (funcall callback nil)))
+           (cond
+            ((context-coloring-check-version version output)
+             (when callback (funcall callback t)))
+            (t
+             (when callback (funcall callback nil))))
            (run-hooks 'context-coloring-check-scopifier-version-hook)))))))
 
 
 ;;; Themes
 
-(defvar context-coloring-theme-hash-table (make-hash-table :test 'eq)
+(defvar context-coloring-theme-hash-table (make-hash-table :test #'eq)
   "Map theme names to theme properties.")
 
 (defun context-coloring-theme-p (theme)
@@ -1007,9 +1378,9 @@ version number required for the current major mode."
   "Extract a level from a face.")
 
 (defvar context-coloring-originally-set-theme-hash-table
-  (make-hash-table :test 'eq)
+  (make-hash-table :test #'eq)
   "Cache custom themes who originally set their own
-  `context-coloring-level-N-face' faces.")
+`context-coloring-level-N-face' faces.")
 
 (defun context-coloring-theme-originally-set-p (theme)
   "Return t if there is a `context-coloring-level-N-face'
@@ -1086,7 +1457,7 @@ which must already exist and which *should* already be enabled."
     (when (custom-theme-enabled-p theme)
       (setq context-coloring-maximum-face (- (length colors) 1)))
     (apply
-     'custom-theme-set-faces
+     #'custom-theme-set-faces
      theme
      (mapcar
       (lambda (color)
@@ -1192,13 +1563,14 @@ precedence, i.e. the car of `custom-enabled-themes'."
   "Update `context-coloring-maximum-face'."
   (when (custom-theme-p theme) ; Guard against non-existent themes.
     (let ((enabled-theme (car custom-enabled-themes)))
-      (if (context-coloring-theme-p enabled-theme)
-          (progn
-            (context-coloring-enable-theme enabled-theme))
+      (cond
+       ((context-coloring-theme-p enabled-theme)
+        (context-coloring-enable-theme enabled-theme))
+       (t
         ;; Assume we are back to no theme; act as if nothing ever happened.
         ;; This is still prone to intervention, but rather extraordinarily.
         (setq context-coloring-maximum-face
-              context-coloring-original-maximum-face)))))
+              context-coloring-original-maximum-face))))))
 
 (context-coloring-define-theme
  'ample
@@ -1335,44 +1707,6 @@ precedence, i.e. the car of `custom-enabled-themes'."
            "#dca3a3"))
 
 
-;;; Change detection
-
-(defvar-local context-coloring-colorize-idle-timer nil
-  "The currently-running idle timer.")
-
-(defcustom context-coloring-delay 0.25
-  "Delay between a buffer update and colorization.
-
-Increase this if your machine is high-performing.  Decrease it if
-it ain't.
-
-Supported modes: `js-mode', `js3-mode', `emacs-lisp-mode'"
-  :group 'context-coloring)
-
-(defun context-coloring-setup-idle-change-detection ()
-  "Setup idle change detection."
-  (add-hook
-   'after-change-functions 'context-coloring-change-function nil t)
-  (add-hook
-   'kill-buffer-hook 'context-coloring-teardown-idle-change-detection nil t)
-  (setq context-coloring-colorize-idle-timer
-        (run-with-idle-timer
-         context-coloring-delay
-         t
-         'context-coloring-maybe-colorize
-         (current-buffer))))
-
-(defun context-coloring-teardown-idle-change-detection ()
-  "Teardown idle change detection."
-  (context-coloring-kill-scopifier)
-  (when context-coloring-colorize-idle-timer
-    (cancel-timer context-coloring-colorize-idle-timer))
-  (remove-hook
-   'kill-buffer-hook 'context-coloring-teardown-idle-change-detection t)
-  (remove-hook
-   'after-change-functions 'context-coloring-change-function t))
-
-
 ;;; Built-in dispatches
 
 (context-coloring-define-dispatch
@@ -1380,25 +1714,28 @@ Supported modes: `js-mode', `js3-mode', `emacs-lisp-mode'"
  :modes '(js-mode js3-mode)
  :executable "scopifier"
  :command "scopifier"
- :version "v1.1.1")
+ :version "v1.2.1"
+ :host "localhost"
+ :port 6969)
 
 (context-coloring-define-dispatch
  'javascript-js2
  :modes '(js2-mode)
- :colorizer 'context-coloring-js2-colorize
+ :colorizer #'context-coloring-js2-colorize
  :setup
  (lambda ()
-   (add-hook 'js2-post-parse-callbacks 'context-coloring-colorize nil t))
+   (add-hook 'js2-post-parse-callbacks #'context-coloring-colorize nil t))
  :teardown
  (lambda ()
-   (remove-hook 'js2-post-parse-callbacks 'context-coloring-colorize t)))
+   (remove-hook 'js2-post-parse-callbacks #'context-coloring-colorize t)))
 
 (context-coloring-define-dispatch
  'emacs-lisp
  :modes '(emacs-lisp-mode)
- :colorizer 'context-coloring-emacs-lisp-colorize
- :setup 'context-coloring-setup-idle-change-detection
- :teardown 'context-coloring-teardown-idle-change-detection)
+ :colorizer #'context-coloring-elisp-colorize
+ :delay 0.016 ;; Thanks to lazy colorization this can be 60 frames per second.
+ :setup #'context-coloring-setup-idle-change-detection
+ :teardown #'context-coloring-teardown-idle-change-detection)
 
 (defun context-coloring-dispatch (&optional callback)
   "Determine the optimal track for scopification / coloring of
@@ -1408,91 +1745,111 @@ Invoke CALLBACK when complete.  It is invoked synchronously for
 elisp tracks, and asynchronously for shell command tracks."
   (let* ((dispatch (context-coloring-get-dispatch-for-mode major-mode))
          (colorizer (plist-get dispatch :colorizer))
-         (scopifier (plist-get dispatch :scopifier))
          (command (plist-get dispatch :command))
+         (host (plist-get dispatch :host))
+         (port (plist-get dispatch :port))
          interrupted-p)
     (cond
-     ((or colorizer scopifier)
+     (colorizer
       (setq interrupted-p
             (catch 'interrupted
-              (cond
-               (colorizer
-                (funcall colorizer))
-               (scopifier
-                (context-coloring-apply-tokens (funcall scopifier))))))
-      (cond
-       (interrupted-p
-        (setq context-coloring-changed t))
-       (t
-        (when callback (funcall callback)))))
+              (funcall colorizer)))
+      (when (and (not interrupted-p)
+                 callback)
+        (funcall callback)))
      (command
-      (context-coloring-scopify-and-colorize command callback)))))
+      (cond
+       ((and host port)
+        (context-coloring-scopify-and-colorize-server command host port callback))
+       (t
+        (context-coloring-scopify-and-colorize command callback)))))))
 
 
 ;;; Minor mode
 
 ;;;###autoload
 (define-minor-mode context-coloring-mode
-  "Context-based code coloring, inspired by Douglas Crockford."
-  nil " Context" nil
-  (if (not context-coloring-mode)
-      (progn
-        (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
-          (when dispatch
-            (let ((command (plist-get dispatch :command))
-                  (teardown (plist-get dispatch :teardown)))
-              (when command
-                (context-coloring-teardown-idle-change-detection))
-              (when teardown
-                (funcall teardown)))))
-        (font-lock-mode)
-        (jit-lock-mode t))
+  "Toggle contextual code coloring.
+With a prefix argument ARG, enable Context Coloring mode if ARG
+is positive, and disable it otherwise.  If called from Lisp,
+enable the mode if ARG is omitted or nil.
 
+Context Coloring mode is a buffer-local minor mode.  When
+enabled, code is colored by scope.  Scopes are colored
+hierarchically.  Variables referenced from nested scopes retain
+the color of their defining scopes.  Certain syntax, like
+comments and strings, is still colored with `font-lock'.
+
+The entire buffer is colored initially.  Changes to the buffer
+trigger recoloring.
+
+Certain custom themes have predefined colors from their palettes
+to use for coloring.  See `context-coloring-theme-hash-table' for
+the supported themes.  If the currently-enabled custom theme is
+not among these, you can define colors for it with
+`context-coloring-define-theme', which see.
+
+New language / major mode support can be added with
+`context-coloring-define-dispatch', which see.
+
+Feature inspired by Douglas Crockford."
+  nil " Context" nil
+  (cond
+   (context-coloring-mode
     ;; Font lock is incompatible with this mode; the converse is also true.
     (font-lock-mode 0)
     (jit-lock-mode nil)
-
     ;; ...but we do use font-lock functions here.
     (font-lock-set-defaults)
-
-    ;; Safely change the valye of this function as necessary.
+    ;; Safely change the value of this function as necessary.
     (make-local-variable 'font-lock-syntactic-face-function)
-
     (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
-      (if dispatch
-          (progn
-            (let ((command (plist-get dispatch :command))
-                  (version (plist-get dispatch :version))
-                  (executable (plist-get dispatch :executable))
-                  (setup (plist-get dispatch :setup))
-                  (colorize-initially-p t))
-              (when command
-                ;; Shell commands recolor on change, idly.
-                (cond
-                 ((and executable
-                       (null (executable-find executable)))
-                  (message "Executable \"%s\" not found" executable)
-                  (setq colorize-initially-p nil))
-                 (version
-                  (context-coloring-check-scopifier-version
-                   (lambda (sufficient-p)
-                     (if sufficient-p
-                         (progn
-                           (context-coloring-setup-idle-change-detection)
-                           (context-coloring-colorize))
-                       (message "Update to the minimum version of \"%s\" (%s)"
-                                executable version))))
-                  (setq colorize-initially-p nil))
-                 (t
-                  (context-coloring-setup-idle-change-detection))))
-              (when setup
-                (funcall setup))
-              ;; Colorize once initially.
-              (when colorize-initially-p
-                (let ((context-coloring-parse-interruptable-p nil))
-                  (context-coloring-colorize)))))
-        (when (null dispatch)
-          (message "Context coloring is not available for this major mode"))))))
+      (cond
+       (dispatch
+        (let ((command (plist-get dispatch :command))
+              (version (plist-get dispatch :version))
+              (executable (plist-get dispatch :executable))
+              (setup (plist-get dispatch :setup))
+              (colorize-initially-p t))
+          (when command
+            ;; Shell commands recolor on change, idly.
+            (cond
+             ((and executable
+                   (null (executable-find executable)))
+              (message "Executable \"%s\" not found" executable)
+              (setq colorize-initially-p nil))
+             (version
+              (context-coloring-check-scopifier-version
+               (lambda (sufficient-p)
+                 (cond
+                  (sufficient-p
+                   (context-coloring-setup-idle-change-detection)
+                   (context-coloring-colorize))
+                  (t
+                   (message "Update to the minimum version of \"%s\" (%s)"
+                            executable version)))))
+              (setq colorize-initially-p nil))
+             (t
+              (context-coloring-setup-idle-change-detection))))
+          (when setup
+            (funcall setup))
+          ;; Colorize once initially.
+          (when colorize-initially-p
+            (let ((context-coloring-parse-interruptable-p nil))
+              (context-coloring-colorize)))))
+       (t
+        (message "Context coloring is not available for this major mode")))))
+   (t
+    (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
+      (when dispatch
+        (let ((command (plist-get dispatch :command))
+              (teardown (plist-get dispatch :teardown)))
+          (when command
+            (context-coloring-teardown-idle-change-detection))
+          (when teardown
+            (funcall teardown)))))
+    (font-lock-mode)
+    (jit-lock-mode t))))
 
 (provide 'context-coloring)
 

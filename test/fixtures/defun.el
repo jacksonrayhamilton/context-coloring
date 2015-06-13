@@ -5,3 +5,4 @@
 
 (defun a)
 (defun ())
+(defun b ("a"))

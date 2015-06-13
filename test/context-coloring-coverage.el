@@ -53,7 +53,7 @@
 
 (defun context-coloring-coverage-join (strings delimiter)
   "Join a list of STRINGS with the string DELIMITER."
-  (mapconcat 'identity strings delimiter))
+  (mapconcat #'identity strings delimiter))
 
 (defun context-coloring-coverage-percentage (dividend divisor)
   "Get the percentage of DIVIDEND / DIVISOR with precision 2."
@@ -109,7 +109,7 @@
   "Generate reports for all files in COVERAGE-DATA."
   (context-coloring-coverage-join
    (mapcar
-    'context-coloring-coverage-format-source-file
+    #'context-coloring-coverage-format-source-file
     (cdr (assq 'source_files coverage-data)))
    "\n"))
 
@@ -119,7 +119,8 @@
   (setq undercover-force-coverage t)
   (setenv "COVERALLS_REPO_TOKEN" "noop")
   (undercover "context-coloring.el"
-              (:report-file context-coloring-coverage-output-file))
+              (:report-file context-coloring-coverage-output-file)
+              (:send-report nil))
   (add-hook
    'kill-emacs-hook
    (lambda ()
@@ -151,4 +152,4 @@
 
 (provide 'context-coloring-coverage)
 
-;; context-coloring-coverage.el ends here
+;;; context-coloring-coverage.el ends here

@@ -25,6 +25,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'context-coloring)
 (require 'ert-async)
 (require 'js2-mode)
@@ -199,21 +200,21 @@ override it."
                          (when ,after-each (apply ,after-each ,args))))))))))))))
 
 (context-coloring-test-define-deftest nil
-  :mode 'fundamental-mode
+  :mode #'fundamental-mode
   :no-fixture t)
 
 (context-coloring-test-define-deftest async
-  :mode 'fundamental-mode
+  :mode #'fundamental-mode
   :no-fixture t
   :async t)
 
 (context-coloring-test-define-deftest js
-  :mode 'js-mode
+  :mode #'js-mode
   :extension "js"
   :post-colorization t)
 
 (context-coloring-test-define-deftest js2
-  :mode 'js2-mode
+  :mode #'js2-mode
   :extension "js"
   :enable-context-coloring-mode t
   :before-each (lambda ()
@@ -221,19 +222,20 @@ override it."
                  (setq js2-mode-show-strict-warnings nil)))
 
 (defmacro context-coloring-test-deftest-js-js2 (&rest args)
-  "Simultaneously define the same test for js and js2."
+  "Simultaneously define the same test for js and js2 (with
+ARGS)."
   (declare (indent defun))
   `(progn
      (context-coloring-test-deftest-js ,@args)
      (context-coloring-test-deftest-js2 ,@args)))
 
 (context-coloring-test-define-deftest emacs-lisp
-  :mode 'emacs-lisp-mode
+  :mode #'emacs-lisp-mode
   :extension "el"
   :enable-context-coloring-mode t)
 
 (context-coloring-test-define-deftest define-theme
-  :mode 'fundamental-mode
+  :mode #'fundamental-mode
   :no-fixture t
   :get-args (lambda ()
               (list (context-coloring-test-get-next-theme)))
@@ -347,7 +349,7 @@ override it."
            (setq context-coloring-colorize-hook nil)))
 
 (defmacro context-coloring-test-define-derived-mode (name)
-  "Define a derived mode exclusively for tests."
+  "Define a derived mode exclusively for any test with NAME."
   (let ((name (intern (format "context-coloring-test-%s-mode" name))))
     `(define-derived-mode ,name fundamental-mode "Testing")))
 
@@ -373,7 +375,7 @@ override it."
           (funcall done)))
        (insert " ")
        (set-window-buffer (selected-window) (current-buffer))
-       (context-coloring-maybe-colorize (current-buffer))))
+       (context-coloring-maybe-colorize-with-buffer (current-buffer))))
     (context-coloring-mode))
   :after (lambda ()
            (setq context-coloring-colorize-hook nil)))
@@ -414,19 +416,7 @@ override it."
        (context-coloring-define-dispatch
         'define-dispatch-no-strategy
         :modes '(context-coloring-test-define-dispatch-error-mode)))
-     "No colorizer, scopifier or command defined for dispatch")))
-
-(context-coloring-test-define-derived-mode define-dispatch-scopifier)
-
-(context-coloring-test-deftest define-dispatch-scopifier
-  (lambda ()
-    (context-coloring-define-dispatch
-     'define-dispatch-scopifier
-     :modes '(context-coloring-test-define-dispatch-scopifier-mode)
-     :scopifier (lambda () (vector)))
-    (context-coloring-test-define-dispatch-scopifier-mode)
-    (context-coloring-mode)
-    (context-coloring-colorize)))
+     "No colorizer or command defined for dispatch")))
 
 (context-coloring-test-define-derived-mode missing-executable)
 
@@ -512,7 +502,7 @@ is FOREGROUND, or the inverse if NEGATE is non-nil."
                                 "but it didn't")
                         level)))
     (setq actual-foreground (face-attribute face :foreground))
-    (when (funcall (if negate 'identity 'not)
+    (when (funcall (if negate #'identity #'not)
                    (string-equal foreground actual-foreground))
       (ert-fail (format (concat "Expected face for level `%s' "
                                 "%sto have foreground `%s'; "
@@ -526,17 +516,17 @@ is FOREGROUND, or the inverse if NEGATE is non-nil."
   "Assert that LEVEL does not have a face with `:foreground'
 FOREGROUND.  Apply ARGUMENTS to
 `context-coloring-test-assert-face', see that function."
-  (apply 'context-coloring-test-assert-face
+  (apply #'context-coloring-test-assert-face
          (append arguments '(t))))
 
 (defun context-coloring-test-assert-theme-originally-set-p
     (settings &optional negate)
-  "Assert that `context-coloring-theme-originally-set-p' returns
-t for a theme with SETTINGS, or the inverse if NEGATE is
+  "Assert that `context-coloring-theme-originally-set-p' will
+return t for a theme with SETTINGS, or the inverse if NEGATE is
 non-nil."
   (let ((theme (context-coloring-test-get-next-theme)))
     (put theme 'theme-settings settings)
-    (when (funcall (if negate 'identity 'not)
+    (when (funcall (if negate #'identity #'not)
                    (context-coloring-theme-originally-set-p theme))
       (ert-fail (format (concat "Expected theme `%s' with settings `%s' "
                                 "%sto be considered to have defined a level, "
@@ -550,7 +540,7 @@ non-nil."
 return t for a theme with SETTINGS.  Apply ARGUMENTS to
 `context-coloring-test-assert-theme-originally-set-p', see that
 function."
-  (apply 'context-coloring-test-assert-theme-originally-set-p
+  (apply #'context-coloring-test-assert-theme-originally-set-p
          (append arguments '(t))))
 
 (context-coloring-test-deftest theme-originally-set-p
@@ -579,7 +569,7 @@ EXPECTED-LEVEL."
   "Assert that THEME has the highest level EXPECTED-LEVEL, or the
 inverse if NEGATE is non-nil."
   (let ((highest-level (context-coloring-theme-highest-level theme)))
-    (when (funcall (if negate 'identity 'not) (eq highest-level expected-level))
+    (when (funcall (if negate #'identity #'not) (eq highest-level expected-level))
       (ert-fail (format (concat "Expected theme with settings `%s' "
                                 "%sto have a highest level of `%s', "
                                 "but it %s.")
@@ -592,7 +582,7 @@ inverse if NEGATE is non-nil."
 Apply ARGUMENTS to
 `context-coloring-test-assert-theme-highest-level', see that
 function."
-  (apply 'context-coloring-test-assert-theme-highest-level
+  (apply #'context-coloring-test-assert-theme-highest-level
          (append arguments '(t))))
 
 (context-coloring-test-deftest theme-highest-level
@@ -786,7 +776,7 @@ theme THEME is signaled."
 (defun context-coloring-test-assert-maximum-face (maximum &optional negate)
   "Assert that `context-coloring-maximum-face' is MAXIMUM, or the
 inverse if NEGATE is non-nil."
-  (when (funcall (if negate 'identity 'not)
+  (when (funcall (if negate #'identity #'not)
                  (eq context-coloring-maximum-face maximum))
     (ert-fail (format (concat "Expected `context-coloring-maximum-face' "
                               "%sto be `%s', "
@@ -800,7 +790,7 @@ inverse if NEGATE is non-nil."
   "Assert that `context-coloring-maximum-face' is not MAXIMUM.
 Apply ARGUMENTS to `context-coloring-test-assert-maximum-face',
 see that function."
-  (apply 'context-coloring-test-assert-maximum-face
+  (apply #'context-coloring-test-assert-maximum-face
          (append arguments '(t))))
 
 (context-coloring-test-deftest-define-theme disable-cascade
@@ -906,7 +896,7 @@ see that function."
   (context-coloring-test-assert-position-face position nil))
 
 (defun context-coloring-test-assert-coloring (map)
-  "Assert that the current buffer's coloring matches MAP.
+  "Assert that the current buffer's coloring will match MAP.
 
 MAP's newlines should correspond to the current fixture.
 
@@ -1084,7 +1074,15 @@ ssssssssssss0"))
 0000 0 0 00
 
 111111 01
-111111 111")))
+111111 111
+111111 0 1sss11")))
+
+(context-coloring-test-deftest-emacs-lisp defadvice
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111111111 0 1111111 111111 11111 111 111111111
+  2222 222 122
+    22 1 2221")))
 
 (context-coloring-test-deftest-emacs-lisp lambda
   (lambda ()
@@ -1096,10 +1094,27 @@ ssssssssssss0"))
 (context-coloring-test-deftest-emacs-lisp quote
   (lambda ()
     (context-coloring-test-assert-coloring "
+(xxxxx 0000000 00 00000)
+(xxx () (xxxxxxxxx (,0000)))
+
 (xxxxx x (x)
   (xx (xx x 111
       111111 1 111 111
-      111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 100001111")))
+      111111 1 1111111111 11 111 1 111 1 00001 10000 11 00001 1 10000
+                 sss ccc
+                 1111
+
+(xxxxxx '(sss cc
+          sss cc
+          ))
+
+(xxxxxx () 111111 11111)")))
+
+(context-coloring-test-deftest-emacs-lisp splice
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxxxxx ()
+  111111 00001 100001)")))
 
 (context-coloring-test-deftest-emacs-lisp comment
   (lambda ()
@@ -1107,23 +1122,27 @@ ssssssssssss0"))
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
   (xx (x xxxxx-xxxx xx)   cccccccccc
-      11 00000-0000 11))) cccccccccc"))
-  :before (lambda ()
-            (setq context-coloring-syntactic-comments t)))
+      11 00000-0000 11))) cccccccccc")))
 
 (context-coloring-test-deftest-emacs-lisp string
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxx x (x)
-  (xxxxxx x x sss 1 0 sssss 0 1 sssssss11"))
-  :before (lambda ()
-            (setq context-coloring-syntactic-strings t)))
+  (xxxxxx x x sss 1 0 sssss 0 1 sssssss11")))
 
 (context-coloring-test-deftest-emacs-lisp ignored
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
-  (x x 1 11 11 111 11 1 111 (1 1 1)))")))
+  (x x 1 11 11 111 111 11 11 11 1 111 (1 1 1)))")))
+
+(context-coloring-test-deftest-emacs-lisp sexp
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxx ()
+  `,@sss
+  `,@11
+  `,@11)")))
 
 (context-coloring-test-deftest-emacs-lisp let
   (lambda ()
@@ -1135,7 +1154,10 @@ ssssssssssss0"))
                22 02
                22 000022
            2222 2 2 2 00002211
-  1111 1 1 1 000011")))
+  1111 1 1 1 000011
+
+1111 cc ccccccc
+    1sss11")))
 
 (context-coloring-test-deftest-emacs-lisp let*
   (lambda ()
@@ -1152,6 +1174,39 @@ ssssssssssss0"))
     2222 1 1 2 2 2 000022
   1111 1 1 1 0 0 000011")))
 
+(context-coloring-test-deftest-emacs-lisp cond
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(xxx (x)
+  11111
+   11 11
+   10000 11
+   1111 1 00001 11
+   11 11111 1 000011
+   cc c
+   sss1)")))
+
+(context-coloring-test-deftest-emacs-lisp condition-case
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111111111-1111 111
+    111111 000 00001
+  111111 111 00001
+  1111111 111111 111 000011
+
+(111111111-1111-111111-11111 111
+    cc c
+    (xxx () 222)
+  (11111 (xxx () 222))
+  sss)")))
+
+(context-coloring-test-deftest-emacs-lisp dolist
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111111 111111
+  2222222 2222 1111 2222222
+    3333333 33 33 222 1111 2222223321")))
+
 (defun context-coloring-test-insert-unread-space ()
   "Simulate the insertion of a space as if by a user."
   (setq unread-command-events (cons '(t . 32)
@@ -1163,7 +1218,7 @@ ssssssssssss0"))
 
 (context-coloring-test-deftest-emacs-lisp iteration
   (lambda ()
-    (let ((context-coloring-emacs-lisp-iterations-per-pause 1))
+    (let ((context-coloring-elisp-sexps-per-pause 2))
       (context-coloring-colorize)
       (context-coloring-test-assert-coloring "
 cc `CC' `CC'
@@ -1171,14 +1226,47 @@ cc `CC' `CC'
       (context-coloring-test-remove-faces)
       (context-coloring-test-insert-unread-space)
       (context-coloring-colorize)
-      ;; The first iteration will color the first part of the comment, but
-      ;; that's it.  Then it will be interrupted.
+      ;; Coloring is interrupted after the first "sexp" (the comment in this
+      ;; case).
       (context-coloring-test-assert-coloring "
-cc nnnn nnnn
-nnnnnn n nnn")))
-  :before (lambda ()
-            (setq context-coloring-syntactic-comments t)
-            (setq context-coloring-syntactic-strings t)))
+cc `CC' `CC'
+nnnnnn n nnn"))))
+
+(context-coloring-test-deftest-emacs-lisp changed
+  (lambda ()
+    (context-coloring-test-remove-faces)
+    ;; Goto line 3.
+    (goto-char (point-min))
+    (forward-line (1- 3))
+    (insert " ")
+    ;; Mock `pos-visible-in-window-p' because in batch mode `get-buffer-window'
+    ;; returns nil.  Emacs must not have a window in that environment.
+    (cl-letf (((symbol-function 'pos-visible-in-window-p)
+               (let ((calls 0))
+                 (lambda ()
+                   (prog1
+                       ;; First and third calls start from center.  Second and
+                       ;; fourth calls are made immediately after moving past
+                       ;; the first defun in either direction "off screen".
+                       (cond
+                        ((= calls 0) t)
+                        ((= calls 1) nil)
+                        ((= calls 2) t)
+                        ((= calls 4) nil))
+                     (setq calls (1+ calls)))))))
+      (context-coloring-colorize))
+    (context-coloring-test-assert-coloring "
+nnnn  n nnn nnnnnnnn
+0000
+
+0000
+nnnnn n nnn nnnnnnnn")))
+
+(context-coloring-test-deftest-emacs-lisp unbalanced-parenthesis
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111 111
+nnnn nn")))
 
 (provide 'context-coloring-test)
 

@@ -6,3 +6,6 @@
                (c free))
            (and a b c free))))
   (and a b c free))
+
+(let ;; comment
+    ("s"))
