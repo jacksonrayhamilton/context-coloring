@@ -1131,7 +1131,7 @@ ssssssssssss0"))
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxx x ()
-  (x x 1 11 11 111 111 11 11 1 111 (1 1 1)))")))
+  (x x 1 11 11 111 111 11 11 11 1 111 (1 1 1)))")))
 
 (context-coloring-test-deftest-emacs-lisp sexp
   (lambda ()

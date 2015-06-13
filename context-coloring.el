@@ -908,10 +908,9 @@ point.  It could be a quoted or backquoted expression."
         start
         end)
     (cond
-     ((or (= char context-coloring-APOSTROPHE-CHAR)
-          (= char context-coloring-OCTOTHORPE-CHAR))
+     ((/= char context-coloring-BACKTICK-CHAR)
       (context-coloring-elisp-forward-sexp))
-     ((= char context-coloring-BACKTICK-CHAR)
+     (t
       (setq start (point))
       (setq end (progn (forward-sexp)
                        (point)))
