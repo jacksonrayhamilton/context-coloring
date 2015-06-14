@@ -21,6 +21,7 @@ By default, comments and strings are still highlighted syntactically.
   - `defun`, `lambda`, `let`, `let*`, `cond`, `condition-case`, `defadvice`,
     `dolist`, `quote`, `backquote` and backquote splicing.
   - Instantaneous lazy coloring, 8000 lines-per-second full coloring.
+  - Works in `eval-expression` too.
 
 ## Installation
 
@@ -68,14 +69,17 @@ Add the following to your init file:
 
 ```lisp
 ;; js-mode:
-(add-hook 'js-mode-hook 'context-coloring-mode)
+(add-hook 'js-mode-hook #'context-coloring-mode)
 
 ;; js2-mode:
 (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
-(add-hook 'js2-mode-hook 'context-coloring-mode)
+(add-hook 'js2-mode-hook #'context-coloring-mode)
 
 ;; emacs-lisp-mode:
-(add-hook 'emacs-lisp-mode-hook 'context-coloring-mode)
+(add-hook 'emacs-lisp-mode-hook #'context-coloring-mode)
+
+;; Minibuffer:
+(add-hook 'eval-expression-minibuffer-setup-hook #'context-coloring-mode)
 ```
 
 ## Customizing

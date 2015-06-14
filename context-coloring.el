@@ -993,43 +993,60 @@ point.  It could be a quoted or backquoted expression."
         (max-specpdl-size (max max-specpdl-size 3000)))
     (context-coloring-elisp-colorize-region start end)))
 
+(defun context-coloring-elisp-colorize-guard (callback)
+  "Silently color in CALLBACK."
+  (with-silent-modifications
+    (save-excursion
+      (condition-case nil
+          (funcall callback)
+        ;; Scan errors can happen virtually anywhere if parenthesis are
+        ;; unbalanced.  Just swallow them.  (`progn' for test coverage.)
+        (scan-error (progn))))))
+
 (defun context-coloring-elisp-colorize ()
   "Color the current buffer, parsing elisp to determine its
 scopes and variables."
   (interactive)
-  (with-silent-modifications
-    (save-excursion
-      (condition-case nil
-          (cond
-           ;; Just colorize the changed region.
-           (context-coloring-changed-p
-            (let* (;; Prevent `beginning-of-defun' from making poor assumptions.
-                   (open-paren-in-column-0-is-defun-start nil)
-                   ;; Seek the beginning and end of the previous and next
-                   ;; offscreen defuns, so just enough is colored.
-                   (start (progn (goto-char context-coloring-changed-start)
-                                 (while (and (< (point-min) (point))
-                                             (pos-visible-in-window-p))
-                                   (end-of-line 0))
-                                 (beginning-of-defun)
-                                 (point)))
-                   (end (progn (goto-char context-coloring-changed-end)
-                               (while (and (> (point-max) (point))
-                                           (pos-visible-in-window-p))
-                                 (forward-line 1))
-                               (end-of-defun)
-                               (point))))
-              (context-coloring-elisp-colorize-region-initially start end)
-              ;; Fast coloring is nice, but if the code is not well-formed
-              ;; (e.g. an unclosed string literal is parsed at any time) then
-              ;; there could be leftover incorrectly-colored code offscreen.  So
-              ;; do a clean sweep as soon as appropriate.
-              (context-coloring-schedule-coloring context-coloring-default-delay)))
-           (t
-            (context-coloring-elisp-colorize-region-initially (point-min) (point-max))))
-        ;; Scan errors can happen virtually anywhere if parenthesis are
-        ;; unbalanced.  Just swallow them.  (`progn' for test coverage.)
-        (scan-error (progn))))))
+  (context-coloring-elisp-colorize-guard
+   (lambda ()
+     (cond
+      ;; Just colorize the changed region.
+      (context-coloring-changed-p
+       (let* ( ;; Prevent `beginning-of-defun' from making poor assumptions.
+              (open-paren-in-column-0-is-defun-start nil)
+              ;; Seek the beginning and end of the previous and next
+              ;; offscreen defuns, so just enough is colored.
+              (start (progn (goto-char context-coloring-changed-start)
+                            (while (and (< (point-min) (point))
+                                        (pos-visible-in-window-p))
+                              (end-of-line 0))
+                            (beginning-of-defun)
+                            (point)))
+              (end (progn (goto-char context-coloring-changed-end)
+                          (while (and (> (point-max) (point))
+                                      (pos-visible-in-window-p))
+                            (forward-line 1))
+                          (end-of-defun)
+                          (point))))
+         (context-coloring-elisp-colorize-region-initially start end)
+         ;; Fast coloring is nice, but if the code is not well-formed
+         ;; (e.g. an unclosed string literal is parsed at any time) then
+         ;; there could be leftover incorrectly-colored code offscreen.  So
+         ;; do a clean sweep as soon as appropriate.
+         (context-coloring-schedule-coloring context-coloring-default-delay)))
+      (t
+       (context-coloring-elisp-colorize-region-initially (point-min) (point-max)))))))
+
+(defun context-coloring-eval-expression-colorize ()
+  "Color the `eval-expression' minibuffer prompt as elisp."
+  (interactive)
+  (context-coloring-elisp-colorize-guard
+   (lambda ()
+     (context-coloring-elisp-colorize-region-initially
+      (progn
+        (string-match "\\`Eval: " (buffer-string))
+        (1+ (match-end 0)))
+      (point-max)))))
 
 
 ;;; Shell command scopification / colorization
@@ -1720,6 +1737,14 @@ precedence, i.e. the car of `custom-enabled-themes'."
  :modes '(emacs-lisp-mode)
  :colorizer #'context-coloring-elisp-colorize
  :delay 0.016 ;; Thanks to lazy colorization this can be 60 frames per second.
+ :setup #'context-coloring-setup-idle-change-detection
+ :teardown #'context-coloring-teardown-idle-change-detection)
+
+(context-coloring-define-dispatch
+ 'eval-expression
+ :modes '(minibuffer-inactive-mode)
+ :colorizer #'context-coloring-eval-expression-colorize
+ :delay 0.016
  :setup #'context-coloring-setup-idle-change-detection
  :teardown #'context-coloring-teardown-idle-change-detection)
 
