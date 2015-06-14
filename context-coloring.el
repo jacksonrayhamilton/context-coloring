@@ -447,10 +447,13 @@ bound as variables.")
 (defvar context-coloring-parse-interruptable-p t
   "Set this to nil to force parse to continue until finished.")
 
-(defconst context-coloring-elisp-sexps-per-pause 1000
+(defconst context-coloring-elisp-sexps-per-pause 350
   "Pause after this many iterations to check for user input.
 If user input is pending, stop the parse.  This makes for a
-smoother user experience for large files.")
+smoother user experience for large files.
+
+This number should trigger pausing at about 60 frames per
+second.")
 
 (defvar context-coloring-elisp-sexp-count 0
   "Current number of sexps leading up to the next pause.")
