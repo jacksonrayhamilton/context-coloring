@@ -150,7 +150,8 @@ START, END and LENGTH are recorded for later use."
 
 (defun context-coloring-maybe-colorize-with-buffer (buffer)
   "Color BUFFER and if it has changed."
-  (when context-coloring-changed-p
+  (when (and (eq buffer (current-buffer))
+             context-coloring-changed-p)
     (context-coloring-colorize-with-buffer buffer)
     (setq context-coloring-changed-p nil)
     (setq context-coloring-changed-start nil)
