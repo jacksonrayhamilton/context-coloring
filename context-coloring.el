@@ -635,37 +635,25 @@ header in CALLBACK."
     (forward-char)
     (context-coloring-elisp-pop-scope)))
 
-(defun context-coloring-elisp-parse-header (callback start)
-  "Parse a function header at point with CALLBACK.  If there is
-no header, skip past the sexp at START."
-  (cond
-   ((= (context-coloring-get-syntax-code) context-coloring-OPEN-PARENTHESIS-CODE)
-    (funcall callback))
-   (t
-    ;; Skip it.
-    (goto-char start)
-    (context-coloring-elisp-forward-sexp))))
+(defun context-coloring-elisp-parse-header (callback)
+  "Parse a function header at point with CALLBACK."
+  (when (= (context-coloring-get-syntax-code) context-coloring-OPEN-PARENTHESIS-CODE)
+    (funcall callback)))
 
 (defun context-coloring-elisp-colorize-defun-like (callback)
   "Color the defun-like function at point, parsing the header
 with CALLBACK."
-  (let ((start (point)))
-    (context-coloring-elisp-colorize-scope
-     (lambda ()
-       (cond
-        ((context-coloring-elisp-identifier-p (context-coloring-get-syntax-code))
-         ;; Color the defun's name with the top-level color.
-         (context-coloring-colorize-region
-          (point)
-          (progn (forward-sexp)
-                 (point))
-          0)
-         (context-coloring-elisp-forward-sws)
-         (context-coloring-elisp-parse-header callback start))
-        (t
-         ;; Skip it.
-         (goto-char start)
-         (context-coloring-elisp-forward-sexp)))))))
+  (context-coloring-elisp-colorize-scope
+   (lambda ()
+     (when (context-coloring-elisp-identifier-p (context-coloring-get-syntax-code))
+       ;; Color the defun's name with the top-level color.
+       (context-coloring-colorize-region
+        (point)
+        (progn (forward-sexp)
+               (point))
+        0)
+       (context-coloring-elisp-forward-sws)
+       (context-coloring-elisp-parse-header callback)))))
 
 (defun context-coloring-elisp-colorize-defun ()
   "Color the `defun' at point."
@@ -687,17 +675,14 @@ with CALLBACK."
           (t
            ;; Ignore artifacts.
            (context-coloring-elisp-forward-sexp)))
-         (context-coloring-elisp-forward-sws))
-       ;; Exit.
-       (forward-char)))))
+         (context-coloring-elisp-forward-sws))))))
 
 (defun context-coloring-elisp-colorize-lambda-like (callback)
   "Color the lambda-like function at point, parsing the header
 with CALLBACK."
-  (let ((start (point)))
-    (context-coloring-elisp-colorize-scope
-     (lambda ()
-       (context-coloring-elisp-parse-header callback start)))))
+  (context-coloring-elisp-colorize-scope
+   (lambda ()
+     (context-coloring-elisp-parse-header callback))))
 
 (defun context-coloring-elisp-colorize-lambda ()
   "Color the `lambda' at point."
