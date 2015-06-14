@@ -26,6 +26,7 @@
 ;;; Code:
 
 (require 'context-coloring)
+(require 'elp)
 (require 'js2-mode)
 
 
@@ -115,7 +116,6 @@ with STATISTICS."
 callbacks.  Measure the performance of all FIXTURES, calling
 CALLBACK when all are done."
   (funcall setup)
-  (elp-instrument-package "context-coloring-")
   (let ((result-file (context-coloring-benchmark-resolve-path
                       (format "./logs/results-%s-%s.log"
                               title (format-time-string "%s")))))
@@ -134,10 +134,12 @@ CALLBACK when all are done."
                original-function
                (lambda ()
                  (setq count (+ count 1))
-                 (push (- (float-time) colorization-start-time) colorization-times)
-                 ;; Test 5 times.
+                 ;; First 5 runs are for gathering real coloring times,
+                 ;; unaffected by elp instrumentation.
+                 (when (<= count 5)
+                   (push (- (float-time) colorization-start-time) colorization-times))
                  (cond
-                  ((= count 5)
+                  ((= count 10)
                    (advice-remove #'context-coloring-colorize advice)
                    (context-coloring-benchmark-log-results
                     result-file
@@ -148,8 +150,14 @@ CALLBACK when all are done."
                      :words (count-words (point-min) (point-max))
                      :colorization-times colorization-times
                      :average-colorization-time (/ (apply #'+ colorization-times) 5)))
+                   (elp-restore-all)
                    (kill-buffer)
                    (funcall callback))
+                  ;; The last 5 runs are for gathering function call and
+                  ;; duration statistics.
+                  ((= count 5)
+                   (elp-instrument-package "context-coloring-")
+                   (context-coloring-colorize))
                   (t
                    (setq colorization-start-time (float-time))
                    (context-coloring-colorize))))))))
