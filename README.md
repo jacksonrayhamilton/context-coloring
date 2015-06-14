@@ -18,9 +18,9 @@ By default, comments and strings are still highlighted syntactically.
   - Script, function and block scopes (and even `catch` block scopes).
   - Very fast for files under 1000 lines.
 - Emacs Lisp support:
-  - `defun`, `lambda`, `let`, `let*`, `cond`, `condition-case`, quotes,
-    backquotes (and splicing).
-  - 25,000 lines per second!
+  - `defun`, `lambda`, `let`, `let*`, `cond`, `condition-case`, `defadvice`,
+    `dolist`, `quote`, `backquote` and backquote splicing.
+  - Instantaneous lazy coloring, 8000 lines-per-second full coloring.
 
 ## Installation
 
