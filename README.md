@@ -25,7 +25,7 @@ By default, comments and strings are still highlighted syntactically.
 
 ## Installation
 
-Requires Emacs 24+.
+Requires Emacs 24.3+.
 
 JavaScript language support requires either [js2-mode][], or
 [Node.js 0.10+][node] and the [scopifier][] executable.
