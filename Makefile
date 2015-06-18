@@ -1,5 +1,5 @@
-CASK = cask
 EMACS = emacs
+CASK = EMACS=${EMACS} cask
 DEPENDENCIES = .cask/
 SCOPIFIER_PORT = $$(lsof -t -i :6969)
 KILL_SCOPIFIER = if [ -n "${SCOPIFIER_PORT}" ]; then kill ${SCOPIFIER_PORT}; fi
