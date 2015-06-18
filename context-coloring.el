@@ -5,7 +5,7 @@
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; Version: 6.4.1
 ;; Keywords: convenience faces tools
-;; Package-Requires: ((emacs "24") (js2-mode "20150126"))
+;; Package-Requires: ((emacs "24.3") (js2-mode "20150126"))
 ;; URL: https://github.com/jacksonrayhamilton/context-coloring
 
 ;; This file is part of GNU Emacs.
@@ -1760,9 +1760,16 @@ precedence, i.e. the car of `custom-enabled-themes'."
  :setup #'context-coloring-setup-idle-change-detection
  :teardown #'context-coloring-teardown-idle-change-detection)
 
+;; `eval-expression-minibuffer-setup-hook' is not available in Emacs 24.3, so
+;; the backwards-compatible recommendation is to use `minibuffer-setup-hook' and
+;; rely on this predicate instead.
+(defun context-coloring-eval-expression-predicate ()
+  "Non-nil if the minibuffer is for `eval-expression'."
+  (eq this-command 'eval-expression))
+
 (context-coloring-define-dispatch
  'eval-expression
- :predicate #'window-minibuffer-p
+ :predicate #'context-coloring-eval-expression-predicate
  :colorizer #'context-coloring-eval-expression-colorize
  :delay 0.016
  :setup #'context-coloring-setup-idle-change-detection

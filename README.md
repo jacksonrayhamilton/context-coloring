@@ -78,8 +78,8 @@ Add the following to your init file:
 ;; emacs-lisp-mode:
 (add-hook 'emacs-lisp-mode-hook #'context-coloring-mode)
 
-;; Minibuffer:
-(add-hook 'eval-expression-minibuffer-setup-hook #'context-coloring-mode)
+;; eval-expression:
+(add-hook 'minibuffer-setup-hook #'context-coloring-mode)
 ```
 
 ## Customizing

@@ -1272,28 +1272,23 @@ nnnnn n nnn nnnnnnnn")))
 1111 111
 nnnn nn")))
 
-(defun context-coloring-test-eval-expression-let ()
-  "Test that coloring works inside `eval-expression.'"
-  (let ((input "(ignore-errors (let (a) (message a free)))"))
-    (insert input)
-    (context-coloring-colorize)
-    (context-coloring-test-assert-coloring "
-xxxx: 0000000-000000 1111 111 11111111 1 0000110")))
-
 (context-coloring-test-deftest-eval-expression let
   (lambda ()
-    (add-hook
-     'eval-expression-minibuffer-setup-hook
-     #'context-coloring-test-eval-expression-let)
-    (execute-kbd-macro
-     (vconcat
-      [?\C-u] ;; Don't output to stdout.
-      [?\M-x]
-      (vconcat "eval-expression"))))
-  :after (lambda ()
-           (remove-hook
-            'eval-expression-minibuffer-setup-hook
-            #'context-coloring-test-eval-expression-let)))
+    (minibuffer-with-setup-hook
+        (lambda ()
+          ;; Perform the test in a hook as it's the only way I know of examining
+          ;; the minibuffer's contents.  The contents are implicitly submitted,
+          ;; so we have to ignore the errors in the arbitrary test subject code.
+          (insert "(ignore-errors (let (a) (message a free)))")
+          (context-coloring-colorize)
+          (context-coloring-test-assert-coloring "
+xxxx: 0000000-000000 1111 111 11111111 1 0000110"))
+      ;; Simulate user input because `call-interactively' is blocking and
+      ;; doesn't seem to run the hook.
+      (execute-kbd-macro
+       (vconcat
+        [?\C-u] ;; Don't output the result of the arbitrary test subject code.
+        [?\M-:])))))
 
 (provide 'context-coloring-test)
 
