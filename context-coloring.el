@@ -196,7 +196,7 @@ Supported modes: `js-mode', `js3-mode'"
 
 (defun context-coloring-setup-idle-change-detection ()
   "Setup idle change detection."
-  (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
+  (let ((dispatch (context-coloring-get-current-dispatch)))
     (add-hook
      'after-change-functions #'context-coloring-change-function nil t)
     (add-hook
@@ -1228,13 +1228,22 @@ lists, which contain details about the strategies.")
 (defvar context-coloring-mode-hash-table (make-hash-table :test #'eq)
   "Map major mode names to dispatch property lists.")
 
-(defun context-coloring-get-dispatch-for-mode (mode)
-  "Return the dispatch for MODE (or a derivative mode)."
-  (let ((parent mode)
+(defvar context-coloring-dispatch-predicates '()
+  "Functions which may return a dispatch.")
+
+(defun context-coloring-get-current-dispatch ()
+  "Return the first dispatch appropriate for the current state."
+  (let ((predicates context-coloring-dispatch-predicates)
+        (parent major-mode)
         dispatch)
-    (while (and parent
-                (not (setq dispatch (gethash parent context-coloring-mode-hash-table)))
-                (setq parent (get parent 'derived-mode-parent))))
+    ;; Maybe a predicate will be satisfied and return a dispatch.
+    (while (and predicates
+                (not (setq dispatch (funcall (pop predicates))))))
+    ;; If not, maybe a major mode (or a derivative) will define a dispatch.
+    (when (not dispatch)
+      (while (and parent
+                  (not (setq dispatch (gethash parent context-coloring-mode-hash-table)))
+                  (setq parent (get parent 'derived-mode-parent)))))
     dispatch))
 
 (defun context-coloring-define-dispatch (symbol &rest properties)
@@ -1248,13 +1257,15 @@ server that returns scope data (`:command', `:host' and `:port').
 In the latter two cases, the scope data will be used to
 automatically color the buffer.
 
-PROPERTIES must include `:modes' and one of `:colorizer',
-`:scopifier' or `:command'.
+PROPERTIES must include one of `:modes' or `:predicate', and one
+of `:colorizer' or `:command'.
 
 `:modes' - List of major modes this dispatch is valid for.
 
-`:colorizer' - Symbol referring to a function that parses and
-colors the buffer.
+`:predicate' - Function that determines if the dispatch is valid
+for any given state.
+
+`:colorizer' - Function that parses and colors the buffer.
 
 `:executable' - Optional name of an executable required by
 `:command'.
@@ -1281,16 +1292,22 @@ should be numeric, e.g. \"2\", \"19700101\", \"1.2.3\",
 `:teardown' - Arbitrary code to tear down this dispatch when
 `context-coloring-mode' is disabled."
   (let ((modes (plist-get properties :modes))
+        (predicate (plist-get properties :predicate))
         (colorizer (plist-get properties :colorizer))
         (command (plist-get properties :command)))
-    (when (null modes)
-      (error "No mode defined for dispatch"))
+    (when (null (or modes
+                    predicate))
+      (error "No mode or predicate defined for dispatch"))
     (when (not (or colorizer
                    command))
       (error "No colorizer or command defined for dispatch"))
     (puthash symbol properties context-coloring-dispatch-hash-table)
     (dolist (mode modes)
-      (puthash mode properties context-coloring-mode-hash-table))))
+      (puthash mode properties context-coloring-mode-hash-table))
+    (when predicate
+      (push (lambda ()
+              (when (funcall predicate)
+                properties)) context-coloring-dispatch-predicates))))
 
 
 ;;; Colorization
@@ -1355,7 +1372,7 @@ produces (1 0 0), \"19700101\" produces (19700101), etc."
   "Asynchronously invoke CALLBACK with a predicate indicating
 whether the current scopifier version satisfies the minimum
 version number required for the current major mode."
-  (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
+  (let ((dispatch (context-coloring-get-current-dispatch)))
     (when dispatch
       (let ((version (plist-get dispatch :version))
             (command (plist-get dispatch :command)))
@@ -1745,7 +1762,7 @@ precedence, i.e. the car of `custom-enabled-themes'."
 
 (context-coloring-define-dispatch
  'eval-expression
- :modes '(minibuffer-inactive-mode)
+ :predicate #'window-minibuffer-p
  :colorizer #'context-coloring-eval-expression-colorize
  :delay 0.016
  :setup #'context-coloring-setup-idle-change-detection
@@ -1757,7 +1774,7 @@ the current buffer, then execute it.
 
 Invoke CALLBACK when complete.  It is invoked synchronously for
 elisp tracks, and asynchronously for shell command tracks."
-  (let* ((dispatch (context-coloring-get-dispatch-for-mode major-mode))
+  (let* ((dispatch (context-coloring-get-current-dispatch))
          (colorizer (plist-get dispatch :colorizer))
          (command (plist-get dispatch :command))
          (host (plist-get dispatch :host))
@@ -1817,7 +1834,7 @@ Feature inspired by Douglas Crockford."
     (font-lock-set-defaults)
     ;; Safely change the value of this function as necessary.
     (make-local-variable 'font-lock-syntactic-face-function)
-    (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
+    (let ((dispatch (context-coloring-get-current-dispatch)))
       (cond
        (dispatch
         (let ((command (plist-get dispatch :command))
@@ -1854,7 +1871,7 @@ Feature inspired by Douglas Crockford."
        (t
         (message "Context coloring is not available for this major mode")))))
    (t
-    (let ((dispatch (context-coloring-get-dispatch-for-mode major-mode)))
+    (let ((dispatch (context-coloring-get-current-dispatch)))
       (when dispatch
         (let ((command (plist-get dispatch :command))
               (teardown (plist-get dispatch :teardown)))

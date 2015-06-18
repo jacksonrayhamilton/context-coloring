@@ -414,7 +414,7 @@ ARGS)."
      (lambda ()
        (context-coloring-define-dispatch
         'define-dispatch-no-modes))
-     "No mode defined for dispatch")
+     "No mode or predicate defined for dispatch")
     (context-coloring-test-assert-error
      (lambda ()
        (context-coloring-define-dispatch
