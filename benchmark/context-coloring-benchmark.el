@@ -38,46 +38,6 @@
   "Resolve PATH from this file's directory."
   (expand-file-name path context-coloring-benchmark-path))
 
-(defun context-coloring-benchmark-next-tick (callback)
-  "Run CALLBACK in the next turn of the event loop."
-  (run-with-timer nil nil callback))
-
-(defun context-coloring-benchmark-series (sequence callback)
-  "Call each function in SEQUENCE, then call CALLBACK.  Each
-function is passed a single callback parameter for it to call
-when it is done."
-  (cond
-   ((null sequence)
-    (funcall callback))
-   (t
-    (funcall
-     (car sequence)
-     (lambda ()
-       (context-coloring-benchmark-next-tick
-        (lambda ()
-          (context-coloring-benchmark-series
-           (cdr sequence)
-           callback))))))))
-
-(defun context-coloring-benchmark-mapc (sequence iteratee callback)
-  "For each element in SEQUENCE, call ITERATEE, finally call
-CALLBACK.  ITERATEE is passed the current element and a callback
-for it to call when it is done."
-  (cond
-   ((null sequence)
-    (funcall callback))
-   (t
-    (funcall
-     iteratee
-     (car sequence)
-     (lambda ()
-       (context-coloring-benchmark-next-tick
-        (lambda ()
-          (context-coloring-benchmark-mapc
-           (cdr sequence)
-           iteratee
-           callback))))))))
-
 (defun context-coloring-benchmark-log-results (result-file fixture statistics)
   "Log benchmarking results to RESULT-FILE for fixture FIXTURE
 with STATISTICS."
@@ -111,17 +71,13 @@ with STATISTICS."
        (buffer-substring-no-properties (point-min) (point-max)))
      nil result-file)))
 
-(defun context-coloring-benchmark (title setup teardown fixtures callback)
-  "Execute a benchmark titled TITLE with SETUP and TEARDOWN
-callbacks.  Measure the performance of all FIXTURES, calling
-CALLBACK when all are done."
-  (funcall setup)
+(defun context-coloring-benchmark (title fixtures)
+  "Execute a benchmark titled TITLE against FIXTURES."
   (let ((result-file (context-coloring-benchmark-resolve-path
                       (format "./logs/results-%s-%s.log"
                               title (format-time-string "%s")))))
-    (context-coloring-benchmark-mapc
-     fixtures
-     (lambda (path callback)
+    (mapc
+     (lambda (path)
        (let ((fixture (context-coloring-benchmark-resolve-path path))
              colorization-start-time
              (colorization-times '())
@@ -130,83 +86,58 @@ CALLBACK when all are done."
           advice
           (let ((count 0))
             (lambda (original-function)
-              (funcall
-               original-function
-               (lambda ()
-                 (setq count (+ count 1))
-                 ;; First 5 runs are for gathering real coloring times,
-                 ;; unaffected by elp instrumentation.
-                 (when (<= count 5)
-                   (push (- (float-time) colorization-start-time) colorization-times))
-                 (cond
-                  ((= count 10)
-                   (advice-remove #'context-coloring-colorize advice)
-                   (context-coloring-benchmark-log-results
-                    result-file
-                    fixture
-                    (list
-                     :file-size (nth 7 (file-attributes fixture))
-                     :lines (count-lines (point-min) (point-max))
-                     :words (count-words (point-min) (point-max))
-                     :colorization-times colorization-times
-                     :average-colorization-time (/ (apply #'+ colorization-times) 5)))
-                   (elp-restore-all)
-                   (kill-buffer)
-                   (funcall callback))
-                  ;; The last 5 runs are for gathering function call and
-                  ;; duration statistics.
-                  ((= count 5)
-                   (elp-instrument-package "context-coloring-")
-                   (context-coloring-colorize))
-                  (t
-                   (setq colorization-start-time (float-time))
-                   (context-coloring-colorize))))))))
+              (funcall original-function)
+              (setq count (+ count 1))
+              ;; First 5 runs are for gathering real coloring times,
+              ;; unaffected by elp instrumentation.
+              (when (<= count 5)
+                (push (- (float-time) colorization-start-time) colorization-times))
+              (cond
+               ((= count 10)
+                (advice-remove #'context-coloring-colorize advice)
+                (context-coloring-benchmark-log-results
+                 result-file
+                 fixture
+                 (list
+                  :file-size (nth 7 (file-attributes fixture))
+                  :lines (count-lines (point-min) (point-max))
+                  :words (count-words (point-min) (point-max))
+                  :colorization-times colorization-times
+                  :average-colorization-time (/ (apply #'+ colorization-times) 5)))
+                (elp-restore-all)
+                (kill-buffer))
+               ;; The last 5 runs are for gathering function call and
+               ;; duration statistics.
+               ((= count 5)
+                (elp-instrument-package "context-coloring-")
+                (context-coloring-colorize))
+               (t
+                (setq colorization-start-time (float-time))
+                (context-coloring-colorize))))))
          (advice-add #'context-coloring-colorize :around advice)
          (setq colorization-start-time (float-time))
          (find-file fixture)))
-     (lambda ()
-       (funcall teardown)
-       (funcall callback)))))
+     fixtures)))
 
-(defconst context-coloring-benchmark-js-fixtures
+(defconst context-coloring-benchmark-javascript-fixtures
   '("./fixtures/jquery-2.1.1.js"
     "./fixtures/lodash-2.4.1.js"
     "./fixtures/async-0.9.0.js"
     "./fixtures/mkdirp-0.5.0.js")
   "Arbitrary JavaScript files for performance scrutiny.")
 
-(defun context-coloring-benchmark-js-mode-run (callback)
-  "Benchmark `js-mode', then call CALLBACK."
-  (context-coloring-benchmark
-   "js-mode"
-   (lambda ()
-     "Preparation logic for `js-mode'."
-     (add-hook 'js-mode-hook #'context-coloring-mode))
-   (lambda ()
-     "Cleanup logic for `js-mode'."
-     (remove-hook 'js-mode-hook #'context-coloring-mode))
-   context-coloring-benchmark-js-fixtures
-   callback))
-
-(defun context-coloring-benchmark-js2-mode-run (callback)
-  "Benchmark `js2-mode', then call CALLBACK."
-  (context-coloring-benchmark
-   "js2-mode"
-   (lambda ()
-     "Preparation logic for `js2-mode'."
-     (setq js2-mode-show-parse-errors nil)
-     (setq js2-mode-show-strict-warnings nil)
-     (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
-     (add-hook 'js2-mode-hook #'context-coloring-mode))
-   (lambda ()
-     "Cleanup logic for `js2-mode'."
-     (remove-hook 'js2-mode-hook #'context-coloring-mode)
-     (setq auto-mode-alist (delete '("\\.js\\'" . js2-mode)
-                                   auto-mode-alist))
-     (setq js2-mode-show-strict-warnings t)
-     (setq js2-mode-show-parse-errors t))
-   context-coloring-benchmark-js-fixtures
-   callback))
+(defun context-coloring-benchmark-js2-mode-run ()
+  "Benchmark `js2-mode'."
+  (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+  (add-hook 'js2-mode-hook #'context-coloring-mode)
+  (let ((js2-mode-show-parse-errors nil)
+        (js2-mode-show-strict-warnings nil))
+    (context-coloring-benchmark
+     "js2-mode"
+     context-coloring-benchmark-javascript-fixtures))
+  (setq auto-mode-alist (delete '("\\.js\\'" . js2-mode)
+                                auto-mode-alist))
+  (remove-hook 'js2-mode-hook #'context-coloring-mode))
 
 (defconst context-coloring-benchmark-emacs-lisp-fixtures
   '("./fixtures/lisp.el"
@@ -215,28 +146,19 @@ CALLBACK when all are done."
     "./fixtures/simple.el")
   "Arbitrary Emacs Lisp files for performance scrutiny.")
 
-(defun context-coloring-benchmark-emacs-lisp-mode-run (callback)
+(defun context-coloring-benchmark-emacs-lisp-mode-run ()
   "Benchmark `emacs-lisp-mode', then call CALLBACK."
+  (add-hook 'emacs-lisp-mode-hook #'context-coloring-mode)
   (context-coloring-benchmark
    "emacs-lisp-mode"
-   (lambda ()
-     "Preparation logic for `emacs-lisp-mode'."
-     (add-hook 'emacs-lisp-mode-hook #'context-coloring-mode))
-   (lambda ()
-     "Cleanup logic for `emacs-lisp-mode'."
-     (remove-hook 'emacs-lisp-mode-hook #'context-coloring-mode))
-   context-coloring-benchmark-emacs-lisp-fixtures
-   callback))
+   context-coloring-benchmark-emacs-lisp-fixtures)
+  (remove-hook 'emacs-lisp-mode-hook #'context-coloring-mode))
 
 (defun context-coloring-benchmark-run ()
   "Benchmark all modes, then exit."
-  (context-coloring-benchmark-series
-   (list
-    #'context-coloring-benchmark-js-mode-run
-    #'context-coloring-benchmark-js2-mode-run
-    #'context-coloring-benchmark-emacs-lisp-mode-run)
-   (lambda ()
-     (kill-emacs))))
+  (context-coloring-benchmark-js2-mode-run)
+  (context-coloring-benchmark-emacs-lisp-mode-run)
+  (kill-emacs))
 
 (provide 'context-coloring-benchmark)
 

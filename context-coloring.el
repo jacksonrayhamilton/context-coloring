@@ -43,22 +43,6 @@
   "Join a list of STRINGS with the string DELIMITER."
   (mapconcat #'identity strings delimiter))
 
-(defsubst context-coloring-trim-right (string)
-  "Remove leading whitespace from STRING."
-  (if (string-match "[ \t\n\r]+\\'" string)
-      (replace-match "" t t string)
-    string))
-
-(defsubst context-coloring-trim-left (string)
-  "Remove trailing whitespace from STRING."
-  (if (string-match "\\`[ \t\n\r]+" string)
-      (replace-match "" t t string)
-    string))
-
-(defsubst context-coloring-trim (string)
-  "Remove leading and trailing whitespace from STRING."
-  (context-coloring-trim-left (context-coloring-trim-right string)))
-
 
 ;;; Faces
 
@@ -142,7 +126,6 @@ being used.")
 
 START, END and LENGTH are recorded for later use."
   ;; Tokenization is obsolete if there was a change.
-  (context-coloring-cancel-scopification)
   (setq context-coloring-changed-start start)
   (setq context-coloring-changed-end end)
   (setq context-coloring-changed-length length)
@@ -165,13 +148,10 @@ START, END and LENGTH are recorded for later use."
   "The currently-running idle timer for unconditional coloring.")
 
 (defcustom context-coloring-default-delay 0.25
-  "Default (sometimes overridden) delay between a buffer update
-and colorization.
+  "Default delay between a buffer update and colorization.
 
 Increase this if your machine is high-performing.  Decrease it if
-it ain't.
-
-Supported modes: `js-mode', `js3-mode'"
+it ain't."
   :group 'context-coloring)
 
 (make-obsolete-variable
@@ -210,7 +190,6 @@ Supported modes: `js-mode', `js3-mode'"
 
 (defun context-coloring-teardown-idle-change-detection ()
   "Teardown idle change detection."
-  (context-coloring-cancel-scopification)
   (dolist (timer (list context-coloring-colorize-idle-timer
                        context-coloring-maybe-colorize-idle-timer))
     (context-coloring-cancel-timer timer))
@@ -286,14 +265,17 @@ to the beginning of the buffer and MAX defaults to the end."
   "Associate `js2-scope' structures and with their scope
   levels.")
 
-(defcustom context-coloring-js-block-scopes nil
+(defcustom context-coloring-javascript-block-scopes nil
   "If non-nil, also color block scopes in the scope hierarchy in JavaScript.
 
 The block-scoped `let' and `const' are introduced in ES6.  Enable
-this for ES6 code; disable it elsewhere.
-
-Supported modes: `js2-mode'"
+this for ES6 code; disable it elsewhere."
   :group 'context-coloring)
+
+(make-obsolete-variable
+ 'context-coloring-js-block-scopes
+ 'context-coloring-javascript-block-scopes
+ "7.0.0")
 
 (defsubst context-coloring-js2-scope-level (scope)
   "Return the level of SCOPE."
@@ -306,7 +288,7 @@ Supported modes: `js2-mode'"
                        (js2-node-parent current-scope)
                        (setq enclosing-scope
                              (js2-node-get-enclosing-scope current-scope)))
-             (when (or context-coloring-js-block-scopes
+             (when (or context-coloring-javascript-block-scopes
                        (let ((type (js2-scope-type current-scope)))
                          (or (= type js2-SCRIPT)
                              (= type js2-FUNCTION)
@@ -1040,6 +1022,9 @@ scopes and variables."
       (t
        (context-coloring-elisp-colorize-region-initially (point-min) (point-max)))))))
 
+
+;;; eval-expression colorization
+
 (defun context-coloring-eval-expression-colorize ()
   "Color the `eval-expression' minibuffer prompt as elisp."
   (interactive)
@@ -1050,173 +1035,6 @@ scopes and variables."
         (string-match "\\`Eval: " (buffer-string))
         (1+ (match-end 0)))
       (point-max)))))
-
-
-;;; Shell command scopification / colorization
-
-(defun context-coloring-apply-tokens (tokens)
-  "Process a string of TOKENS to apply context-based coloring to
-the current buffer.  Tokens are 3 integers: start, end, level.  A
-new token occurrs after every 3rd element, and the elements are
-separated by commas."
-  (let* ((tokens (mapcar #'string-to-number (split-string tokens ","))))
-    (while tokens
-      (context-coloring-colorize-region
-       (pop tokens)
-       (pop tokens)
-       (pop tokens))))
-  (context-coloring-colorize-comments-and-strings))
-
-(defun context-coloring-parse-array (array)
-  "Parse ARRAY as a flat JSON array of numbers and use the tokens
-to colorize the buffer."
-  (let* ((braceless (substring-no-properties (context-coloring-trim array) 1 -1)))
-    (when (> (length braceless) 0)
-      (with-silent-modifications
-        (context-coloring-apply-tokens braceless)))))
-
-(defvar-local context-coloring-scopifier-cancel-function nil
-  "Kills the current scopification process.")
-
-(defvar-local context-coloring-scopifier-process nil
-  "The single scopifier process that can be running.")
-
-(defun context-coloring-cancel-scopification ()
-  "Stop the currently-running scopifier from scopifying."
-  (when context-coloring-scopifier-cancel-function
-    (funcall context-coloring-scopifier-cancel-function)
-    (setq context-coloring-scopifier-cancel-function nil))
-  (when (not (null context-coloring-scopifier-process))
-    (delete-process context-coloring-scopifier-process)
-    (setq context-coloring-scopifier-process nil)))
-
-(defun context-coloring-shell-command (command callback)
-  "Invoke COMMAND, read its response asynchronously and invoke
-CALLBACK with its output.  Return the command process."
-  (let ((process (start-process-shell-command "context-coloring-process" nil command))
-        (output ""))
-    ;; The process may produce output in multiple chunks.  This filter
-    ;; accumulates the chunks into a message.
-    (set-process-filter
-     process
-     (lambda (_process chunk)
-       (setq output (concat output chunk))))
-    ;; When the process's message is complete, this sentinel parses it as JSON
-    ;; and applies the tokens to the buffer.
-    (set-process-sentinel
-     process
-     (lambda (_process event)
-       (when (equal "finished\n" event)
-         (funcall callback output))))
-    process))
-
-(defun context-coloring-scopify-shell-command (command callback)
-  "Invoke a scopifier via COMMAND, read its response
-asynchronously and invoke CALLBACK with its output."
-  ;; Prior running tokenization is implicitly obsolete if this function is
-  ;; called.
-  (context-coloring-cancel-scopification)
-  ;; Start the process.
-  (setq context-coloring-scopifier-process
-        (context-coloring-shell-command command callback)))
-
-(defun context-coloring-send-buffer-to-scopifier ()
-  "Give the scopifier process its input so it can begin
-scopifying."
-  (process-send-region
-   context-coloring-scopifier-process
-   (point-min) (point-max))
-  (process-send-eof
-   context-coloring-scopifier-process))
-
-(defun context-coloring-start-scopifier-server (command host port callback)
-  "Connect to or start a scopifier server with COMMAND, HOST and PORT.
-Invoke CALLBACK with a network stream when the server is ready
-for connections."
-  (let* ((connect
-          (lambda ()
-            (let ((stream (open-network-stream "context-coloring-stream" nil host port)))
-              (funcall callback stream)))))
-    ;; Try to connect in case a server is running, otherwise start one.
-    (condition-case nil
-        (progn
-          (funcall connect))
-      (error
-       (let ((server (start-process-shell-command
-                      "context-coloring-scopifier-server" nil
-                      (context-coloring-join
-                       (list command
-                             "--server"
-                             "--host" host
-                             "--port" (number-to-string port))
-                       " ")))
-             (output ""))
-         ;; Connect as soon as the "listening" message is printed.
-         (set-process-filter
-          server
-          (lambda (_process chunk)
-            (setq output (concat output chunk))
-            (when (string-match-p (format "^Scopifier listening at %s:%s$" host port) output)
-              (funcall connect)))))))))
-
-(defun context-coloring-send-buffer-to-scopifier-server (command host port callback)
-  "Send the current buffer to the scopifier server running with
-COMMAND, HOST and PORT.  Invoke CALLBACK with the server's
-response (a stringified JSON array)."
-  (context-coloring-start-scopifier-server
-   command host port
-   (lambda (process)
-     (let* ((body (buffer-substring-no-properties (point-min) (point-max)))
-            (header (concat "POST / HTTP/1.0\r\n"
-                            "Host: localhost\r\n"
-                            "Content-Type: application/x-www-form-urlencoded"
-                            "; charset=UTF8\r\n"
-                            (format "Content-Length: %d\r\n" (length body))
-                            "\r\n"))
-            (output "")
-            (active t))
-       (set-process-filter
-        process
-        (lambda (_process chunk)
-          (setq output (concat output chunk))))
-       (set-process-sentinel
-        process
-        (lambda (_process event)
-          (when (and (equal "connection broken by remote peer\n" event)
-                     active)
-            ;; Strip the response headers.
-            (string-match "\r\n\r\n" output)
-            (setq output (substring-no-properties output (match-end 0)))
-            (funcall callback output))))
-       (process-send-string process (concat header body "\r\n"))
-       (setq context-coloring-scopifier-cancel-function
-             (lambda ()
-               "Cancel this scopification."
-               (setq active nil)))))))
-
-(defun context-coloring-scopify-and-colorize-server (command host port &optional callback)
-  "Color the current buffer via the server started with COMMAND,
-HOST and PORT.  Invoke CALLBACK when complete."
-  (let ((buffer (current-buffer)))
-    (context-coloring-send-buffer-to-scopifier-server
-     command host port
-     (lambda (output)
-       (with-current-buffer buffer
-         (context-coloring-parse-array output))
-       (when callback (funcall callback))))))
-
-(defun context-coloring-scopify-and-colorize (command &optional callback)
-  "Color the current buffer via COMMAND.  Invoke CALLBACK when
-complete."
-  (let ((buffer (current-buffer)))
-    (context-coloring-scopify-shell-command
-     command
-     (lambda (output)
-       (with-current-buffer buffer
-         (context-coloring-parse-array output))
-       (setq context-coloring-scopifier-process nil)
-       (when callback (funcall callback)))))
-  (context-coloring-send-buffer-to-scopifier))
 
 
 ;;; Dispatch
@@ -1250,15 +1068,10 @@ lists, which contain details about the strategies.")
   "Define a new dispatch named SYMBOL with PROPERTIES.
 
 A \"dispatch\" is a property list describing a strategy for
-coloring a buffer.  There are three possible strategies: Parse
-and color in a single function (`:colorizer'), parse with a shell
-command that returns scope data (`:command'), or parse with a
-server that returns scope data (`:command', `:host' and `:port').
-In the latter two cases, the scope data will be used to
-automatically color the buffer.
+coloring a buffer.
 
-PROPERTIES must include one of `:modes' or `:predicate', and one
-of `:colorizer' or `:command'.
+PROPERTIES must include one of `:modes' or `:predicate', and a
+`:colorizer'.
 
 `:modes' - List of major modes this dispatch is valid for.
 
@@ -1267,24 +1080,8 @@ for any given state.
 
 `:colorizer' - Function that parses and colors the buffer.
 
-`:executable' - Optional name of an executable required by
-`:command'.
-
-`:command' - Shell command to execute with the current buffer
-sent via stdin, and with a flat JSON array of start, end and
-level data returned via stdout.
-
-`:host' - Hostname of the scopifier server, e.g. \"localhost\".
-
-`:port' - Port number of the scopifier server, e.g. 80, 1337.
-
 `:delay' - Delay between buffer update and colorization, to
 override `context-coloring-default-delay'.
-
-`:version' - Minimum required version that should be printed when
-executing `:command' with a \"--version\" flag.  The version
-should be numeric, e.g. \"2\", \"19700101\", \"1.2.3\",
-\"v1.2.3\" etc.
 
 `:setup' - Arbitrary code to set up this dispatch when
 `context-coloring-mode' is enabled.
@@ -1293,14 +1090,11 @@ should be numeric, e.g. \"2\", \"19700101\", \"1.2.3\",
 `context-coloring-mode' is disabled."
   (let ((modes (plist-get properties :modes))
         (predicate (plist-get properties :predicate))
-        (colorizer (plist-get properties :colorizer))
-        (command (plist-get properties :command)))
-    (when (null (or modes
-                    predicate))
+        (colorizer (plist-get properties :colorizer)))
+    (when (null (or modes predicate))
       (error "No mode or predicate defined for dispatch"))
-    (when (not (or colorizer
-                   command))
-      (error "No colorizer or command defined for dispatch"))
+    (when (not colorizer)
+      (error "No colorizer defined for dispatch"))
     (puthash symbol properties context-coloring-dispatch-hash-table)
     (dolist (mode modes)
       (puthash mode properties context-coloring-mode-hash-table))
@@ -1309,21 +1103,21 @@ should be numeric, e.g. \"2\", \"19700101\", \"1.2.3\",
               (when (funcall predicate)
                 properties)) context-coloring-dispatch-predicates))))
 
+(defun context-coloring-dispatch ()
+  "Determine the optimal track for scopification / coloring of
+the current buffer, then execute it."
+  (let* ((dispatch (context-coloring-get-current-dispatch))
+         (colorizer (plist-get dispatch :colorizer)))
+    (catch 'interrupted
+      (funcall colorizer))))
+
 
 ;;; Colorization
 
-(defvar context-coloring-colorize-hook nil
-  "Hooks to run after coloring a buffer.")
-
-(defun context-coloring-colorize (&optional callback)
-  "Color the current buffer by function context.
-
-Invoke CALLBACK when complete; see `context-coloring-dispatch'."
+(defun context-coloring-colorize ()
+  "Color the current buffer by function context."
   (interactive)
-  (context-coloring-dispatch
-   (lambda ()
-     (when callback (funcall callback))
-     (run-hooks 'context-coloring-colorize-hook))))
+  (context-coloring-dispatch))
 
 (defun context-coloring-colorize-with-buffer (buffer)
   "Color BUFFER."
@@ -1331,60 +1125,6 @@ Invoke CALLBACK when complete; see `context-coloring-dispatch'."
   (when (get-buffer buffer)
     (with-current-buffer buffer
       (context-coloring-colorize))))
-
-
-;;; Versioning
-
-(defun context-coloring-parse-version (string)
-  "Extract segments of a version STRING into a list.  \"v1.0.0\"
-produces (1 0 0), \"19700101\" produces (19700101), etc."
-  (let (version)
-    (while (string-match "[0-9]+" string)
-      (setq version (append version
-                            (list (string-to-number (match-string 0 string)))))
-      (setq string (substring string (match-end 0))))
-    version))
-
-(defun context-coloring-check-version (expected actual)
-  "Check that version EXPECTED is less than or equal to ACTUAL."
-  (let ((expected (context-coloring-parse-version expected))
-        (actual (context-coloring-parse-version actual))
-        (continue t)
-        (acceptable t))
-    (while (and continue expected)
-      (let ((an-expected (car expected))
-            (an-actual (car actual)))
-        (cond
-         ((> an-actual an-expected)
-          (setq acceptable t)
-          (setq continue nil))
-         ((< an-actual an-expected)
-          (setq acceptable nil)
-          (setq continue nil))))
-      (setq expected (cdr expected))
-      (setq actual (cdr actual)))
-    acceptable))
-
-(defvar context-coloring-check-scopifier-version-hook nil
-  "Hooks to run after checking the scopifier version.")
-
-(defun context-coloring-check-scopifier-version (&optional callback)
-  "Asynchronously invoke CALLBACK with a predicate indicating
-whether the current scopifier version satisfies the minimum
-version number required for the current major mode."
-  (let ((dispatch (context-coloring-get-current-dispatch)))
-    (when dispatch
-      (let ((version (plist-get dispatch :version))
-            (command (plist-get dispatch :command)))
-        (context-coloring-shell-command
-         (context-coloring-join (list command "--version") " ")
-         (lambda (output)
-           (cond
-            ((context-coloring-check-version version output)
-             (when callback (funcall callback t)))
-            (t
-             (when callback (funcall callback nil))))
-           (run-hooks 'context-coloring-check-scopifier-version-hook)))))))
 
 
 ;;; Themes
@@ -1733,16 +1473,7 @@ precedence, i.e. the car of `custom-enabled-themes'."
 ;;; Built-in dispatches
 
 (context-coloring-define-dispatch
- 'javascript-node
- :modes '(js-mode js3-mode)
- :executable "scopifier"
- :command "scopifier"
- :version "v1.2.1"
- :host "localhost"
- :port 6969)
-
-(context-coloring-define-dispatch
- 'javascript-js2
+ 'javascript
  :modes '(js2-mode)
  :colorizer #'context-coloring-js2-colorize
  :setup
@@ -1774,33 +1505,6 @@ precedence, i.e. the car of `custom-enabled-themes'."
  :delay 0.016
  :setup #'context-coloring-setup-idle-change-detection
  :teardown #'context-coloring-teardown-idle-change-detection)
-
-(defun context-coloring-dispatch (&optional callback)
-  "Determine the optimal track for scopification / coloring of
-the current buffer, then execute it.
-
-Invoke CALLBACK when complete.  It is invoked synchronously for
-elisp tracks, and asynchronously for shell command tracks."
-  (let* ((dispatch (context-coloring-get-current-dispatch))
-         (colorizer (plist-get dispatch :colorizer))
-         (command (plist-get dispatch :command))
-         (host (plist-get dispatch :host))
-         (port (plist-get dispatch :port))
-         interrupted-p)
-    (cond
-     (colorizer
-      (setq interrupted-p
-            (catch 'interrupted
-              (funcall colorizer)))
-      (when (and (not interrupted-p)
-                 callback)
-        (funcall callback)))
-     (command
-      (cond
-       ((and host port)
-        (context-coloring-scopify-and-colorize-server command host port callback))
-       (t
-        (context-coloring-scopify-and-colorize command callback)))))))
 
 
 ;;; Minor mode
@@ -1844,46 +1548,18 @@ Feature inspired by Douglas Crockford."
     (let ((dispatch (context-coloring-get-current-dispatch)))
       (cond
        (dispatch
-        (let ((command (plist-get dispatch :command))
-              (version (plist-get dispatch :version))
-              (executable (plist-get dispatch :executable))
-              (setup (plist-get dispatch :setup))
-              (colorize-initially-p t))
-          (when command
-            ;; Shell commands recolor on change, idly.
-            (cond
-             ((and executable
-                   (null (executable-find executable)))
-              (message "Executable \"%s\" not found" executable)
-              (setq colorize-initially-p nil))
-             (version
-              (context-coloring-check-scopifier-version
-               (lambda (sufficient-p)
-                 (cond
-                  (sufficient-p
-                   (context-coloring-setup-idle-change-detection)
-                   (context-coloring-colorize))
-                  (t
-                   (message "Update to the minimum version of \"%s\" (%s)"
-                            executable version)))))
-              (setq colorize-initially-p nil))
-             (t
-              (context-coloring-setup-idle-change-detection))))
+        (let ((setup (plist-get dispatch :setup)))
           (when setup
             (funcall setup))
           ;; Colorize once initially.
-          (when colorize-initially-p
-            (let ((context-coloring-parse-interruptable-p nil))
-              (context-coloring-colorize)))))
+          (let ((context-coloring-parse-interruptable-p nil))
+            (context-coloring-colorize))))
        (t
         (message "Context coloring is not available for this major mode")))))
    (t
     (let ((dispatch (context-coloring-get-current-dispatch)))
       (when dispatch
-        (let ((command (plist-get dispatch :command))
-              (teardown (plist-get dispatch :teardown)))
-          (when command
-            (context-coloring-teardown-idle-change-detection))
+        (let ((teardown (plist-get dispatch :teardown)))
           (when teardown
             (funcall teardown)))))
     (font-lock-mode)

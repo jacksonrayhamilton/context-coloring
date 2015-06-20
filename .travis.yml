@@ -1,8 +1,5 @@
 language: emacs-lisp
 
-node_js:
-  - "0.10"
-
 env:
   - EVM_EMACS=emacs-24.3-bin
   - EVM_EMACS=emacs-24.4-bin
@@ -17,7 +14,6 @@ before_install:
   - evm install ${EVM_EMACS} --use
   - curl -fsSkL https://raw.github.com/cask/cask/master/go | python
   - cask
-  - npm install -g scopifier
 
 script:
   - emacs --version

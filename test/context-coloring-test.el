@@ -27,7 +27,7 @@
 
 (require 'cl-lib)
 (require 'context-coloring)
-(require 'ert-async)
+(require 'ert)
 (require 'js2-mode)
 
 
@@ -51,32 +51,6 @@ buffer."
        (insert (context-coloring-test-read-file ,fixture))
        ,@body)))
 
-(defun context-coloring-test-with-temp-buffer-async (callback)
-  "Create a temporary buffer, and evaluate CALLBACK there.  A
-teardown callback is passed to CALLBACK for it to invoke when it
-is done."
-  (let ((previous-buffer (current-buffer))
-        (temp-buffer (generate-new-buffer " *temp*")))
-    (set-buffer temp-buffer)
-    (funcall
-     callback
-     (lambda ()
-       (and (buffer-name temp-buffer)
-            (kill-buffer temp-buffer))
-       (set-buffer previous-buffer)))))
-
-(defun context-coloring-test-with-fixture-async (fixture callback)
-  "With the relative FIXTURE, evaluate CALLBACK in a temporary
-buffer.  A teardown callback is passed to CALLBACK for it to
-invoke when it is done."
-  (context-coloring-test-with-temp-buffer-async
-   (lambda (done-with-temp-buffer)
-     (insert (context-coloring-test-read-file fixture))
-     (funcall
-      callback
-      (lambda ()
-        (funcall done-with-temp-buffer))))))
-
 
 ;;; Test defining utilities
 
@@ -84,25 +58,19 @@ invoke when it is done."
                                                    &key mode
                                                    &key extension
                                                    &key no-fixture
-                                                   &key async
-                                                   &key post-colorization
                                                    &key enable-context-coloring-mode
                                                    &key get-args
                                                    &key before-each
                                                    &key after-each)
-  "Define a deftest defmacro for tests prefixed with NAME. MODE
+  "Define a deftest defmacro for tests prefixed with NAME.  MODE
 is called to set up tests' environments.  EXTENSION denotes the
 suffix for tests' fixture files.  If NO-FIXTURE is non-nil, don't
-use a fixture.  If ASYNC is non-nil, pass a callback to the
-defined tests' bodies for them to call when they are done.  If
-POST-COLORIZATION is non-nil, the tests run after
-`context-coloring-colorize' finishes asynchronously.  If
-ENABLE-CONTEXT-COLORING-MODE is non-nil, `context-coloring-mode'
-is activated before tests.  GET-ARGS provides arguments to apply
-to BEFORE-EACH, AFTER-EACH, and each tests' body, before and
-after functions.  Functions BEFORE-EACH and AFTER-EACH run before
-the major mode is activated before each test, and after each
-test, even if an error is signaled."
+use a fixture.  If ENABLE-CONTEXT-COLORING-MODE is non-nil,
+`context-coloring-mode' is activated before tests.  GET-ARGS
+provides arguments to apply to BEFORE-EACH, AFTER-EACH, and each
+tests' body, before and after functions.  Functions BEFORE-EACH
+and AFTER-EACH run before the major mode is activated before each
+test, and after each test, even if an error is signaled."
   (declare (indent defun))
   (let ((macro-name (intern (format "context-coloring-test-deftest%s"
                                     (cond
@@ -114,26 +82,6 @@ test, even if an error is signaled."
                                &key fixture
                                &key before
                                &key after)
-       ,(format "Define a test for `%s' suffixed with NAME.
-
-Function BODY makes assertions.
-%s
-
-Functions BEFORE and AFTER run before and after the test, even if
-an error is signaled.
-
-BODY is run after `context-coloring-mode' is activated, or after
-initial colorization if colorization should occur."
-                (cadr mode)
-                (cond
-                 (no-fixture "
-There is no fixture, unless FIXTURE is specified.")
-                 (t
-                  (format "
-The default fixture has a filename matching NAME (plus the
-filetype extension, \"%s\"), unless FIXTURE is specified to
-override it."
-                          extension))))
        (declare (indent defun))
        ;; Commas in nested backquotes are not evaluated.  Binding the variables
        ;; here is probably the cleanest workaround.
@@ -152,82 +100,32 @@ override it."
                        (fixture (format "./fixtures/%s" fixture))
                        (,no-fixture "./fixtures/empty")
                        (t (format ,(format "./fixtures/%%s.%s" extension) name)))))
-         ,@(cond
-            ((or async post-colorization)
-             `((let ((post-colorization ,post-colorization))
-                 `(ert-deftest-async ,test-name (done)
-                    (let ((,args (funcall ,get-args)))
-                      (context-coloring-test-with-fixture-async
-                       ,fixture
-                       (lambda (done-with-fixture)
-                         (when ,before-each (apply ,before-each ,args))
-                         (,mode)
-                         (when ,before (apply ,before ,args))
-                         (cond
-                          (,post-colorization
-                           (context-coloring-colorize
-                            (lambda ()
-                              (unwind-protect
-                                  (progn
-                                    (apply ,body ,args))
-                                (when ,after (apply ,after ,args))
-                                (when ,after-each (apply ,after-each ,args))
-                                (funcall done-with-fixture))
-                              (funcall done))))
-                          (t
-                           ;; Leave error handling up to the user.
-                           (apply ,body (append
-                                         (list (lambda ()
-                                                 (when ,after (apply ,after ,args))
-                                                 (when ,after-each (apply ,after-each ,args))
-                                                 (funcall done-with-fixture)
-                                                 (funcall done)))
-                                         ,args)))))))))))
-            (t
-             `((let ((enable-context-coloring-mode ,enable-context-coloring-mode))
-                 `(ert-deftest ,test-name ()
-                    (let ((,args (funcall ,get-args)))
-                      (context-coloring-test-with-fixture
-                       ,fixture
-                       (when ,before-each (apply ,before-each ,args))
-                       (,mode)
-                       (when ,before (apply ,before ,args))
-                       (when ,enable-context-coloring-mode (context-coloring-mode))
-                       (unwind-protect
-                           (progn
-                             (apply ,body ,args))
-                         (when ,after (apply ,after ,args))
-                         (when ,after-each (apply ,after-each ,args))))))))))))))
+         ,@`((let ((enable-context-coloring-mode ,enable-context-coloring-mode))
+               `(ert-deftest ,test-name ()
+                  (let ((,args (funcall ,get-args)))
+                    (context-coloring-test-with-fixture
+                     ,fixture
+                     (when ,before-each (apply ,before-each ,args))
+                     (,mode)
+                     (when ,before (apply ,before ,args))
+                     (when ,enable-context-coloring-mode (context-coloring-mode))
+                     (unwind-protect
+                         (progn
+                           (apply ,body ,args))
+                       (when ,after (apply ,after ,args))
+                       (when ,after-each (apply ,after-each ,args))))))))))))
 
 (context-coloring-test-define-deftest nil
   :mode #'fundamental-mode
   :no-fixture t)
 
-(context-coloring-test-define-deftest async
-  :mode #'fundamental-mode
-  :no-fixture t
-  :async t)
-
-(context-coloring-test-define-deftest js
-  :mode #'js-mode
-  :extension "js"
-  :post-colorization t)
-
-(context-coloring-test-define-deftest js2
+(context-coloring-test-define-deftest javascript
   :mode #'js2-mode
   :extension "js"
   :enable-context-coloring-mode t
   :before-each (lambda ()
                  (setq js2-mode-show-parse-errors nil)
                  (setq js2-mode-show-strict-warnings nil)))
-
-(defmacro context-coloring-test-deftest-js-js2 (&rest args)
-  "Simultaneously define the same test for js and js2 (with
-ARGS)."
-  (declare (indent defun))
-  `(progn
-     (context-coloring-test-deftest-js ,@args)
-     (context-coloring-test-deftest-js2 ,@args)))
 
 (context-coloring-test-define-deftest emacs-lisp
   :mode #'emacs-lisp-mode
@@ -323,73 +221,59 @@ ARGS)."
 
 ;;; Miscellaneous tests
 
-(defun context-coloring-test-assert-trimmed (result expected)
-  "Assert that RESULT is trimmed like EXPECTED."
-  (when (not (string-equal result expected))
-    (ert-fail "Expected string to be trimmed, but it wasn't.")))
-
-(context-coloring-test-deftest trim
-  (lambda ()
-    (context-coloring-test-assert-trimmed (context-coloring-trim "") "")
-    (context-coloring-test-assert-trimmed (context-coloring-trim " ") "")
-    (context-coloring-test-assert-trimmed (context-coloring-trim "a") "a")
-    (context-coloring-test-assert-trimmed (context-coloring-trim " a") "a")
-    (context-coloring-test-assert-trimmed (context-coloring-trim "a ") "a")
-    (context-coloring-test-assert-trimmed (context-coloring-trim " a ") "a")))
-
-(context-coloring-test-deftest-async mode-startup
-  (lambda (done)
-    (js-mode)
-    (add-hook
-     'context-coloring-colorize-hook
-     (lambda ()
-       ;; If this runs we are implicitly successful; this test only confirms
-       ;; that colorization occurs on mode startup.
-       (funcall done)))
-    (context-coloring-mode))
-  :after (lambda ()
-           ;; TODO: This won't run if there is a timeout.  Will probably have to
-           ;; roll our own `ert-deftest-async'.
-           (setq context-coloring-colorize-hook nil)))
-
 (defmacro context-coloring-test-define-derived-mode (name)
   "Define a derived mode exclusively for any test with NAME."
   (let ((name (intern (format "context-coloring-test-%s-mode" name))))
     `(define-derived-mode ,name fundamental-mode "Testing")))
 
+(defmacro context-coloring-test-assert-causes-coloring (&rest body)
+  "Assert that BODY causes coloring."
+  (let ((colorized-p (make-symbol "colorized-p")))
+    `(let (,colorized-p)
+       (advice-add #'context-coloring-colorize
+                   :after (lambda ()
+                            (setq ,colorized-p t))
+                   '((name . assert-causes-coloring)))
+       ,@body
+       (when (not ,colorized-p)
+         (ert-fail "Expected to have colorized, but it didn't.")))))
+
+(defun context-coloring-test-cleanup-assert-causes-coloring ()
+  (advice-remove #'context-coloring-colorize 'assert-causes-coloring))
+
+(context-coloring-test-define-derived-mode mode-startup)
+
+(context-coloring-test-deftest mode-startup
+  (lambda ()
+    (context-coloring-define-dispatch
+     'mode-startup
+     :modes '(context-coloring-test-mode-startup-mode)
+     :colorizer #'ignore)
+    (context-coloring-test-mode-startup-mode)
+    (context-coloring-test-assert-causes-coloring
+     (context-coloring-mode)))
+  :after (lambda ()
+           (context-coloring-test-cleanup-assert-causes-coloring)))
+
 (context-coloring-test-define-derived-mode change-detection)
 
-;; Simply cannot figure out how to trigger an idle timer; would much rather test
-;; that.  But (current-idle-time) always returns nil in these tests.
-(context-coloring-test-deftest-async change-detection
-  (lambda (done)
+(context-coloring-test-deftest change-detection
+  (lambda ()
     (context-coloring-define-dispatch
      'idle-change
      :modes '(context-coloring-test-change-detection-mode)
-     :executable "node"
-     :command "node test/binaries/noop")
+     :colorizer #'ignore
+     :setup #'context-coloring-setup-idle-change-detection
+     :teardown #'context-coloring-teardown-idle-change-detection)
     (context-coloring-test-change-detection-mode)
-    (add-hook
-     'context-coloring-colorize-hook
-     (lambda ()
-       (setq context-coloring-colorize-hook nil)
-       (add-hook
-        'context-coloring-colorize-hook
-        (lambda ()
-          (funcall done)))
-       (insert " ")
-       (set-window-buffer (selected-window) (current-buffer))
-       (context-coloring-maybe-colorize-with-buffer (current-buffer))))
-    (context-coloring-mode))
+    (context-coloring-mode)
+    (context-coloring-test-assert-causes-coloring
+     (insert " ")
+     ;; Simply cannot figure out how to trigger an idle timer; would much rather
+     ;; test that.  But (current-idle-time) always returns nil in these tests.
+     (context-coloring-maybe-colorize-with-buffer (current-buffer))))
   :after (lambda ()
-           (setq context-coloring-colorize-hook nil)))
-
-(context-coloring-test-deftest check-version
-  (lambda ()
-    (when (not (context-coloring-check-version "2.1.3" "3.0.1"))
-      (ert-fail "Expected version 3.0.1 to satisfy 2.1.3, but it didn't."))
-    (when (context-coloring-check-version "3.0.1" "2.1.3")
-      (ert-fail "Expected version 2.1.3 not to satisfy 3.0.1, but it did."))))
+           (context-coloring-test-cleanup-assert-causes-coloring)))
 
 (context-coloring-test-deftest unsupported-mode
   (lambda ()
@@ -420,66 +304,24 @@ ARGS)."
        (context-coloring-define-dispatch
         'define-dispatch-no-strategy
         :modes '(context-coloring-test-define-dispatch-error-mode)))
-     "No colorizer or command defined for dispatch")))
-
-(context-coloring-test-define-derived-mode missing-executable)
-
-(context-coloring-test-deftest missing-executable
-  (lambda ()
-    (context-coloring-define-dispatch
-     'scopifier
-     :modes '(context-coloring-test-missing-executable-mode)
-     :command ""
-     :executable "__should_not_exist__")
-    (context-coloring-test-missing-executable-mode)
-    (context-coloring-mode)))
-
-(context-coloring-test-define-derived-mode unsupported-version)
-
-(context-coloring-test-deftest-async unsupported-version
-  (lambda (done)
-    (context-coloring-define-dispatch
-     'outta-date
-     :modes '(context-coloring-test-unsupported-version-mode)
-     :executable "node"
-     :command "node test/binaries/outta-date"
-     :version "v2.1.3")
-    (context-coloring-test-unsupported-version-mode)
-    (add-hook
-     'context-coloring-check-scopifier-version-hook
-     (lambda ()
-       (unwind-protect
-           (progn
-             ;; Normally the executable would be something like "outta-date"
-             ;; rather than "node".
-             (context-coloring-test-assert-message
-              "Update to the minimum version of \"node\" (v2.1.3)"
-              "*Messages*"))
-         (funcall done))))
-    (context-coloring-mode))
-  :after (lambda ()
-           (setq context-coloring-check-scopifier-version-hook nil)))
+     "No colorizer defined for dispatch")))
 
 (context-coloring-test-define-derived-mode disable-mode)
 
-(context-coloring-test-deftest-async disable-mode
-  (lambda (done)
+(context-coloring-test-deftest disable-mode
+  (lambda ()
     (let (torn-down)
       (context-coloring-define-dispatch
        'disable-mode
        :modes '(context-coloring-test-disable-mode-mode)
-       :executable "node"
-       :command "node test/binaries/noop"
+       :colorizer #'ignore
        :teardown (lambda ()
                    (setq torn-down t)))
-      (unwind-protect
-          (progn
-            (context-coloring-test-disable-mode-mode)
-            (context-coloring-mode)
-            (context-coloring-mode -1)
-            (when (not torn-down)
-              (ert-fail "Expected teardown function to have been called, but it wasn't.")))
-        (funcall done)))))
+      (context-coloring-test-disable-mode-mode)
+      (context-coloring-mode)
+      (context-coloring-mode -1)
+      (when (not torn-down)
+        (ert-fail "Expected teardown function to have been called, but it wasn't.")))))
 
 
 ;;; Theme tests
@@ -957,7 +799,7 @@ other non-letters are guaranteed to always be discarded."
         (forward-char)))
       (setq index (1+ index)))))
 
-(context-coloring-test-deftest-js-js2 function-scopes
+(context-coloring-test-deftest-javascript function-scopes
   (lambda ()
     (context-coloring-test-assert-coloring "
 000 0 0 11111111 11 110
@@ -966,14 +808,14 @@ other non-letters are guaranteed to always be discarded."
     22222222 122 22
 1")))
 
-(context-coloring-test-deftest-js-js2 global
+(context-coloring-test-deftest-javascript global
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxxxxx () {
     111 1 1 00000001xxx11
 }());")))
 
-(context-coloring-test-deftest-js2 block-scopes
+(context-coloring-test-deftest-javascript block-scopes
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxxxxx () {
@@ -983,11 +825,11 @@ other non-letters are guaranteed to always be discarded."
     2
 }());"))
   :before (lambda ()
-            (setq context-coloring-js-block-scopes t))
+            (setq context-coloring-javascript-block-scopes t))
   :after (lambda ()
-           (setq context-coloring-js-block-scopes nil)))
+           (setq context-coloring-javascript-block-scopes nil)))
 
-(context-coloring-test-deftest-js-js2 catch
+(context-coloring-test-deftest-javascript catch
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxxxxx () {
@@ -999,7 +841,7 @@ other non-letters are guaranteed to always be discarded."
     2
 }());")))
 
-(context-coloring-test-deftest-js-js2 key-names
+(context-coloring-test-deftest-javascript key-names
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxxxxx () {
@@ -1009,7 +851,7 @@ other non-letters are guaranteed to always be discarded."
     11
 }());")))
 
-(context-coloring-test-deftest-js-js2 property-lookup
+(context-coloring-test-deftest-javascript property-lookup
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxxxxx () {
@@ -1018,7 +860,7 @@ other non-letters are guaranteed to always be discarded."
     00000011111111111
 }());")))
 
-(context-coloring-test-deftest-js-js2 key-values
+(context-coloring-test-deftest-javascript key-values
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxxxxx () {
@@ -1030,7 +872,7 @@ other non-letters are guaranteed to always be discarded."
     }());
 }());")))
 
-(context-coloring-test-deftest-js-js2 syntactic-comments-and-strings
+(context-coloring-test-deftest-javascript syntactic-comments-and-strings
   (lambda ()
     (context-coloring-test-assert-coloring "
 0000 00
@@ -1039,7 +881,7 @@ cccccccccc
 ssssssssssss0"))
   :fixture "comments-and-strings.js")
 
-(context-coloring-test-deftest-js-js2 syntactic-comments
+(context-coloring-test-deftest-javascript syntactic-comments
   (lambda ()
     (context-coloring-test-assert-coloring "
 0000 00
@@ -1052,7 +894,7 @@ cccccccccc
   :after (lambda ()
            (setq context-coloring-syntactic-strings t)))
 
-(context-coloring-test-deftest-js-js2 syntactic-strings
+(context-coloring-test-deftest-javascript syntactic-strings
   (lambda ()
     (context-coloring-test-assert-coloring "
 0000 00
@@ -1065,7 +907,7 @@ ssssssssssss0"))
   :after (lambda ()
            (setq context-coloring-syntactic-comments t)))
 
-(context-coloring-test-deftest-js2 unterminated-comment
+(context-coloring-test-deftest-javascript unterminated-comment
   ;; As long as `add-text-properties' doesn't signal an error, this test passes.
   (lambda ()))
 

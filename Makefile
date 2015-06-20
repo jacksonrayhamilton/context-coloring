@@ -1,8 +1,6 @@
 EMACS = emacs
 CASK = EMACS=${EMACS} cask
 DEPENDENCIES = .cask/
-SCOPIFIER_PORT = $$(lsof -t -i :6969)
-KILL_SCOPIFIER = if [ -n "${SCOPIFIER_PORT}" ]; then kill ${SCOPIFIER_PORT}; fi
 
 all: uncompile compile test
 
@@ -32,7 +30,6 @@ test: ${DEPENDENCIES}
 	${CASK} exec ${EMACS} -Q -batch \
 	-L . \
 	-l ert \
-	-l ert-async \
 	-l test/context-coloring-coverage.el \
 	-f context-coloring-coverage-ci-init \
 	-l test/context-coloring-test.el \
@@ -43,7 +40,6 @@ cover: ${DEPENDENCIES}
 	${CASK} exec ${EMACS} -Q -batch \
 	-L . \
 	-l ert \
-	-l ert-async \
 	-l test/context-coloring-coverage.el \
 	-f context-coloring-coverage-local-init \
 	-l test/context-coloring-test.el \
