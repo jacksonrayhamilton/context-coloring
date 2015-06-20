@@ -198,20 +198,29 @@ signaled."
   (let ((name (intern (format "context-coloring-test-%s-mode" name))))
     `(define-derived-mode ,name fundamental-mode "Testing")))
 
+(defvar context-coloring-test-caused-p nil
+  "Dumb flag tracking for lambdas inside old advice definitions
+which don't seem to have lexical binding.")
+
 (defmacro context-coloring-test-assert-causes-coloring (&rest body)
   "Assert that BODY causes coloring."
-  (let ((colorized-p (make-symbol "colorized-p")))
-    `(let (,colorized-p)
-       (advice-add #'context-coloring-colorize
-                   :after (lambda ()
-                            (setq ,colorized-p t))
-                   '((name . assert-causes-coloring)))
-       ,@body
-       (when (not ,colorized-p)
-         (ert-fail "Expected to have colorized, but it didn't.")))))
+  `(progn
+     ;; Gross, but I want this to pass on 24.3.
+     (ad-add-advice #'context-coloring-colorize
+                    '(assert-causes-coloring
+                      nil t
+                      (advice . (lambda ()
+                                  (setq context-coloring-test-caused-p t))))
+                    'after
+                    0)
+     (ad-activate #'context-coloring-colorize)
+     ,@body
+     (when (not context-coloring-test-caused-p)
+       (ert-fail "Expected to have colorized, but it didn't."))))
 
 (defun context-coloring-test-cleanup-assert-causes-coloring ()
-  (advice-remove #'context-coloring-colorize 'assert-causes-coloring))
+  (ad-unadvise #'context-coloring-colorize)
+  (setq context-coloring-test-caused-p nil))
 
 (context-coloring-test-define-derived-mode mode-startup)
 
