@@ -89,7 +89,7 @@ signaled."
              (test-name (intern (format ,(format "%s-%%s"
                                                  (cond
                                                   (name)
-                                                  (t "sync"))) name)))
+                                                  (t "generic"))) name)))
              (fixture (cond
                        (fixture (format "./fixtures/%s" fixture))
                        (,no-fixture "./fixtures/empty")

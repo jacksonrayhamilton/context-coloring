@@ -15,11 +15,9 @@ By default, comments and strings are still highlighted syntactically.
 
 - JavaScript support:
   - Script, function and block scopes (and even `catch` block scopes).
-  - Very fast for files under 1000 lines.
 - Emacs Lisp support:
   - `defun`, `lambda`, `let`, `let*`, `cond`, `condition-case`, `defadvice`,
     `dolist`, `quote`, `backquote` and backquote splicing.
-  - Instantaneous lazy coloring, 8000 lines-per-second full coloring.
   - Works in `eval-expression` too.
 
 ## Installation
@@ -27,8 +25,8 @@ By default, comments and strings are still highlighted syntactically.
 Requires Emacs 24.3+.  JavaScript language support requires
 [js2-mode](https://github.com/mooz/js2-mode).
 
-`M-x package-install RET context-coloring RET` and add the following to your
-init file:
+To install, run the command `M-x package-install RET context-coloring RET`, and
+then add the following to your init file:
 
 ```lisp
 ;; JavaScript:
@@ -73,7 +71,5 @@ some color schemes for popular custom themes.
   comments using `font-lock`.
 - `context-coloring-syntactic-strings` (default: `t`): If non-nil, also color
   strings using `font-lock`.
-- `context-coloring-default-delay` (default: `0.25`): Default delay between a
-  buffer update and colorization.
 - `context-coloring-javascript-block-scopes` (default: `nil`): If non-nil, also
   color block scopes in the scope hierarchy in JavaScript.
