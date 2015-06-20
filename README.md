@@ -13,7 +13,6 @@ By default, comments and strings are still highlighted syntactically.
 
 ## Features
 
-- Light and dark (customizable) color schemes.
 - JavaScript support:
   - Script, function and block scopes (and even `catch` block scopes).
   - Very fast for files under 1000 lines.
@@ -43,9 +42,32 @@ init file:
 (add-hook 'minibuffer-setup-hook #'context-coloring-mode)
 ```
 
-## Customizing
+## Color Schemes
 
-### Options
+There is *no default color scheme*.  Define the colors according to your liking
+by setting the appropriate custom faces and the maximum face:
+
+```lisp
+(custom-theme-set-faces
+ 'zenburn
+ '(context-coloring-level-0-face  ((t :foreground "#dcdccc")))
+ '(context-coloring-level-1-face  ((t :foreground "#93e0e3")))
+ '(context-coloring-level-2-face  ((t :foreground "#bfebbf")))
+ '(context-coloring-level-3-face  ((t :foreground "#f0dfaf")))
+ '(context-coloring-level-4-face  ((t :foreground "#dfaf8f")))
+ '(context-coloring-level-5-face  ((t :foreground "#cc9393")))
+ '(context-coloring-level-6-face  ((t :foreground "#dc8cc3")))
+ '(context-coloring-level-7-face  ((t :foreground "#94bff3")))
+ '(context-coloring-level-8-face  ((t :foreground "#9fc59f")))
+ '(context-coloring-level-9-face  ((t :foreground "#d0bf8f")))
+ '(context-coloring-level-10-face ((t :foreground "#dca3a3"))))
+(setq context-coloring-maximum-face 10)
+```
+
+[See here](https://gist.github.com/jacksonrayhamilton/6b89ca3b85182c490816) for
+some color schemes for popular custom themes.
+
+## Options
 
 - `context-coloring-syntactic-comments` (default: `t`): If non-nil, also color
   comments using `font-lock`.
@@ -55,30 +77,3 @@ init file:
   buffer update and colorization.
 - `context-coloring-javascript-block-scopes` (default: `nil`): If non-nil, also
   color block scopes in the scope hierarchy in JavaScript.
-
-### Color Schemes
-
-Color schemes for custom themes are automatically applied when those themes are
-active.  Built-in theme support is available for: `ample`, `anti-zenburn`,
-`grandshell`, `leuven`, `monokai`, `solarized`, `spacegray`, `tango` and
-`zenburn`.
-
-You can define your own theme colors too:
-
-```lisp
-(context-coloring-define-theme
- 'zenburn
- :colors '("#dcdccc"
-           "#93e0e3"
-           "#bfebbf"
-           "#f0dfaf"
-           "#dfaf8f"
-           "#cc9393"
-           "#dc8cc3"
-           "#94bff3"
-           "#9fc59f"
-           "#d0bf8f"
-           "#dca3a3"))
-```
-
-See `C-h f context-coloring-define-theme` for more info on theme parameters.

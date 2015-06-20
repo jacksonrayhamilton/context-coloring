@@ -59,18 +59,16 @@ buffer."
                                                    &key extension
                                                    &key no-fixture
                                                    &key enable-context-coloring-mode
-                                                   &key get-args
                                                    &key before-each
                                                    &key after-each)
   "Define a deftest defmacro for tests prefixed with NAME.  MODE
 is called to set up tests' environments.  EXTENSION denotes the
 suffix for tests' fixture files.  If NO-FIXTURE is non-nil, don't
 use a fixture.  If ENABLE-CONTEXT-COLORING-MODE is non-nil,
-`context-coloring-mode' is activated before tests.  GET-ARGS
-provides arguments to apply to BEFORE-EACH, AFTER-EACH, and each
-tests' body, before and after functions.  Functions BEFORE-EACH
-and AFTER-EACH run before the major mode is activated before each
-test, and after each test, even if an error is signaled."
+`context-coloring-mode' is activated before tests.  Functions
+BEFORE-EACH and AFTER-EACH run before the major mode is activated
+before each test, and after each test, even if an error is
+signaled."
   (declare (indent defun))
   (let ((macro-name (intern (format "context-coloring-test-deftest%s"
                                     (cond
@@ -86,10 +84,6 @@ test, and after each test, even if an error is signaled."
        ;; Commas in nested backquotes are not evaluated.  Binding the variables
        ;; here is probably the cleanest workaround.
        (let ((mode ,mode)
-             (get-args ',(cond
-                          (get-args get-args)
-                          (t '(lambda () (list)))))
-             (args (make-symbol "args"))
              (before-each ',before-each)
              (after-each ',after-each)
              (test-name (intern (format ,(format "%s-%%s"
@@ -102,18 +96,17 @@ test, and after each test, even if an error is signaled."
                        (t (format ,(format "./fixtures/%%s.%s" extension) name)))))
          ,@`((let ((enable-context-coloring-mode ,enable-context-coloring-mode))
                `(ert-deftest ,test-name ()
-                  (let ((,args (funcall ,get-args)))
-                    (context-coloring-test-with-fixture
-                     ,fixture
-                     (when ,before-each (apply ,before-each ,args))
-                     (,mode)
-                     (when ,before (apply ,before ,args))
-                     (when ,enable-context-coloring-mode (context-coloring-mode))
-                     (unwind-protect
-                         (progn
-                           (apply ,body ,args))
-                       (when ,after (apply ,after ,args))
-                       (when ,after-each (apply ,after-each ,args))))))))))))
+                  (context-coloring-test-with-fixture
+                   ,fixture
+                   (when ,before-each (funcall ,before-each))
+                   (,mode)
+                   (when ,before (funcall ,before))
+                   (when ,enable-context-coloring-mode (context-coloring-mode))
+                   (unwind-protect
+                       (progn
+                         (funcall ,body))
+                     (when ,after (funcall ,after))
+                     (when ,after-each (funcall ,after-each)))))))))))
 
 (context-coloring-test-define-deftest nil
   :mode #'fundamental-mode
@@ -135,18 +128,6 @@ test, and after each test, even if an error is signaled."
 (context-coloring-test-define-deftest eval-expression
   :mode #'fundamental-mode
   :no-fixture t)
-
-(context-coloring-test-define-deftest define-theme
-  :mode #'fundamental-mode
-  :no-fixture t
-  :get-args (lambda ()
-              (list (context-coloring-test-get-next-theme)))
-  :after-each (lambda (theme)
-                (setq context-coloring-maximum-face 7)
-                (setq context-coloring-original-maximum-face
-                      context-coloring-maximum-face)
-                (disable-theme theme)
-                (context-coloring-test-kill-buffer "*Warnings*")))
 
 
 ;;; Assertion functions
@@ -192,15 +173,6 @@ test, and after each test, even if an error is signaled."
              "Expected buffer `%s' not to have message \"%s\", "
              "but it did")
             buffer expected)))))))
-
-(defun context-coloring-test-assert-no-message (buffer)
-  "Assert that BUFFER has no message."
-  (when (get-buffer buffer)
-    (ert-fail (format (concat "Expected buffer `%s' to have no messages, "
-                              "but it did: `%s'")
-                      buffer
-                      (with-current-buffer buffer
-                        (buffer-string))))))
 
 (defun context-coloring-test-assert-error (body error-message)
   "Assert that BODY signals ERROR-MESSAGE."
@@ -324,364 +296,6 @@ test, and after each test, even if an error is signaled."
         (ert-fail "Expected teardown function to have been called, but it wasn't.")))))
 
 
-;;; Theme tests
-
-(defvar context-coloring-test-theme-index 0
-  "Unique index for unique theme names.")
-
-(defun context-coloring-test-get-next-theme ()
-  "Return a unique symbol for a throwaway theme."
-  (prog1
-      (intern (format "context-coloring-test-theme-%s"
-                      context-coloring-test-theme-index))
-    (setq context-coloring-test-theme-index
-          (+ context-coloring-test-theme-index 1))))
-
-(defun context-coloring-test-assert-face (level foreground &optional negate)
-  "Assert that a face for LEVEL exists and that its `:foreground'
-is FOREGROUND, or the inverse if NEGATE is non-nil."
-  (let* ((face (context-coloring-level-face level))
-         actual-foreground)
-    (when (not (or negate
-                   face))
-      (ert-fail (format (concat "Expected face for level `%s' to exist; "
-                                "but it didn't")
-                        level)))
-    (setq actual-foreground (face-attribute face :foreground))
-    (when (funcall (if negate #'identity #'not)
-                   (string-equal foreground actual-foreground))
-      (ert-fail (format (concat "Expected face for level `%s' "
-                                "%sto have foreground `%s'; "
-                                "but it %s.")
-                        level
-                        (if negate "not " "") foreground
-                        (if negate
-                            "did" (format "was `%s'" actual-foreground)))))))
-
-(defun context-coloring-test-assert-not-face (&rest arguments)
-  "Assert that LEVEL does not have a face with `:foreground'
-FOREGROUND.  Apply ARGUMENTS to
-`context-coloring-test-assert-face', see that function."
-  (apply #'context-coloring-test-assert-face
-         (append arguments '(t))))
-
-(defun context-coloring-test-assert-theme-originally-set-p
-    (settings &optional negate)
-  "Assert that `context-coloring-theme-originally-set-p' will
-return t for a theme with SETTINGS, or the inverse if NEGATE is
-non-nil."
-  (let ((theme (context-coloring-test-get-next-theme)))
-    (put theme 'theme-settings settings)
-    (when (funcall (if negate #'identity #'not)
-                   (context-coloring-theme-originally-set-p theme))
-      (ert-fail (format (concat "Expected theme `%s' with settings `%s' "
-                                "%sto be considered to have defined a level, "
-                                "but it %s.")
-                        theme settings
-                        (if negate "not " "")
-                        (if negate "was" "wasn't"))))))
-
-(defun context-coloring-test-assert-not-theme-originally-set-p (&rest arguments)
-  "Assert that `context-coloring-theme-originally-set-p' does not
-return t for a theme with SETTINGS.  Apply ARGUMENTS to
-`context-coloring-test-assert-theme-originally-set-p', see that
-function."
-  (apply #'context-coloring-test-assert-theme-originally-set-p
-         (append arguments '(t))))
-
-(context-coloring-test-deftest theme-originally-set-p
-  (lambda ()
-    (context-coloring-test-assert-theme-originally-set-p
-     '((theme-face context-coloring-level-0-face)))
-    (context-coloring-test-assert-theme-originally-set-p
-     '((theme-face face)
-       (theme-face context-coloring-level-0-face)))
-    (context-coloring-test-assert-theme-originally-set-p
-     '((theme-face context-coloring-level-0-face)
-       (theme-face face)))
-    (context-coloring-test-assert-not-theme-originally-set-p
-     '((theme-face face)))))
-
-(defun context-coloring-test-assert-theme-settings-highest-level
-    (settings expected-level)
-  "Assert that a theme with SETTINGS has the highest level
-EXPECTED-LEVEL."
-  (let ((theme (context-coloring-test-get-next-theme)))
-    (put theme 'theme-settings settings)
-    (context-coloring-test-assert-theme-highest-level theme expected-level)))
-
-(defun context-coloring-test-assert-theme-highest-level
-    (theme expected-level &optional negate)
-  "Assert that THEME has the highest level EXPECTED-LEVEL, or the
-inverse if NEGATE is non-nil."
-  (let ((highest-level (context-coloring-theme-highest-level theme)))
-    (when (funcall (if negate #'identity #'not) (eq highest-level expected-level))
-      (ert-fail (format (concat "Expected theme with settings `%s' "
-                                "%sto have a highest level of `%s', "
-                                "but it %s.")
-                        (get theme 'theme-settings)
-                        (if negate "not " "") expected-level
-                        (if negate "did" (format "was %s" highest-level)))))))
-
-(defun context-coloring-test-assert-theme-not-highest-level (&rest arguments)
-  "Assert that THEME's highest level is not EXPECTED-LEVEL.
-Apply ARGUMENTS to
-`context-coloring-test-assert-theme-highest-level', see that
-function."
-  (apply #'context-coloring-test-assert-theme-highest-level
-         (append arguments '(t))))
-
-(context-coloring-test-deftest theme-highest-level
-  (lambda ()
-    (context-coloring-test-assert-theme-settings-highest-level
-     '((theme-face foo))
-     -1)
-    (context-coloring-test-assert-theme-settings-highest-level
-     '((theme-face context-coloring-level-0-face))
-     0)
-    (context-coloring-test-assert-theme-settings-highest-level
-     '((theme-face context-coloring-level-1-face))
-     1)
-    (context-coloring-test-assert-theme-settings-highest-level
-     '((theme-face context-coloring-level-1-face)
-       (theme-face context-coloring-level-0-face))
-     1)
-    (context-coloring-test-assert-theme-settings-highest-level
-     '((theme-face context-coloring-level-0-face)
-       (theme-face context-coloring-level-1-face))
-     1)))
-
-(defun context-coloring-test-kill-buffer (buffer)
-  "Kill BUFFER if it exists."
-  (when (get-buffer buffer) (kill-buffer buffer)))
-
-(defun context-coloring-test-deftheme (theme)
-  "Dynamically define theme THEME."
-  (eval (macroexpand `(deftheme ,theme))))
-
-(context-coloring-test-deftest-define-theme additive
-  (lambda (theme)
-    (context-coloring-test-deftheme theme)
-    (context-coloring-define-theme
-     theme
-     :colors '("#aaaaaa"
-               "#bbbbbb"))
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (enable-theme theme)
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (context-coloring-test-assert-face 0 "#aaaaaa")
-    (context-coloring-test-assert-face 1 "#bbbbbb")))
-
-(defun context-coloring-test-assert-defined-warning (theme)
-  "Assert that a warning about colors already being defined for
-theme THEME is signaled."
-  (context-coloring-test-assert-message
-   (format (concat "Warning (emacs): Context coloring colors for theme "
-                   "`%s' are already defined")
-           theme)
-   "*Warnings*"))
-
-(context-coloring-test-deftest-define-theme unintentional-override
-  (lambda (theme)
-    (context-coloring-test-deftheme theme)
-    (custom-theme-set-faces
-     theme
-     '(context-coloring-level-0-face ((t (:foreground "#aaaaaa"))))
-     '(context-coloring-level-1-face ((t (:foreground "#bbbbbb")))))
-    (context-coloring-define-theme
-     theme
-     :colors '("#cccccc"
-               "#dddddd"))
-    (context-coloring-test-assert-defined-warning theme)
-    (context-coloring-test-kill-buffer "*Warnings*")
-    (enable-theme theme)
-    (context-coloring-test-assert-defined-warning theme)
-    (context-coloring-test-assert-face 0 "#cccccc")
-    (context-coloring-test-assert-face 1 "#dddddd")))
-
-(context-coloring-test-deftest-define-theme intentional-override
-  (lambda (theme)
-    (context-coloring-test-deftheme theme)
-    (custom-theme-set-faces
-     theme
-     '(context-coloring-level-0-face ((t (:foreground "#aaaaaa"))))
-     '(context-coloring-level-1-face ((t (:foreground "#bbbbbb")))))
-    (context-coloring-define-theme
-     theme
-     :override t
-     :colors '("#cccccc"
-               "#dddddd"))
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (enable-theme theme)
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (context-coloring-test-assert-face 0 "#cccccc")
-    (context-coloring-test-assert-face 1 "#dddddd")))
-
-(context-coloring-test-deftest-define-theme pre-recede
-  (lambda (theme)
-    (context-coloring-define-theme
-     theme
-     :recede t
-     :colors '("#aaaaaa"
-               "#bbbbbb"))
-    (context-coloring-test-deftheme theme)
-    (custom-theme-set-faces
-     theme
-     '(context-coloring-level-0-face ((t (:foreground "#cccccc"))))
-     '(context-coloring-level-1-face ((t (:foreground "#dddddd")))))
-    (enable-theme theme)
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (context-coloring-test-assert-face 0 "#cccccc")
-    (context-coloring-test-assert-face 1 "#dddddd")))
-
-(context-coloring-test-deftest-define-theme pre-recede-delayed-application
-  (lambda (theme)
-    (context-coloring-define-theme
-     theme
-     :recede t
-     :colors '("#aaaaaa"
-               "#bbbbbb"))
-    (context-coloring-test-deftheme theme)
-    (enable-theme theme)
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (context-coloring-test-assert-face 0 "#aaaaaa")
-    (context-coloring-test-assert-face 1 "#bbbbbb")))
-
-(context-coloring-test-deftest-define-theme post-recede
-  (lambda (theme)
-    (context-coloring-test-deftheme theme)
-    (custom-theme-set-faces
-     theme
-     '(context-coloring-level-0-face ((t (:foreground "#aaaaaa"))))
-     '(context-coloring-level-1-face ((t (:foreground "#bbbbbb")))))
-    (context-coloring-define-theme
-     theme
-     :recede t
-     :colors '("#cccccc"
-               "#dddddd"))
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (context-coloring-test-assert-face 0 "#aaaaaa")
-    (context-coloring-test-assert-face 1 "#bbbbbb")
-    (enable-theme theme)
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (context-coloring-test-assert-face 0 "#aaaaaa")
-    (context-coloring-test-assert-face 1 "#bbbbbb")))
-
-(context-coloring-test-deftest-define-theme recede-not-defined
-  (lambda (theme)
-    (context-coloring-test-deftheme theme)
-    (custom-theme-set-faces
-     theme
-     '(foo-face ((t (:foreground "#ffffff")))))
-    (context-coloring-define-theme
-     theme
-     :recede t
-     :colors '("#aaaaaa"
-               "#bbbbbb"))
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (context-coloring-test-assert-face 0 "#aaaaaa")
-    (context-coloring-test-assert-face 1 "#bbbbbb")
-    (enable-theme theme)
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (context-coloring-test-assert-face 0 "#aaaaaa")
-    (context-coloring-test-assert-face 1 "#bbbbbb")))
-
-(context-coloring-test-deftest-define-theme unintentional-obstinance
-  (lambda (theme)
-    (context-coloring-define-theme
-     theme
-     :colors '("#aaaaaa"
-               "#bbbbbb"))
-    (context-coloring-test-deftheme theme)
-    (custom-theme-set-faces
-     theme
-     '(context-coloring-level-0-face ((t (:foreground "#cccccc"))))
-     '(context-coloring-level-1-face ((t (:foreground "#dddddd")))))
-    (enable-theme theme)
-    (context-coloring-test-assert-defined-warning theme)
-    (context-coloring-test-assert-face 0 "#aaaaaa")
-    (context-coloring-test-assert-face 1 "#bbbbbb")))
-
-(context-coloring-test-deftest-define-theme intentional-obstinance
-  (lambda (theme)
-    (context-coloring-define-theme
-     theme
-     :override t
-     :colors '("#aaaaaa"
-               "#bbbbbb"))
-    (context-coloring-test-deftheme theme)
-    (custom-theme-set-faces
-     theme
-     '(context-coloring-level-0-face ((t (:foreground "#cccccc"))))
-     '(context-coloring-level-1-face ((t (:foreground "#dddddd")))))
-    (enable-theme theme)
-    (context-coloring-test-assert-no-message "*Warnings*")
-    (context-coloring-test-assert-face 0 "#aaaaaa")
-    (context-coloring-test-assert-face 1 "#bbbbbb")))
-
-(defun context-coloring-test-assert-maximum-face (maximum &optional negate)
-  "Assert that `context-coloring-maximum-face' is MAXIMUM, or the
-inverse if NEGATE is non-nil."
-  (when (funcall (if negate #'identity #'not)
-                 (eq context-coloring-maximum-face maximum))
-    (ert-fail (format (concat "Expected `context-coloring-maximum-face' "
-                              "%sto be `%s', "
-                              "but it %s.")
-                      (if negate "not " "") maximum
-                      (if negate
-                          "was"
-                        (format "was `%s'" context-coloring-maximum-face))))))
-
-(defun context-coloring-test-assert-not-maximum-face (&rest arguments)
-  "Assert that `context-coloring-maximum-face' is not MAXIMUM.
-Apply ARGUMENTS to `context-coloring-test-assert-maximum-face',
-see that function."
-  (apply #'context-coloring-test-assert-maximum-face
-         (append arguments '(t))))
-
-(context-coloring-test-deftest-define-theme disable-cascade
-  (lambda (theme)
-    (let ((maximum-face-value 9999))
-      (setq context-coloring-maximum-face maximum-face-value)
-      (context-coloring-test-deftheme theme)
-      (context-coloring-define-theme
-       theme
-       :colors '("#aaaaaa"
-                 "#bbbbbb"))
-      (let ((second-theme (context-coloring-test-get-next-theme)))
-        (context-coloring-test-deftheme second-theme)
-        (context-coloring-define-theme
-         second-theme
-         :colors '("#cccccc"
-                   "#dddddd"
-                   "#eeeeee"))
-        (let ((third-theme (context-coloring-test-get-next-theme)))
-          (context-coloring-test-deftheme third-theme)
-          (context-coloring-define-theme
-           third-theme
-           :colors '("#111111"
-                     "#222222"
-                     "#333333"
-                     "#444444"))
-          (enable-theme theme)
-          (enable-theme second-theme)
-          (enable-theme third-theme)
-          (disable-theme third-theme)
-          (context-coloring-test-assert-face 0 "#cccccc")
-          (context-coloring-test-assert-face 1 "#dddddd")
-          (context-coloring-test-assert-face 2 "#eeeeee")
-          (context-coloring-test-assert-maximum-face 2))
-        (disable-theme second-theme)
-        (context-coloring-test-assert-face 0 "#aaaaaa")
-        (context-coloring-test-assert-face 1 "#bbbbbb")
-        (context-coloring-test-assert-maximum-face 1))
-      (disable-theme theme)
-      (context-coloring-test-assert-not-face 0 "#aaaaaa")
-      (context-coloring-test-assert-not-face 1 "#bbbbbb")
-      (context-coloring-test-assert-maximum-face
-       maximum-face-value))))
-
-
 ;;; Coloring tests
 
 (defun context-coloring-test-assert-position-level (position level)
@@ -691,7 +305,7 @@ see that function."
     (when (not (and face
                     (let* ((face-string (symbol-name face))
                            (matches (string-match
-                                     context-coloring-level-face-regexp
+                                     "context-coloring-level-\\([[:digit:]]+\\)-face"
                                      face-string)))
                       (when matches
                         (setq actual-level (string-to-number
