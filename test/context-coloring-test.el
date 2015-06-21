@@ -259,7 +259,7 @@ signaled."
   (lambda ()
     (context-coloring-mode)
     (context-coloring-test-assert-message
-     "Context coloring is not available for this major mode"
+     "Context coloring is unavailable here"
      "*Messages*")))
 
 (context-coloring-test-deftest derived-mode
@@ -267,8 +267,21 @@ signaled."
     (lisp-interaction-mode)
     (context-coloring-mode)
     (context-coloring-test-assert-not-message
-     "Context coloring is not available for this major mode"
+     "Context coloring is unavailable here"
      "*Messages*")))
+
+(context-coloring-test-deftest unavailable-message-ignored
+  (lambda ()
+    (minibuffer-with-setup-hook
+        (lambda ()
+          (context-coloring-mode)
+          (context-coloring-test-assert-not-message
+           "Context coloring is unavailable here"
+           "*Messages*"))
+      (execute-kbd-macro
+       (vconcat
+        [?\C-u]
+        [?\M-!])))))
 
 (context-coloring-test-define-derived-mode define-dispatch-error)
 

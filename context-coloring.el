@@ -1186,6 +1186,22 @@ override `context-coloring-default-delay'.
  :setup #'context-coloring-setup-idle-change-detection
  :teardown #'context-coloring-teardown-idle-change-detection)
 
+(defvar context-coloring-ignore-unavailable-predicates
+  (list
+   #'minibufferp)
+  "Cases when \"unavailable\" messages are silenced.
+Necessary in editing states where coloring is only sometimes
+permissible.")
+
+(defun context-coloring-ignore-unavailable-message-p ()
+  "Determine if the unavailable message should be silenced."
+  (let ((predicates context-coloring-ignore-unavailable-predicates)
+        (ignore-p nil))
+    (while (and predicates
+                (not ignore-p))
+      (setq ignore-p (funcall (pop predicates))))
+    ignore-p))
+
 
 ;;; Minor mode
 
@@ -1233,8 +1249,8 @@ Feature inspired by Douglas Crockford."
           ;; Colorize once initially.
           (let ((context-coloring-parse-interruptable-p nil))
             (context-coloring-colorize))))
-       (t
-        (message "Context coloring is not available for this major mode")))))
+       ((not (context-coloring-ignore-unavailable-message-p))
+        (message "Context coloring is unavailable here")))))
    (t
     (let ((dispatch (context-coloring-get-current-dispatch)))
       (when dispatch
