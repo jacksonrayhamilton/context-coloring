@@ -26,7 +26,6 @@ ${DEPENDENCIES}:
 	${CASK}
 
 test: ${DEPENDENCIES}
-	${KILL_SCOPIFIER}
 	${CASK} exec ${EMACS} -Q -batch \
 	-L . \
 	-l ert \
@@ -36,7 +35,6 @@ test: ${DEPENDENCIES}
 	-f ert-run-tests-batch-and-exit
 
 cover: ${DEPENDENCIES}
-	${KILL_SCOPIFIER}
 	${CASK} exec ${EMACS} -Q -batch \
 	-L . \
 	-l ert \

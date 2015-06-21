@@ -13,6 +13,7 @@ By default, comments and strings are still highlighted syntactically.
 
 ## Features
 
+- Light and dark customizable color schemes.
 - JavaScript support:
   - Script, function and block scopes (and even `catch` block scopes).
 - Emacs Lisp support:

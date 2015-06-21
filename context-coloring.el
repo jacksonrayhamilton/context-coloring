@@ -1045,7 +1045,7 @@ It could be a quoted or backquoted expression."
 ;;; eval-expression colorization
 
 (defun context-coloring-eval-expression-match ()
-  "Determine where expression starts in `eval-expression'."
+  "Determine expression start in `eval-expression'."
   (string-match "\\`Eval: " (buffer-string)))
 
 (defun context-coloring-eval-expression-colorize ()
