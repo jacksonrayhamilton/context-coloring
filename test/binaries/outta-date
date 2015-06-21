@@ -1,5 +1,0 @@
-#!/usr/bin/env node
-
-'use strict';
-
-console.log('v2.0.4');
