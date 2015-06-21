@@ -1044,6 +1044,10 @@ It could be a quoted or backquoted expression."
 
 ;;; eval-expression colorization
 
+(defun context-coloring-eval-expression-match ()
+  "Determine where expression starts in `eval-expression'."
+  (string-match "\\`Eval: " (buffer-string)))
+
 (defun context-coloring-eval-expression-colorize ()
   "Color the `eval-expression' minibuffer prompt as elisp."
   (interactive)
@@ -1051,7 +1055,7 @@ It could be a quoted or backquoted expression."
    (lambda ()
      (context-coloring-elisp-colorize-region-initially
       (progn
-        (string-match "\\`Eval: " (buffer-string))
+        (context-coloring-eval-expression-match)
         (1+ (match-end 0)))
       (point-max)))))
 
@@ -1171,7 +1175,8 @@ override `context-coloring-default-delay'.
 ;; rely on this predicate instead.
 (defun context-coloring-eval-expression-predicate ()
   "Non-nil if the minibuffer is for `eval-expression'."
-  (eq this-command 'eval-expression))
+  ;; Kinda better than checking `this-command', because `this-command' changes.
+  (context-coloring-eval-expression-match))
 
 (context-coloring-define-dispatch
  'eval-expression
