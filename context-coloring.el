@@ -46,14 +46,39 @@
 
 ;;; Faces
 
-;; Create placeholder faces for users to populate.
-(dotimes (level 25)
+(defun context-coloring-defface (level light dark tty)
+  "Define a face for LEVEL with LIGHT, DARK and TTY colors."
   (let ((face (intern (format "context-coloring-level-%s-face" level)))
         (doc (format "Context coloring face, level %s." level)))
+    (custom-declare-face
+     face
+     `((((type tty)) (:foreground ,tty))
+       (((background light)) (:foreground ,light))
+       (((background dark)) (:foreground ,dark)))
+     doc
+     :group 'context-coloring)))
+
+;; Provide some default colors based off Emacs' defaults.
+(context-coloring-defface 0 "#000000" "#ffffff" nil)
+(context-coloring-defface 1 "#008b8b" "#00ffff" "yellow")
+(context-coloring-defface 2 "#0000ff" "#87cefa" "green")
+(context-coloring-defface 3 "#483d8b" "#b0c4de" "cyan")
+(context-coloring-defface 4 "#a020f0" "#eedd82" "blue")
+(context-coloring-defface 5 "#a0522d" "#98fb98" "magenta")
+(context-coloring-defface 6 "#228b22" "#7fffd4" "red")
+(context-coloring-defface 7 "#3f3f3f" "#cdcdcd" nil)
+
+(defconst context-coloring-default-maximum-face 7)
+
+;; Create placeholder faces for users and theme authors.
+(dotimes (level 18)
+  (let* ((level (+ level 8))
+         (face (intern (format "context-coloring-level-%s-face" level)))
+         (doc (format "Context coloring face, level %s." level)))
     (custom-declare-face face nil doc :group 'context-coloring)))
 
-(defvar context-coloring-maximum-face 24
-  "Index of the highest face available for coloring.")
+(defvar-local context-coloring-maximum-face nil
+  "Dynamic index of the highest face available for coloring.")
 
 (defsubst context-coloring-level-face (level)
   "Return the symbol for a face with LEVEL."
@@ -65,6 +90,50 @@
   "Return the symbol for a face with LEVEL, bounded by
 `context-coloring-maximum-face'."
   (context-coloring-level-face (min level context-coloring-maximum-face)))
+
+(defconst context-coloring-level-face-regexp
+  "context-coloring-level-\\([[:digit:]]+\\)-face"
+  "Extract a level from a face.")
+
+(defun context-coloring-theme-highest-level (theme)
+  "Return the highest coloring level for THEME, or -1."
+  (let* ((settings (get theme 'theme-settings))
+         (tail settings)
+         face-string
+         number
+         (found -1))
+    (while tail
+      (and (eq (nth 0 (car tail)) 'theme-face)
+           (setq face-string (symbol-name (nth 1 (car tail))))
+           (string-match
+            context-coloring-level-face-regexp
+            face-string)
+           (setq number (string-to-number
+                         (substring face-string
+                                    (match-beginning 1)
+                                    (match-end 1))))
+           (> number found)
+           (setq found number))
+      (setq tail (cdr tail)))
+    found))
+
+(defun context-coloring-update-maximum-face ()
+  "Save the highest possible face for the current theme."
+  (let ((themes (append custom-enabled-themes '(user)))
+        (continue t)
+        theme
+        highest-level)
+    (while continue
+      (setq theme (car themes))
+      (setq themes (cdr themes))
+      (setq highest-level (context-coloring-theme-highest-level theme))
+      (setq continue (and themes (= highest-level -1))))
+    (setq context-coloring-maximum-face
+          (cond
+           ((= highest-level -1)
+            context-coloring-default-maximum-face)
+           (t
+            highest-level)))))
 
 
 ;;; Change detection
@@ -1080,6 +1149,7 @@ the current buffer, then execute it."
 (defun context-coloring-colorize ()
   "Color the current buffer by function context."
   (interactive)
+  (context-coloring-update-maximum-face)
   (context-coloring-dispatch))
 
 (defun context-coloring-colorize-with-buffer (buffer)
@@ -1145,11 +1215,10 @@ comments and strings, is still colored with `font-lock'.
 The entire buffer is colored initially.  Changes to the buffer
 trigger recoloring.
 
-Certain custom themes have predefined colors from their palettes
-to use for coloring.  See `context-coloring-theme-hash-table' for
-the supported themes.  If the currently-enabled custom theme is
-not among these, you can define colors for it with
-`context-coloring-define-theme', which see.
+Define your own colors by customizing faces like
+`context-coloring-level-N-face', where N is a number starting
+from 0.  If no face is found on a custom theme nor the `user'
+theme, the defaults are used.
 
 New language / major mode support can be added with
 `context-coloring-define-dispatch', which see.

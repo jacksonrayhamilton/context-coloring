@@ -42,8 +42,10 @@ then add the following to your init file:
 
 ## Color Schemes
 
-There is *no default color scheme*.  Define the colors according to your liking
-by setting the appropriate custom faces and the maximum face:
+You can define your own colors by customizing faces like
+`context-coloring-level-N-face`, where N is a number starting from 0.
+
+These are the colors used in the screenshot above:
 
 ```lisp
 (custom-theme-set-faces
@@ -59,7 +61,6 @@ by setting the appropriate custom faces and the maximum face:
  '(context-coloring-level-8-face  ((t :foreground "#9fc59f")))
  '(context-coloring-level-9-face  ((t :foreground "#d0bf8f")))
  '(context-coloring-level-10-face ((t :foreground "#dca3a3"))))
-(setq context-coloring-maximum-face 10)
 ```
 
 [See here](https://gist.github.com/jacksonrayhamilton/6b89ca3b85182c490816) for

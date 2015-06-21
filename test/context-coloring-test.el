@@ -304,6 +304,52 @@ which don't seem to have lexical binding.")
       (when (not torn-down)
         (ert-fail "Expected teardown function to have been called, but it wasn't.")))))
 
+(defun context-coloring-test-assert-maximum-face (expected)
+  "Assert that `context-coloring-maximum-face' is EXPECTED."
+  (when (not (= context-coloring-maximum-face expected))
+    (ert-fail (format "Expected maximum face to be %s, but it was %s"
+                      expected context-coloring-maximum-face))))
+
+(deftheme context-coloring-test-custom-theme)
+
+(context-coloring-test-define-derived-mode custom-theme)
+
+(context-coloring-test-deftest custom-theme
+  (lambda ()
+    (custom-theme-set-faces
+     'context-coloring-test-custom-theme
+     '(context-coloring-level-0-face ((t :foreground "#aaaaaa")))
+     '(context-coloring-level-1-face ((t :foreground "#bbbbbb"))))
+    (custom-set-faces
+     '(context-coloring-level-0-face ((t :foreground "#aaaaaa"))))
+    (enable-theme 'context-coloring-test-custom-theme)
+    (context-coloring-define-dispatch
+     'theme
+     :modes '(context-coloring-test-custom-theme-mode)
+     :colorizer #'ignore)
+    (context-coloring-test-custom-theme-mode)
+    (context-coloring-colorize)
+    (context-coloring-test-assert-maximum-face 1)
+    ;; This theme should now be ignored in favor of the `user' theme.
+    (custom-theme-reset-faces
+     'context-coloring-test-custom-theme
+     '(context-coloring-level-0-face nil)
+     '(context-coloring-level-1-face nil))
+    (context-coloring-colorize)
+    ;; Maximum face for `user'.
+    (context-coloring-test-assert-maximum-face 0)
+    ;; Now `user' should be ignored too.
+    (custom-reset-faces
+     '(context-coloring-level-0-face nil))
+    (context-coloring-colorize)
+    ;; Expect the package's defaults.
+    (context-coloring-test-assert-maximum-face
+     context-coloring-default-maximum-face))
+  :after (lambda ()
+           (custom-reset-faces
+            '(context-coloring-level-0-face nil))
+           (disable-theme 'context-coloring-test-custom-theme)))
+
 
 ;;; Coloring tests
 
@@ -314,7 +360,7 @@ which don't seem to have lexical binding.")
     (when (not (and face
                     (let* ((face-string (symbol-name face))
                            (matches (string-match
-                                     "context-coloring-level-\\([[:digit:]]+\\)-face"
+                                     context-coloring-level-face-regexp
                                      face-string)))
                       (when matches
                         (setq actual-level (string-to-number
