@@ -44,8 +44,7 @@
     (buffer-string)))
 
 (defmacro context-coloring-test-with-fixture (fixture &rest body)
-  "With the relative FIXTURE, evaluate BODY in a temporary
-buffer."
+  "With relative FIXTURE, evaluate BODY in a temporary buffer."
   `(with-temp-buffer
      (progn
        (insert (context-coloring-test-read-file ,fixture))
@@ -199,8 +198,7 @@ signaled."
     `(define-derived-mode ,name fundamental-mode "Testing")))
 
 (defvar context-coloring-test-caused-p nil
-  "Dumb flag tracking for lambdas inside old advice definitions
-which don't seem to have lexical binding.")
+  "If non-nil, coloring was caused.")
 
 (defmacro context-coloring-test-assert-causes-coloring (&rest body)
   "Assert that BODY causes coloring."
@@ -219,6 +217,7 @@ which don't seem to have lexical binding.")
        (ert-fail "Expected to have colorized, but it didn't."))))
 
 (defun context-coloring-test-cleanup-assert-causes-coloring ()
+  "Undo `context-coloring-test-assert-causes-coloring'."
   (ad-unadvise #'context-coloring-colorize)
   (setq context-coloring-test-caused-p nil))
 

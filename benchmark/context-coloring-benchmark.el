@@ -39,8 +39,7 @@
   (expand-file-name path context-coloring-benchmark-path))
 
 (defun context-coloring-benchmark-log-results (result-file fixture statistics)
-  "Log benchmarking results to RESULT-FILE for fixture FIXTURE
-with STATISTICS."
+  "Log results to RESULT-FILE for FIXTURE with STATISTICS."
   (let ((results (prog1
                      (progn
                        (elp-results)
