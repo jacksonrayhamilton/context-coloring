@@ -699,7 +699,8 @@ ssssssssssss0"))
          22 02
          22 222
     2222 1 1 2 2 2 000022
-  1111 1 1 1 0 0 000011")))
+  1111 1 1 1 0 0 000011"))
+  :fixture "let-star.el")
 
 (context-coloring-test-deftest-emacs-lisp cond
   (lambda ()
