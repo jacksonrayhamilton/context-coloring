@@ -5,7 +5,7 @@
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; Version: 7.0.0
 ;; Keywords: convenience faces tools
-;; Package-Requires: ((emacs "24.3") (js2-mode "20150126"))
+;; Package-Requires: ((emacs "24.3") (js2-mode "20150713"))
 ;; URL: https://github.com/jacksonrayhamilton/context-coloring
 
 ;; This file is part of GNU Emacs.
