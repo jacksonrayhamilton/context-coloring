@@ -38,7 +38,8 @@ then add the following to your init file:
 (add-hook 'emacs-lisp-mode-hook #'context-coloring-mode)
 
 ;; eval-expression:
-(add-hook 'minibuffer-setup-hook #'context-coloring-mode)
+(add-hook 'eval-expression-minibuffer-setup-hook #'context-coloring-mode) ; 24.4+
+(add-hook 'minibuffer-setup-hook #'context-coloring-mode)                 ; 24.3
 ```
 
 ## Color Schemes
