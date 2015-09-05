@@ -297,8 +297,6 @@ are scoped to a file (as in Node.js), set this to `1'."
   :safe #'integerp
   :group 'context-coloring)
 
-(make-variable-buffer-local 'context-coloring-initial-level)
-
 
 ;;; js2-mode colorization
 
