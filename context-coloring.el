@@ -184,6 +184,7 @@ START, END and LENGTH are recorded for later use."
 
 Increase this if your machine is high-performing.  Decrease it if
 it ain't."
+  :type 'float
   :group 'context-coloring)
 
 (make-obsolete-variable
@@ -248,10 +249,12 @@ it ain't."
 
 (defcustom context-coloring-syntactic-comments t
   "If non-nil, also color comments using `font-lock'."
+  :type 'boolean
   :group 'context-coloring)
 
 (defcustom context-coloring-syntactic-strings t
   "If non-nil, also color strings using `font-lock'."
+  :type 'boolean
   :group 'context-coloring)
 
 (defun context-coloring-font-lock-syntactic-comment-function (state)
@@ -308,6 +311,8 @@ are scoped to a file (as in Node.js), set this to `1'."
 
 The block-scoped `let' and `const' are introduced in ES6.  Enable
 this for ES6 code; disable it elsewhere."
+  :type 'boolean
+  :safe #'booleanp
   :group 'context-coloring)
 
 (make-obsolete-variable
