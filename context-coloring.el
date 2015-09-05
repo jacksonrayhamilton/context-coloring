@@ -285,6 +285,17 @@ MIN defaults to beginning of buffer.  MAX defaults to end."
         (when (eq major-mode 'emacs-lisp-mode)
           (font-lock-fontify-keywords-region min max))))))
 
+(defcustom context-coloring-initial-level 0
+  "Scope level at which to start coloring.
+
+If top-level variables and functions do not become global, but
+are scoped to a file (as in Node.js), set this to `1'."
+  :type 'integer
+  :safe #'integerp
+  :group 'context-coloring)
+
+(make-variable-buffer-local 'context-coloring-initial-level)
+
 
 ;;; js2-mode colorization
 
@@ -304,11 +315,11 @@ this for ES6 code; disable it elsewhere."
  'context-coloring-javascript-block-scopes
  "7.0.0")
 
-(defsubst context-coloring-js2-scope-level (scope)
-  "Return the level of SCOPE."
+(defsubst context-coloring-js2-scope-level (scope initial)
+  "Return the level of SCOPE, starting from INITIAL."
   (cond ((gethash scope context-coloring-js2-scope-level-hash-table))
         (t
-         (let ((level 0)
+         (let ((level initial)
                (current-scope scope)
                enclosing-scope)
            (while (and current-scope
@@ -365,7 +376,7 @@ this for ES6 code; disable it elsewhere."
           ((js2-scope-p node)
            (context-coloring-js2-colorize-node
             node
-            (context-coloring-js2-scope-level node)))
+            (context-coloring-js2-scope-level node context-coloring-initial-level)))
           ((context-coloring-js2-local-name-node-p node)
            (let* ((enclosing-scope (js2-node-get-enclosing-scope node))
                   (defining-scope (js2-get-defining-scope
@@ -378,7 +389,10 @@ this for ES6 code; disable it elsewhere."
              (when (not (eq defining-scope enclosing-scope))
                (context-coloring-js2-colorize-node
                 node
-                (context-coloring-js2-scope-level defining-scope))))))
+                ;; Use `0' as an initial level so global variables are always at
+                ;; the highest level (even if `context-coloring-initial-level'
+                ;; specifies an initial level for the rest of the code).
+                (context-coloring-js2-scope-level defining-scope 0))))))
          ;; The `t' indicates to search children.
          t)))
     (context-coloring-colorize-comments-and-strings)))

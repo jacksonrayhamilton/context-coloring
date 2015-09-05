@@ -602,6 +602,16 @@ ssssssssssss0"))
   ;; As long as `add-text-properties' doesn't signal an error, this test passes.
   (lambda ()))
 
+(context-coloring-test-deftest-javascript initial-level
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+111 1 1 00000001xxx11"))
+  :fixture "initial-level.js"
+  :before (lambda ()
+            (setq context-coloring-initial-level 1))
+  :after (lambda ()
+           (setq context-coloring-initial-level 0)))
+
 (context-coloring-test-deftest-emacs-lisp defun
   (lambda ()
     (context-coloring-test-assert-coloring "
