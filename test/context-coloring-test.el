@@ -365,21 +365,21 @@ signaled."
 
 ;;; Coloring tests
 
+(defun context-coloring-test-face-to-level (face)
+  "Convert FACE symbol to its corresponding level, or nil."
+  (when face
+    (let* ((face-string (symbol-name face))
+           (matches (string-match
+                     context-coloring-level-face-regexp
+                     face-string)))
+      (when matches
+        (string-to-number (match-string 1 face-string))))))
+
 (defun context-coloring-test-assert-position-level (position level)
   "Assert that POSITION has LEVEL."
-  (let ((face (get-text-property position 'face))
-        actual-level)
-    (when (not (and face
-                    (let* ((face-string (symbol-name face))
-                           (matches (string-match
-                                     context-coloring-level-face-regexp
-                                     face-string)))
-                      (when matches
-                        (setq actual-level (string-to-number
-                                            (substring face-string
-                                                       (match-beginning 1)
-                                                       (match-end 1))))
-                        (= level actual-level)))))
+  (let* ((face (get-text-property position 'face))
+         (actual-level (context-coloring-test-face-to-level face)))
+    (when (not (= level actual-level))
       (ert-fail (format (concat "Expected level at position %s, "
                                 "which is \"%s\", to be %s; "
                                 "but it was %s")
