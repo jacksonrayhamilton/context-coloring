@@ -298,7 +298,79 @@ are scoped to a file (as in Node.js), set this to `1'."
   :group 'context-coloring)
 
 
-;;; js2-mode colorization
+;;; Node.js colorization
+
+(defconst context-coloring-node-comment-regexp
+  (concat
+   ;; Ensure the "//" or "/*" comment starts with the directive.
+   "\\(//[[:space:]]*\\|/\\*[[:space:]]*\\)"
+   ;; Support multiple directive formats.
+   "\\("
+   ;; JSLint and JSHint support a JSON-like format.
+   "\\(jslint\\|jshint\\)[[:space:]].*?node:[[:space:]]*true"
+   "\\|"
+   ;; ESLint just specifies the option name.
+   "eslint-env[[:space:]].*?node"
+   "\\)")
+  "Match a comment body hinting at a Node.js program.")
+
+(defun context-coloring-node-program-p ()
+  "Guess whether the current file is a Node.js program."
+  (or
+   ;; A shebang is a pretty obvious giveaway.
+   (string-equal
+    "node"
+    (save-excursion
+      (goto-char (point-min))
+      (when (looking-at auto-mode-interpreter-regexp)
+        (match-string 2))))
+   ;; Otherwise, perform static analysis.
+   (catch 'node-program-p
+     (js2-visit-ast
+      js2-mode-ast
+      (lambda (node end-p)
+        (when (null end-p)
+          (when
+              (cond
+               ;; Infer based on inline linter configuration.
+               ((js2-comment-node-p node)
+                (string-match-p
+                 context-coloring-node-comment-regexp
+                 (js2-node-string node)))
+               ;; Infer based on the prescence of certain variables.
+               ((and (js2-name-node-p node)
+                     (let ((parent (js2-node-parent node)))
+                       (not (and (js2-object-prop-node-p parent)
+                                 (eq node (js2-object-prop-node-left parent))))))
+                (let ((name (js2-name-node-name node))
+                      (parent (js2-node-parent node)))
+                  (cond
+                   ;; Check whether this is "exports.something" or
+                   ;; "module.exports".
+                   ((js2-prop-get-node-p parent)
+                    (and
+                     (eq node (js2-prop-get-node-left parent))
+                     (or (string-equal name "exports")
+                         (let* ((property (js2-prop-get-node-right parent))
+                                (property-name (js2-name-node-name property)))
+                           (or (and (string-equal name "module")
+                                    (string-equal property-name "exports")))))))
+                   ;; Check whether it's a "require('module')" call.
+                   ((js2-call-node-p parent)
+                    (or (string-equal name "require")))))))
+            (throw 'node-program-p t))
+          ;; The `t' indicates to search children.
+          t)))
+     ;; Default to returning nil from the catch body.
+     nil)))
+
+(defcustom context-coloring-detect-node t
+  "If non-nil, use file-level scope for variables in Node.js."
+  :type 'boolean
+  :group 'context-coloring)
+
+
+;;; JavaScript colorization
 
 (defvar-local context-coloring-js2-scope-level-hash-table nil
   "Associate `js2-scope' structures and with their scope
@@ -365,7 +437,7 @@ this for ES6 code; disable it elsewhere."
       context-coloring-point-max)
      level)))
 
-(defun context-coloring-js2-colorize ()
+(defun context-coloring-js2-colorize-ast ()
   "Color the buffer using the `js2-mode' abstract syntax tree."
   ;; Reset the hash table; the old one could be obsolete.
   (setq context-coloring-js2-scope-level-hash-table (make-hash-table :test #'eq))
@@ -399,6 +471,17 @@ this for ES6 code; disable it elsewhere."
          ;; The `t' indicates to search children.
          t)))
     (context-coloring-colorize-comments-and-strings)))
+
+(defun context-coloring-js2-colorize ()
+  "Color the buffer using the `js2-mode'."
+  (cond
+   ;; Increase the initial level if we can detect Node.js.
+   ((and context-coloring-detect-node
+         (context-coloring-node-program-p))
+    (let ((context-coloring-initial-level 1))
+      (context-coloring-js2-colorize-ast)))
+   (t
+    (context-coloring-js2-colorize-ast))))
 
 
 ;;; Emacs Lisp colorization
