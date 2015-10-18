@@ -1,3 +1,3 @@
 (function () {
-    var a = require('a');
+    var a = global('a');
 }());

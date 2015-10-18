@@ -298,7 +298,7 @@ are scoped to a file (as in Node.js), set this to `1'."
   :group 'context-coloring)
 
 
-;;; js2-mode colorization
+;;; JavaScript colorization
 
 (defvar-local context-coloring-js2-scope-level-hash-table nil
   "Associate `js2-scope' structures and with their scope
@@ -365,7 +365,7 @@ this for ES6 code; disable it elsewhere."
       context-coloring-point-max)
      level)))
 
-(defun context-coloring-js2-colorize ()
+(defun context-coloring-js2-colorize-ast ()
   "Color the buffer using the `js2-mode' abstract syntax tree."
   ;; Reset the hash table; the old one could be obsolete.
   (setq context-coloring-js2-scope-level-hash-table (make-hash-table :test #'eq))
@@ -399,6 +399,96 @@ this for ES6 code; disable it elsewhere."
          ;; The `t' indicates to search children.
          t)))
     (context-coloring-colorize-comments-and-strings)))
+
+(defconst context-coloring-node-comment-regexp
+  (concat
+   ;; Ensure the "//" or "/*" comment starts with the directive.
+   "\\(//[[:space:]]*\\|/\\*[[:space:]]*\\)"
+   ;; Support multiple directive formats.
+   "\\("
+   ;; JSLint and JSHint support a JSON-like format.
+   "\\(jslint\\|jshint\\)[[:space:]].*?node:[[:space:]]*true"
+   "\\|"
+   ;; ESLint just specifies the option name.
+   "eslint-env[[:space:]].*?node"
+   "\\)")
+  "Match a comment body hinting at a Node.js program.")
+
+;; TODO: Add ES6 module detection.
+(defun context-coloring-js2-top-level-local-p ()
+  "Guess whether top-level variables are local.
+For instance, the current file could be a Node.js program."
+  (or
+   ;; A shebang is a pretty obvious giveaway.
+   (string-equal
+    "node"
+    (save-excursion
+      (goto-char (point-min))
+      (when (looking-at auto-mode-interpreter-regexp)
+        (match-string 2))))
+   ;; Otherwise, perform static analysis.
+   (progn
+     (setq context-coloring-js2-scope-level-hash-table (make-hash-table :test #'eq))
+     (catch 'node-program-p
+       (js2-visit-ast
+        js2-mode-ast
+        (lambda (node end-p)
+          (when (null end-p)
+            (when
+                (cond
+                 ;; Infer based on inline linter configuration.
+                 ((js2-comment-node-p node)
+                  (string-match-p
+                   context-coloring-node-comment-regexp
+                   (js2-node-string node)))
+                 ;; Infer based on the prescence of certain variables.
+                 ((and (js2-name-node-p node)
+                       (let ((parent (js2-node-parent node)))
+                         (not (and (js2-object-prop-node-p parent)
+                                   (eq node (js2-object-prop-node-left parent))))))
+                  (let ((name (js2-name-node-name node))
+                        (parent (js2-node-parent node)))
+                    (and
+                     (cond
+                      ;; Check whether this is "exports.something" or
+                      ;; "module.exports".
+                      ((js2-prop-get-node-p parent)
+                       (and
+                        (eq node (js2-prop-get-node-left parent))
+                        (or (string-equal name "exports")
+                            (let* ((property (js2-prop-get-node-right parent))
+                                   (property-name (js2-name-node-name property)))
+                              (and (string-equal name "module")
+                                   (string-equal property-name "exports"))))))
+                      ;; Check whether it's a "require('module')" call.
+                      ((js2-call-node-p parent)
+                       (or (string-equal name "require"))))
+                     (let* ((enclosing-scope (js2-node-get-enclosing-scope node))
+                            (defining-scope (js2-get-defining-scope
+                                             enclosing-scope name)))
+                       ;; The variable also must be global.
+                       (null defining-scope))))))
+              (throw 'node-program-p t))
+            ;; The `t' indicates to search children.
+            t)))
+       ;; Default to returning nil from the catch body.
+       nil))))
+
+(defcustom context-coloring-javascript-detect-top-level-scope t
+  "If non-nil, detect when to use file-level scope."
+  :type 'boolean
+  :group 'context-coloring)
+
+(defun context-coloring-js2-colorize ()
+  "Color the buffer using the `js2-mode'."
+  (cond
+   ;; Increase the initial level if we should.
+   ((and context-coloring-javascript-detect-top-level-scope
+         (context-coloring-js2-top-level-local-p))
+    (let ((context-coloring-initial-level 1))
+      (context-coloring-js2-colorize-ast)))
+   (t
+    (context-coloring-js2-colorize-ast))))
 
 
 ;;; Emacs Lisp colorization

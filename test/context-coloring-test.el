@@ -365,21 +365,21 @@ signaled."
 
 ;;; Coloring tests
 
+(defun context-coloring-test-face-to-level (face)
+  "Convert FACE symbol to its corresponding level, or nil."
+  (when face
+    (let* ((face-string (symbol-name face))
+           (matches (string-match
+                     context-coloring-level-face-regexp
+                     face-string)))
+      (when matches
+        (string-to-number (match-string 1 face-string))))))
+
 (defun context-coloring-test-assert-position-level (position level)
   "Assert that POSITION has LEVEL."
-  (let ((face (get-text-property position 'face))
-        actual-level)
-    (when (not (and face
-                    (let* ((face-string (symbol-name face))
-                           (matches (string-match
-                                     context-coloring-level-face-regexp
-                                     face-string)))
-                      (when matches
-                        (setq actual-level (string-to-number
-                                            (substring face-string
-                                                       (match-beginning 1)
-                                                       (match-end 1))))
-                        (= level actual-level)))))
+  (let* ((face (get-text-property position 'face))
+         (actual-level (context-coloring-test-face-to-level face)))
+    (when (not (= level actual-level))
       (ert-fail (format (concat "Expected level at position %s, "
                                 "which is \"%s\", to be %s; "
                                 "but it was %s")
@@ -493,7 +493,7 @@ other non-letters are guaranteed to always be discarded."
   (lambda ()
     (context-coloring-test-assert-coloring "
 (xxxxxxxx () {
-    111 1 1 00000001xxx11
+    111 1 1 0000001xxx11
 }());")))
 
 (context-coloring-test-deftest-javascript block-scopes
@@ -602,15 +602,58 @@ ssssssssssss0"))
   ;; As long as `add-text-properties' doesn't signal an error, this test passes.
   (lambda ()))
 
+(defun context-coloring-test-assert-javascript-elevated-level ()
+  "Assert that the \"initial-level.js\" file has elevated scope."
+  (context-coloring-test-assert-coloring "
+
+111 1 1 0000001xxx11"))
+
+(defun context-coloring-test-assert-javascript-global-level ()
+  "Assert that the \"initial-level.js\" file has global scope."
+  (context-coloring-test-assert-coloring "
+
+000 0 0 0000000xxx00"))
+
 (context-coloring-test-deftest-javascript initial-level
   (lambda ()
-    (context-coloring-test-assert-coloring "
-111 1 1 00000001xxx11"))
+    (context-coloring-test-assert-javascript-elevated-level))
   :fixture "initial-level.js"
   :before (lambda ()
             (setq context-coloring-initial-level 1))
   :after (lambda ()
            (setq context-coloring-initial-level 0)))
+
+(defun context-coloring-test-setup-top-level-scope (string)
+  "Make STRING the first line and colorize again."
+  (goto-char (point-min))
+  (kill-whole-line 0)
+  (insert string)
+  ;; Reparsing triggers recoloring.
+  (js2-reparse))
+
+(context-coloring-test-deftest-javascript top-level-scope
+  (lambda ()
+    (let ((positive-indicators
+           (list "#!/usr/bin/env node"
+                 "/*jslint node: true */"
+                 "// jshint node: true"
+                 "/*eslint-env node */"
+                 "module.exports"
+                 "module.exports.a"
+                 "exports.a"
+                 "require('a')"))
+          (negative-indicators
+           (list "// Blah blah jshint blah."
+                 "module"
+                 "exports"
+                 "var require; require('a')")))
+      (dolist (indicator positive-indicators)
+        (context-coloring-test-setup-top-level-scope indicator)
+        (context-coloring-test-assert-javascript-elevated-level))
+      (dolist (indicator negative-indicators)
+        (context-coloring-test-setup-top-level-scope indicator)
+        (context-coloring-test-assert-javascript-global-level))))
+  :fixture "initial-level.js")
 
 (context-coloring-test-deftest-emacs-lisp defun
   (lambda ()
