@@ -16,6 +16,7 @@ By default, comments and strings are still highlighted syntactically.
 - Light and dark customizable color schemes.
 - JavaScript support:
   - Script, function and block scopes (and even `catch` block scopes).
+  - Node.js "file-level" scope detection.
 - Emacs Lisp support:
   - `defun`, `lambda`, `let`, `let*`, `cond`, `condition-case`, `defadvice`,
     `dolist`, `quote`, `backquote` and backquote splicing.
@@ -76,3 +77,5 @@ some color schemes for popular custom themes.
   strings using `font-lock`.
 - `context-coloring-javascript-block-scopes` (default: `nil`): If non-nil, also
   color block scopes in the scope hierarchy in JavaScript.
+- `context-coloring-javascript-detect-top-level-scope` (default: `t`): If
+  non-nil, detect when to use file-level scope.
