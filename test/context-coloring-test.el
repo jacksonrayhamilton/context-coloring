@@ -623,7 +623,7 @@ ssssssssssss0"))
   :after (lambda ()
            (setq context-coloring-initial-level 0)))
 
-(defun context-coloring-test-setup-detect-node (string)
+(defun context-coloring-test-setup-top-level-scope (string)
   "Make STRING the first line and colorize again."
   (goto-char (point-min))
   (kill-whole-line 0)
@@ -631,7 +631,7 @@ ssssssssssss0"))
   ;; Reparsing triggers recoloring.
   (js2-reparse))
 
-(context-coloring-test-deftest-javascript detect-node
+(context-coloring-test-deftest-javascript top-level-scope
   (lambda ()
     (let ((positive-indicators
            (list "#!/usr/bin/env node"
@@ -648,10 +648,10 @@ ssssssssssss0"))
                  "exports"
                  "var require; require('a')")))
       (dolist (indicator positive-indicators)
-        (context-coloring-test-setup-detect-node indicator)
+        (context-coloring-test-setup-top-level-scope indicator)
         (context-coloring-test-assert-javascript-elevated-level))
       (dolist (indicator negative-indicators)
-        (context-coloring-test-setup-detect-node indicator)
+        (context-coloring-test-setup-top-level-scope indicator)
         (context-coloring-test-assert-javascript-global-level))))
   :fixture "initial-level.js")
 

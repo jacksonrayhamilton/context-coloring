@@ -414,8 +414,10 @@ this for ES6 code; disable it elsewhere."
    "\\)")
   "Match a comment body hinting at a Node.js program.")
 
-(defun context-coloring-node-program-p ()
-  "Guess whether the current file is a Node.js program."
+;; TODO: Add ES6 module detection.
+(defun context-coloring-js2-top-level-local-p ()
+  "Guess whether top-level variables are local.
+For instance, the current file could be a Node.js program."
   (or
    ;; A shebang is a pretty obvious giveaway.
    (string-equal
@@ -472,17 +474,17 @@ this for ES6 code; disable it elsewhere."
        ;; Default to returning nil from the catch body.
        nil))))
 
-(defcustom context-coloring-detect-node t
-  "If non-nil, use file-level scope for variables in Node.js."
+(defcustom context-coloring-javascript-detect-top-level-scope t
+  "If non-nil, detect when to use file-level scope."
   :type 'boolean
   :group 'context-coloring)
 
 (defun context-coloring-js2-colorize ()
   "Color the buffer using the `js2-mode'."
   (cond
-   ;; Increase the initial level if we can detect Node.js.
-   ((and context-coloring-detect-node
-         (context-coloring-node-program-p))
+   ;; Increase the initial level if we should.
+   ((and context-coloring-javascript-detect-top-level-scope
+         (context-coloring-js2-top-level-local-p))
     (let ((context-coloring-initial-level 1))
       (context-coloring-js2-colorize-ast)))
    (t
