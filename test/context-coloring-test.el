@@ -645,7 +645,8 @@ ssssssssssss0"))
           (negative-indicators
            (list "// Blah blah jshint blah."
                  "module"
-                 "exports")))
+                 "exports"
+                 "var require; require('a')")))
       (dolist (indicator positive-indicators)
         (context-coloring-test-setup-detect-node indicator)
         (context-coloring-test-assert-javascript-elevated-level))
