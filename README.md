@@ -45,26 +45,11 @@ then add the following to your init file:
 
 ## Color Schemes
 
+The [Zenburn](https://github.com/bbatsov/zenburn-emacs) theme, featured in the
+screenshot above, now supports context coloring.
+
 You can define your own colors by customizing faces like
 `context-coloring-level-N-face`, where N is a number starting from 0.
-
-These are the colors used in the screenshot above:
-
-```lisp
-(custom-theme-set-faces
- 'zenburn
- '(context-coloring-level-0-face  ((t :foreground "#dcdccc")))
- '(context-coloring-level-1-face  ((t :foreground "#93e0e3")))
- '(context-coloring-level-2-face  ((t :foreground "#bfebbf")))
- '(context-coloring-level-3-face  ((t :foreground "#f0dfaf")))
- '(context-coloring-level-4-face  ((t :foreground "#dfaf8f")))
- '(context-coloring-level-5-face  ((t :foreground "#cc9393")))
- '(context-coloring-level-6-face  ((t :foreground "#dc8cc3")))
- '(context-coloring-level-7-face  ((t :foreground "#94bff3")))
- '(context-coloring-level-8-face  ((t :foreground "#9fc59f")))
- '(context-coloring-level-9-face  ((t :foreground "#d0bf8f")))
- '(context-coloring-level-10-face ((t :foreground "#dca3a3"))))
-```
 
 [See here](https://gist.github.com/jacksonrayhamilton/6b89ca3b85182c490816) for
 some color schemes for popular custom themes.
