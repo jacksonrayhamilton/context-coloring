@@ -749,6 +749,16 @@ ssssssssssss0"))
 1111 cc ccccccc
     1sss11")))
 
+(context-coloring-test-deftest-emacs-lisp empty-varlist
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111111 1 11
+1111111 111
+
+1111 1cc
+      11
+1111111 111")))
+
 (context-coloring-test-deftest-emacs-lisp let*
   (lambda ()
     (context-coloring-test-assert-coloring "

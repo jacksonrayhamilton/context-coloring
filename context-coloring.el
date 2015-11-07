@@ -504,9 +504,11 @@ For instance, the current file could be a Node.js program."
     (context-coloring-colorize-comments-and-strings start (point))))
 
 (defsubst context-coloring-elisp-forward-sexp ()
-  "Like `forward-sexp', coloring skipped comments and strings."
+  "Skip/ignore missing sexps, coloring comments and strings."
   (let ((start (point)))
-    (forward-sexp)
+    (condition-case nil
+        (forward-sexp)
+      (scan-error (context-coloring-forward-sws)))
     (context-coloring-elisp-colorize-comments-and-strings-in-region
      start (point))))
 
