@@ -815,6 +815,29 @@ Parsing the header with CALLBACK."
    (lambda ()
      (context-coloring-elisp-parse-let-varlist 'let*))))
 
+(defun context-coloring-elisp-colorize-macroexp-let2 ()
+  "Color the `macroexp-let2' at point."
+  (let (syntax-code
+        variable)
+    (context-coloring-elisp-colorize-scope
+     (lambda ()
+       (and
+        (progn
+          (setq syntax-code (context-coloring-get-syntax-code))
+          (context-coloring-elisp-identifier-p syntax-code))
+        (progn
+          (context-coloring-elisp-colorize-sexp)
+          (context-coloring-elisp-forward-sws)
+          (setq syntax-code (context-coloring-get-syntax-code))
+          (context-coloring-elisp-identifier-p syntax-code))
+        (progn
+          (context-coloring-elisp-parse-bindable
+           (lambda (parsed-variable)
+             (setq variable parsed-variable)))
+          (context-coloring-elisp-forward-sws)
+          (when variable
+            (context-coloring-elisp-add-variable variable))))))))
+
 (defun context-coloring-elisp-colorize-cond ()
   "Color the `cond' at point."
   (let (syntax-code)
@@ -933,6 +956,7 @@ Parsing the header with CALLBACK."
     (dolist (callee '("let" "gv-letplace"))
       (puthash callee #'context-coloring-elisp-colorize-let table))
     (puthash "let*" #'context-coloring-elisp-colorize-let* table)
+    (puthash "macroexp-let2" #'context-coloring-elisp-colorize-macroexp-let2 table)
     (puthash "lambda" #'context-coloring-elisp-colorize-lambda table)
     (puthash "cond" #'context-coloring-elisp-colorize-cond table)
     (puthash "defadvice" #'context-coloring-elisp-colorize-defadvice table)
