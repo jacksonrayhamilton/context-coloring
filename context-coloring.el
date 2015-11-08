@@ -493,6 +493,29 @@ For instance, the current file could be a Node.js program."
 
 ;;; Emacs Lisp colorization
 
+(defconst context-coloring-WORD-CODE 2)
+(defconst context-coloring-SYMBOL-CODE 3)
+(defconst context-coloring-OPEN-PARENTHESIS-CODE 4)
+(defconst context-coloring-CLOSE-PARENTHESIS-CODE 5)
+(defconst context-coloring-EXPRESSION-PREFIX-CODE 6)
+(defconst context-coloring-STRING-QUOTE-CODE 7)
+(defconst context-coloring-ESCAPE-CODE 9)
+(defconst context-coloring-COMMENT-START-CODE 11)
+(defconst context-coloring-COMMENT-END-CODE 12)
+
+(defconst context-coloring-OCTOTHORPE-CHAR (string-to-char "#"))
+(defconst context-coloring-APOSTROPHE-CHAR (string-to-char "'"))
+(defconst context-coloring-OPEN-PARENTHESIS-CHAR (string-to-char "("))
+(defconst context-coloring-COMMA-CHAR (string-to-char ","))
+(defconst context-coloring-AT-CHAR (string-to-char "@"))
+(defconst context-coloring-BACKTICK-CHAR (string-to-char "`"))
+
+(defsubst context-coloring-get-syntax-code ()
+  "Get the syntax code at point."
+  (syntax-class
+   ;; Faster version of `syntax-after':
+   (aref (syntax-table) (char-after (point)))))
+
 (defsubst context-coloring-forward-sws ()
   "Move forward through whitespace and comments."
   (while (forward-comment 1)))
@@ -506,17 +529,17 @@ For instance, the current file could be a Node.js program."
 (defsubst context-coloring-elisp-forward-sexp ()
   "Skip/ignore missing sexps, coloring comments and strings."
   (let ((start (point)))
+    (when (= (context-coloring-get-syntax-code)
+             context-coloring-EXPRESSION-PREFIX-CODE)
+      ;; `forward-sexp' does not skip an unfinished expression (e.g. when the
+      ;; name of a symbol or the parentheses of a list do not follow a single
+      ;; quote).
+      (forward-char))
     (condition-case nil
         (forward-sexp)
       (scan-error (context-coloring-forward-sws)))
     (context-coloring-elisp-colorize-comments-and-strings-in-region
      start (point))))
-
-(defsubst context-coloring-get-syntax-code ()
-  "Get the syntax code at point."
-  (syntax-class
-   ;; Faster version of `syntax-after':
-   (aref (syntax-table) (char-after (point)))))
 
 (defsubst context-coloring-exact-regexp (word)
   "Create a regexp matching exactly WORD."
@@ -534,23 +557,6 @@ For instance, the current file could be a Node.js program."
                                 '("t" "nil" "." "?")))
                          "\\|")
   "Match symbols that can't be bound as variables.")
-
-(defconst context-coloring-WORD-CODE 2)
-(defconst context-coloring-SYMBOL-CODE 3)
-(defconst context-coloring-OPEN-PARENTHESIS-CODE 4)
-(defconst context-coloring-CLOSE-PARENTHESIS-CODE 5)
-(defconst context-coloring-EXPRESSION-PREFIX-CODE 6)
-(defconst context-coloring-STRING-QUOTE-CODE 7)
-(defconst context-coloring-ESCAPE-CODE 9)
-(defconst context-coloring-COMMENT-START-CODE 11)
-(defconst context-coloring-COMMENT-END-CODE 12)
-
-(defconst context-coloring-OCTOTHORPE-CHAR (string-to-char "#"))
-(defconst context-coloring-APOSTROPHE-CHAR (string-to-char "'"))
-(defconst context-coloring-OPEN-PARENTHESIS-CHAR (string-to-char "("))
-(defconst context-coloring-COMMA-CHAR (string-to-char ","))
-(defconst context-coloring-AT-CHAR (string-to-char "@"))
-(defconst context-coloring-BACKTICK-CHAR (string-to-char "`"))
 
 (defsubst context-coloring-elisp-identifier-p (syntax-code)
   "Check if SYNTAX-CODE is an elisp identifier constituent."

@@ -9,3 +9,5 @@
 
 (let ;; comment
     ("s"))
+
+(let (a '))
