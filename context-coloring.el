@@ -668,6 +668,7 @@ bound immediately after its own initializer is parsed."
         syntax-code)
     ;; Enter.
     (forward-char)
+    (context-coloring-elisp-forward-sws)
     (while (/= (setq syntax-code (context-coloring-get-syntax-code))
                context-coloring-CLOSE-PARENTHESIS-CODE)
       (cond
@@ -707,6 +708,7 @@ bound immediately after its own initializer is parsed."
   (let (syntax-code)
     ;; Enter.
     (forward-char)
+    (context-coloring-elisp-forward-sws)
     (while (/= (setq syntax-code (context-coloring-get-syntax-code))
                context-coloring-CLOSE-PARENTHESIS-CODE)
       (cond
@@ -787,6 +789,7 @@ Parse the header with CALLBACK."
      (let (syntax-code)
        ;; Enter.
        (forward-char)
+       (context-coloring-elisp-forward-sws)
        (while (/= (setq syntax-code (context-coloring-get-syntax-code))
                   context-coloring-CLOSE-PARENTHESIS-CODE)
          (cond

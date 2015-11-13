@@ -759,6 +759,18 @@ ssssssssssss0"))
       11
 1111111 111")))
 
+(context-coloring-test-deftest-emacs-lisp varlist-spacing
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+(111 (
+      (1 (222222 ()))))
+
+(111111 ( 1 1 )
+  1 1)
+
+(111111111 0 ( (1) )
+  1)")))
+
 (context-coloring-test-deftest-emacs-lisp let*
   (lambda ()
     (context-coloring-test-assert-coloring "
