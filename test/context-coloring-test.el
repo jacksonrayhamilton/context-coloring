@@ -111,8 +111,13 @@ signaled."
   :mode #'fundamental-mode
   :no-fixture t)
 
+(defun context-coloring-test-js2-mode ()
+  "Enable js2-mode and parse synchronously."
+  (js2-mode)
+  (js2-reparse))
+
 (context-coloring-test-define-deftest javascript
-  :mode #'js2-mode
+  :mode #'context-coloring-test-js2-mode
   :extension "js"
   :enable-context-coloring-mode t
   :before-each (lambda ()
