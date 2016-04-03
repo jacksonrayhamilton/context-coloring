@@ -267,14 +267,6 @@ signaled."
      "Context coloring is unavailable here"
      "*Messages*")))
 
-(context-coloring-test-deftest derived-mode
-  (lambda ()
-    (lisp-interaction-mode)
-    (context-coloring-mode)
-    (context-coloring-test-assert-not-message
-     "Context coloring is unavailable here"
-     "*Messages*")))
-
 (context-coloring-test-deftest unavailable-message-ignored
   (lambda ()
     (minibuffer-with-setup-hook

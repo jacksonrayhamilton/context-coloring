@@ -1217,16 +1217,13 @@ It could be a quoted or backquoted expression."
 (defun context-coloring-get-current-dispatch ()
   "Return the first dispatch appropriate for the current state."
   (let ((predicates context-coloring-dispatch-predicates)
-        (parent major-mode)
         dispatch)
     ;; Maybe a predicate will be satisfied and return a dispatch.
     (while (and predicates
                 (not (setq dispatch (funcall (pop predicates))))))
     ;; If not, maybe a major mode (or a derivative) will define a dispatch.
     (when (not dispatch)
-      (while (and parent
-                  (not (setq dispatch (gethash parent context-coloring-mode-hash-table)))
-                  (setq parent (get parent 'derived-mode-parent)))))
+      (setq dispatch (gethash major-mode context-coloring-mode-hash-table)))
     dispatch))
 
 (defun context-coloring-define-dispatch (symbol &rest properties)
@@ -1300,7 +1297,7 @@ override `context-coloring-default-delay'.
 
 (context-coloring-define-dispatch
  'javascript
- :modes '(js2-mode)
+ :modes '(js2-mode js2-jsx-mode)
  :colorizer #'context-coloring-js2-colorize
  :setup
  (lambda ()
@@ -1311,7 +1308,7 @@ override `context-coloring-default-delay'.
 
 (context-coloring-define-dispatch
  'emacs-lisp
- :modes '(emacs-lisp-mode)
+ :modes '(emacs-lisp-mode lisp-interaction-mode)
  :colorizer #'context-coloring-elisp-colorize
  :delay 0.016 ;; Thanks to lazy colorization this can be 60 frames per second.
  :setup #'context-coloring-setup-idle-change-detection
