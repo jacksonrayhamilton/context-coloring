@@ -1268,10 +1268,15 @@ override `context-coloring-default-delay'.
               (when (funcall predicate)
                 properties)) context-coloring-dispatch-predicates))))
 
+(defun context-coloring-before-colorize ()
+  "Set up environment for colorization."
+  (context-coloring-update-maximum-face))
+
 (defun context-coloring-dispatch ()
   "Determine how to color the current buffer, and color it."
   (let* ((dispatch (context-coloring-get-current-dispatch))
          (colorizer (plist-get dispatch :colorizer)))
+    (context-coloring-before-colorize)
     (catch 'interrupted
       (funcall colorizer))))
 
@@ -1281,7 +1286,6 @@ override `context-coloring-default-delay'.
 (defun context-coloring-colorize ()
   "Color the current buffer by function context."
   (interactive)
-  (context-coloring-update-maximum-face)
   (context-coloring-dispatch))
 
 (defun context-coloring-colorize-with-buffer (buffer)
