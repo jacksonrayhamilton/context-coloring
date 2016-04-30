@@ -1,6 +1,6 @@
 ;;; context-coloring.el --- Highlight by scope  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2014-2015  Free Software Foundation, Inc.
+;; Copyright (C) 2014-2016  Free Software Foundation, Inc.
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
 ;; Version: 7.2.1
