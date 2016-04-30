@@ -298,35 +298,15 @@ are scoped to a file (as in Node.js), set this to `1'."
 
 ;;; Dispatch
 
+;;;###autoload
 (defvar context-coloring-dispatch-hash-table (make-hash-table :test #'eq)
-  "Map dispatch strategy names to their property lists.")
-
-(defvar context-coloring-mode-hash-table (make-hash-table :test #'eq)
-  "Map major mode names to dispatch property lists.")
-
-(defvar context-coloring-dispatch-predicates '()
-  "Functions which may return a dispatch.")
-
-(defun context-coloring-get-current-dispatch ()
-  "Return the first dispatch appropriate for the current state."
-  (let ((predicates context-coloring-dispatch-predicates)
-        dispatch)
-    ;; Maybe a predicate will be satisfied and return a dispatch.
-    (while (and predicates
-                (not (setq dispatch (funcall (pop predicates))))))
-    ;; If not, maybe a major mode (or a derivative) will define a dispatch.
-    (when (not dispatch)
-      (setq dispatch (gethash major-mode context-coloring-mode-hash-table)))
-    dispatch))
-
-(defun context-coloring-define-dispatch (symbol &rest properties)
-  "Define a new dispatch named SYMBOL with PROPERTIES.
+  "Map dispatch strategy names to their property lists.
 
 A \"dispatch\" is a property list describing a strategy for
 coloring a buffer.
 
-PROPERTIES must include one of `:modes' or `:predicate', and a
-`:colorizer'.
+Its properties must include one of `:modes' or `:predicate', and
+a `:colorizer'.
 
 `:modes' - List of major modes this dispatch is valid for.
 
@@ -342,21 +322,35 @@ override `context-coloring-default-delay'.
 `context-coloring-mode' is enabled.
 
 `:teardown' - Arbitrary code to tear down this dispatch when
-`context-coloring-mode' is disabled."
-  (let ((modes (plist-get properties :modes))
-        (predicate (plist-get properties :predicate))
-        (colorizer (plist-get properties :colorizer)))
-    (when (null (or modes predicate))
-      (error "No mode or predicate defined for dispatch"))
-    (when (not colorizer)
-      (error "No colorizer defined for dispatch"))
-    (puthash symbol properties context-coloring-dispatch-hash-table)
-    (dolist (mode modes)
-      (puthash mode properties context-coloring-mode-hash-table))
-    (when predicate
-      (push (lambda ()
-              (when (funcall predicate)
-                properties)) context-coloring-dispatch-predicates))))
+`context-coloring-mode' is disabled.")
+
+(defun context-coloring-find-dispatch (predicate)
+  "Find the first dispatch satisfying PREDICATE."
+  (let (found)
+    (maphash
+     (lambda (_ dispatch)
+       (when (and (not found)
+                  (funcall predicate dispatch))
+         (setq found dispatch)))
+     context-coloring-dispatch-hash-table)
+    found))
+
+(defun context-coloring-get-current-dispatch ()
+  "Return the first dispatch appropriate for the current state."
+  (cond
+   ;; Maybe a predicate will be satisfied.
+   ((context-coloring-find-dispatch
+     (lambda (dispatch)
+       (let ((predicate (plist-get dispatch :predicate)))
+         (and predicate (funcall predicate))))))
+   ;; If not, maybe a major mode (or a derivative) will.
+   ((context-coloring-find-dispatch
+     (lambda (dispatch)
+       (let ((modes (plist-get dispatch :modes))
+             match)
+         (while (and modes (not match))
+           (setq match (eq (pop modes) major-mode)))
+         match))))))
 
 (defun context-coloring-before-colorize ()
   "Set up environment for colorization."
@@ -367,8 +361,9 @@ override `context-coloring-default-delay'.
   (let* ((dispatch (context-coloring-get-current-dispatch))
          (colorizer (plist-get dispatch :colorizer)))
     (context-coloring-before-colorize)
-    (catch 'interrupted
-      (funcall colorizer))))
+    (when colorizer
+      (catch 'interrupted
+        (funcall colorizer)))))
 
 
 ;;; Colorization

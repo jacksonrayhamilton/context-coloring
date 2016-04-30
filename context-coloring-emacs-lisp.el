@@ -717,13 +717,15 @@ It could be a quoted or backquoted expression."
       (t
        (context-coloring-elisp-colorize-region-initially (point-min) (point-max)))))))
 
-(context-coloring-define-dispatch
+;;;###autoload
+(puthash
  'emacs-lisp
- :modes '(emacs-lisp-mode lisp-interaction-mode)
- :colorizer #'context-coloring-elisp-colorize
- :delay 0.016 ;; Thanks to lazy colorization this can be 60 frames per second.
- :setup #'context-coloring-setup-idle-change-detection
- :teardown #'context-coloring-teardown-idle-change-detection)
+ (list :modes '(emacs-lisp-mode lisp-interaction-mode)
+       :colorizer #'context-coloring-elisp-colorize
+       :delay 0.016 ;; Thanks to lazy colorization this can be 60 frames per second.
+       :setup #'context-coloring-setup-idle-change-detection
+       :teardown #'context-coloring-teardown-idle-change-detection)
+ context-coloring-dispatch-hash-table)
 
 
 ;;; eval-expression colorization
@@ -747,18 +749,21 @@ It could be a quoted or backquoted expression."
 ;; `eval-expression-minibuffer-setup-hook' is not available in Emacs 24.3, so
 ;; the backwards-compatible recommendation is to use `minibuffer-setup-hook' and
 ;; rely on this predicate instead.
+;;;###autoload
 (defun context-coloring-eval-expression-predicate ()
   "Non-nil if the minibuffer is for `eval-expression'."
   ;; Kinda better than checking `this-command', because `this-command' changes.
   (context-coloring-eval-expression-match))
 
-(context-coloring-define-dispatch
+;;;###autoload
+(puthash
  'eval-expression
- :predicate #'context-coloring-eval-expression-predicate
- :colorizer #'context-coloring-eval-expression-colorize
- :delay 0.016
- :setup #'context-coloring-setup-idle-change-detection
- :teardown #'context-coloring-teardown-idle-change-detection)
+ (list :predicate #'context-coloring-eval-expression-predicate
+       :colorizer #'context-coloring-eval-expression-colorize
+       :delay 0.016
+       :setup #'context-coloring-setup-idle-change-detection
+       :teardown #'context-coloring-teardown-idle-change-detection)
+ context-coloring-dispatch-hash-table)
 
 (provide 'context-coloring-emacs-lisp)
 

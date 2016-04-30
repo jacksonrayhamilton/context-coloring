@@ -231,10 +231,10 @@ signaled."
 
 (context-coloring-test-deftest mode-startup
   (lambda ()
-    (context-coloring-define-dispatch
+    (puthash
      'mode-startup
-     :modes '(context-coloring-test-mode-startup-mode)
-     :colorizer #'ignore)
+     (list :modes '(context-coloring-test-mode-startup-mode))
+     context-coloring-dispatch-hash-table)
     (context-coloring-test-mode-startup-mode)
     (context-coloring-test-assert-causes-coloring
      (context-coloring-mode)))
@@ -245,12 +245,12 @@ signaled."
 
 (context-coloring-test-deftest change-detection
   (lambda ()
-    (context-coloring-define-dispatch
+    (puthash
      'idle-change
-     :modes '(context-coloring-test-change-detection-mode)
-     :colorizer #'ignore
-     :setup #'context-coloring-setup-idle-change-detection
-     :teardown #'context-coloring-teardown-idle-change-detection)
+     (list :modes '(context-coloring-test-change-detection-mode)
+           :setup #'context-coloring-setup-idle-change-detection
+           :teardown #'context-coloring-teardown-idle-change-detection)
+     context-coloring-dispatch-hash-table)
     (context-coloring-test-change-detection-mode)
     (context-coloring-mode)
     (context-coloring-test-assert-causes-coloring
@@ -281,33 +281,17 @@ signaled."
         [?\C-u]
         [?\M-!])))))
 
-(context-coloring-test-define-derived-mode define-dispatch-error)
-
-(context-coloring-test-deftest define-dispatch-error
-  (lambda ()
-    (context-coloring-test-assert-error
-     (lambda ()
-       (context-coloring-define-dispatch
-        'define-dispatch-no-modes))
-     "No mode or predicate defined for dispatch")
-    (context-coloring-test-assert-error
-     (lambda ()
-       (context-coloring-define-dispatch
-        'define-dispatch-no-strategy
-        :modes '(context-coloring-test-define-dispatch-error-mode)))
-     "No colorizer defined for dispatch")))
-
 (context-coloring-test-define-derived-mode disable-mode)
 
 (context-coloring-test-deftest disable-mode
   (lambda ()
     (let (torn-down)
-      (context-coloring-define-dispatch
+      (puthash
        'disable-mode
-       :modes '(context-coloring-test-disable-mode-mode)
-       :colorizer #'ignore
-       :teardown (lambda ()
-                   (setq torn-down t)))
+       (list :modes '(context-coloring-test-disable-mode-mode)
+             :teardown (lambda ()
+                         (setq torn-down t)))
+       context-coloring-dispatch-hash-table)
       (context-coloring-test-disable-mode-mode)
       (context-coloring-mode)
       (context-coloring-mode -1)
@@ -333,10 +317,10 @@ signaled."
     (custom-set-faces
      '(context-coloring-level-0-face ((t :foreground "#aaaaaa"))))
     (enable-theme 'context-coloring-test-custom-theme)
-    (context-coloring-define-dispatch
+    (puthash
      'theme
-     :modes '(context-coloring-test-custom-theme-mode)
-     :colorizer #'ignore)
+     (list :modes '(context-coloring-test-custom-theme-mode))
+     context-coloring-dispatch-hash-table)
     (context-coloring-test-custom-theme-mode)
     (context-coloring-colorize)
     (context-coloring-test-assert-maximum-face 1)

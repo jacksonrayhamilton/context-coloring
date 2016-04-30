@@ -220,16 +220,18 @@ For instance, the current file could be a Node.js program."
    (t
     (context-coloring-js2-colorize-ast))))
 
-(context-coloring-define-dispatch
+;;;###autoload
+(puthash
  'javascript
- :modes '(js2-mode js2-jsx-mode)
- :colorizer #'context-coloring-js2-colorize
- :setup
- (lambda ()
-   (add-hook 'js2-post-parse-callbacks #'context-coloring-colorize nil t))
- :teardown
- (lambda ()
-   (remove-hook 'js2-post-parse-callbacks #'context-coloring-colorize t)))
+ (list :modes '(js2-mode js2-jsx-mode)
+       :colorizer #'context-coloring-js2-colorize
+       :setup
+       (lambda ()
+         (add-hook 'js2-post-parse-callbacks #'context-coloring-colorize nil t))
+       :teardown
+       (lambda ()
+         (remove-hook 'js2-post-parse-callbacks #'context-coloring-colorize t)))
+ context-coloring-dispatch-hash-table)
 
 (provide 'context-coloring-javascript)
 
