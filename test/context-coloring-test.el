@@ -27,8 +27,9 @@
 
 (require 'cl-lib)
 (require 'context-coloring)
+(require 'context-coloring-javascript)
+(require 'context-coloring-emacs-lisp)
 (require 'ert)
-(require 'js2-mode)
 
 
 ;;; Test running utilities
