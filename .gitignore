@@ -1,3 +1,5 @@
+*-autoloads.el
+*-pkg.el
 *.elc
 .cask/
 /benchmark/logs/
