@@ -881,7 +881,7 @@ nnnn nn")))
           ;; the minibuffer's contents.  The contents are implicitly submitted,
           ;; so we have to ignore the errors in the arbitrary test subject code.
           (insert "(ignore-errors (let (a) (message a free)))")
-          (context-coloring-colorize)
+          (context-coloring-mode)
           (context-coloring-test-assert-coloring "
 xxxx: 0000000-000000 1111 111 11111111 1 0000110"))
       ;; Simulate user input because `call-interactively' is blocking and
