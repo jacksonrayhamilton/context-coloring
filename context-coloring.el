@@ -185,11 +185,6 @@ it ain't."
   :type 'float
   :group 'context-coloring)
 
-(make-obsolete-variable
- 'context-coloring-delay
- 'context-coloring-default-delay
- "6.4.0")
-
 (defun context-coloring-cancel-timer (timer)
   "Cancel TIMER."
   (when timer
@@ -238,12 +233,6 @@ it ain't."
    start
    end
    `(face ,(context-coloring-bounded-level-face level))))
-
-(make-obsolete-variable
- 'context-coloring-comments-and-strings
- "use `context-coloring-syntactic-comments' and
- `context-coloring-syntactic-strings' instead."
- "6.1.0")
 
 (defcustom context-coloring-syntactic-comments t
   "If non-nil, also color comments using `font-lock'."

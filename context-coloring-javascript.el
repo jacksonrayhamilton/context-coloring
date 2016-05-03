@@ -42,11 +42,6 @@ this for ES6 code; disable it elsewhere."
   :safe #'booleanp
   :group 'context-coloring)
 
-(make-obsolete-variable
- 'context-coloring-js-block-scopes
- 'context-coloring-javascript-block-scopes
- "7.0.0")
-
 (defsubst context-coloring-js2-scope-level (scope initial)
   "Return the level of SCOPE, starting from INITIAL."
   (cond ((gethash scope context-coloring-js2-scope-level-hash-table))
