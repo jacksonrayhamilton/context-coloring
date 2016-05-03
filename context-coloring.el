@@ -263,9 +263,10 @@ it ain't."
   "Color a string according to STATE."
   (if (nth 3 state) font-lock-string-face nil))
 
-(defsubst context-coloring-colorize-comments-and-strings (&optional min max)
+(defsubst context-coloring-colorize-comments-and-strings (&optional min max keywords-p)
   "Maybe color comments and strings in buffer from MIN to MAX.
-MIN defaults to beginning of buffer.  MAX defaults to end."
+MIN defaults to beginning of buffer.  MAX defaults to end.  If
+KEYWORDS-P is non-nil, also color keywords from MIN to MAX."
   (when (or context-coloring-syntactic-comments
             context-coloring-syntactic-strings)
     (let ((min (or min (point-min)))
@@ -282,8 +283,7 @@ MIN defaults to beginning of buffer.  MAX defaults to end."
              font-lock-syntactic-face-function))))
       (save-excursion
         (font-lock-fontify-syntactically-region min max)
-        ;; TODO: Make configurable at the dispatch level.
-        (when (eq major-mode 'emacs-lisp-mode)
+        (when keywords-p
           (font-lock-fontify-keywords-region min max))))))
 
 (defcustom context-coloring-initial-level 0

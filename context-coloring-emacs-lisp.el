@@ -55,11 +55,16 @@
   "Move forward through whitespace and comments."
   (while (forward-comment 1)))
 
+(defsubst context-coloring-elisp-colorize-comments-and-strings
+  (&optional min max)
+  "Color comments and strings from MIN to MAX."
+  (context-coloring-colorize-comments-and-strings min max t))
+
 (defsubst context-coloring-elisp-forward-sws ()
   "Move through whitespace and comments, coloring comments."
   (let ((start (point)))
     (context-coloring-forward-sws)
-    (context-coloring-colorize-comments-and-strings start (point))))
+    (context-coloring-elisp-colorize-comments-and-strings start (point))))
 
 (defsubst context-coloring-elisp-forward-sexp ()
   "Skip/ignore missing sexps, coloring comments and strings."
@@ -606,7 +611,7 @@ It could be a quoted or backquoted expression."
   (context-coloring-elisp-increment-sexp-count)
   (let ((start (point)))
     (forward-sexp)
-    (context-coloring-colorize-comments-and-strings start (point))))
+    (context-coloring-elisp-colorize-comments-and-strings start (point))))
 
 ;; Elisp has whitespace, words, symbols, open/close parenthesis, expression
 ;; prefix, string quote, comment starters/enders and escape syntax classes only.
