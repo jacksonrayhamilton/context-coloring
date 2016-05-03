@@ -138,7 +138,6 @@ this for ES6 code; disable it elsewhere."
    "\\)")
   "Match a comment body hinting at a Node.js program.")
 
-;; TODO: Add ES6 module detection.
 (defun context-coloring-js2-top-level-local-p ()
   "Guess whether top-level variables are local.
 For instance, the current file could be a Node.js program."
