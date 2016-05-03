@@ -46,7 +46,7 @@
                        (elp-results)
                        (buffer-substring-no-properties (point-min) (point-max)))
                    (kill-buffer))))
-    (make-directory (context-coloring-benchmark-resolve-path "./logs") t)
+    (make-directory (context-coloring-benchmark-resolve-path "./benchmark") t)
     (append-to-file
      (with-temp-buffer
        (goto-char (point-min))
@@ -74,7 +74,7 @@
 (defun context-coloring-benchmark (title fixtures)
   "Execute a benchmark titled TITLE against FIXTURES."
   (let ((result-file (context-coloring-benchmark-resolve-path
-                      (format "./logs/results-%s-%s.log"
+                      (format "./benchmark/results-%s-%s.log"
                               title (format-time-string "%s")))))
     (mapc
      (lambda (path)
@@ -120,10 +120,10 @@
      fixtures)))
 
 (defconst context-coloring-benchmark-javascript-fixtures
-  '("./fixtures/jquery-2.1.1.js"
-    "./fixtures/lodash-2.4.1.js"
-    "./fixtures/async-0.9.0.js"
-    "./fixtures/mkdirp-0.5.0.js")
+  '("./fixtures/benchmark/jquery-2.1.1.js"
+    "./fixtures/benchmark/lodash-2.4.1.js"
+    "./fixtures/benchmark/async-0.9.0.js"
+    "./fixtures/benchmark/mkdirp-0.5.0.js")
   "Arbitrary JavaScript files for performance scrutiny.")
 
 (defun context-coloring-benchmark-js2-mode-run ()
@@ -140,10 +140,10 @@
   (remove-hook 'js2-mode-hook #'context-coloring-mode))
 
 (defconst context-coloring-benchmark-emacs-lisp-fixtures
-  '("./fixtures/lisp.el"
-    "./fixtures/faces.el"
-    "./fixtures/subr.el"
-    "./fixtures/simple.el")
+  '("./fixtures/benchmark/lisp.el"
+    "./fixtures/benchmark/faces.el"
+    "./fixtures/benchmark/subr.el"
+    "./fixtures/benchmark/simple.el")
   "Arbitrary Emacs Lisp files for performance scrutiny.")
 
 (defun context-coloring-benchmark-emacs-lisp-mode-run ()

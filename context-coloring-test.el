@@ -91,9 +91,9 @@ signaled."
                                                   (name)
                                                   (t "generic"))) name)))
              (fixture (cond
-                       (fixture (format "./fixtures/%s" fixture))
-                       (,no-fixture "./fixtures/empty")
-                       (t (format ,(format "./fixtures/%%s.%s" extension) name)))))
+                       (fixture (format "./fixtures/test/%s" fixture))
+                       (,no-fixture "./fixtures/test/empty")
+                       (t (format ,(format "./fixtures/test/%%s.%s" extension) name)))))
          ,@`((let ((enable-context-coloring-mode ,enable-context-coloring-mode))
                `(ert-deftest ,test-name ()
                   (context-coloring-test-with-fixture

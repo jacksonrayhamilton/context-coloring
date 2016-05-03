@@ -2,5 +2,5 @@
 *-pkg.el
 *.elc
 .cask/
-/benchmark/logs/
-/test/coverage/
+/benchmark/
+/coverage/

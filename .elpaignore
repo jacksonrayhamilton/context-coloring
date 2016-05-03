@@ -1,8 +1,10 @@
 .elpaignore
 .gitignore
 .travis.yml
-benchmark
 Cask
+context-coloring-benchmark.el
+context-coloring-coverage.el
+context-coloring-test.el
+fixtures
 Makefile
 screenshot.png
-test
