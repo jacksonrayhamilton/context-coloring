@@ -1,6 +1,10 @@
 EMACS = emacs
 CASK = EMACS=${EMACS} cask
 DEPENDENCIES = .cask/
+SOURCE_FILES = \
+	context-coloring.el \
+	context-coloring-javascript.el \
+	context-coloring-emacs-lisp.el
 
 all: uncompile compile test
 
@@ -14,7 +18,7 @@ bench: ${DEPENDENCIES}
 compile: ${DEPENDENCIES}
 	${CASK} exec ${EMACS} -Q -batch \
 	-L . \
-	-f batch-byte-compile *.el
+	-f batch-byte-compile ${SOURCE_FILES}
 
 uncompile:
 	rm -f *.elc
