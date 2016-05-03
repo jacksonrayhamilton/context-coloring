@@ -388,8 +388,8 @@ permissible.")
       (setq ignore-p (funcall (pop predicates))))
     ignore-p))
 
-(defvar context-coloring-parse-interruptable-p t
-  "Set this to nil to force parse to continue until finished.")
+(defvar context-coloring-interruptable-p t
+  "When non-nil, coloring may be interrupted by user input.")
 
 ;;;###autoload
 (define-minor-mode context-coloring-mode
@@ -433,7 +433,7 @@ Feature inspired by Douglas Crockford."
           (when setup
             (funcall setup))
           ;; Colorize once initially.
-          (let ((context-coloring-parse-interruptable-p nil))
+          (let ((context-coloring-interruptable-p nil))
             (context-coloring-colorize))))
        ((not (context-coloring-ignore-unavailable-message-p))
         (message "Context coloring is unavailable here")))))

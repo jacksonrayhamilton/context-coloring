@@ -120,7 +120,7 @@ second.")
         (1+ context-coloring-elisp-sexp-count))
   (when (and (zerop (% context-coloring-elisp-sexp-count
                        context-coloring-elisp-sexps-per-pause))
-             context-coloring-parse-interruptable-p
+             context-coloring-interruptable-p
              (input-pending-p))
     (throw 'interrupted t)))
 
