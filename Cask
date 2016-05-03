@@ -2,7 +2,6 @@
 
 (package-file "context-coloring.el")
 
-(depends-on "js2-mode")
-
 (development
+ (depends-on "js2-mode")
  (depends-on "undercover"))

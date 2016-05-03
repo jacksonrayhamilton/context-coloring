@@ -1,0 +1,8 @@
+.elpaignore
+.gitignore
+.travis.yml
+benchmark
+Cask
+Makefile
+screenshot.png
+test
