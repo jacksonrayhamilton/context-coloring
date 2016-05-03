@@ -419,16 +419,15 @@ Feature inspired by Douglas Crockford."
   nil " Context" nil
   (cond
    (context-coloring-mode
-    ;; Font lock is incompatible with this mode; the converse is also true.
-    (font-lock-mode 0)
-    (jit-lock-mode nil)
-    ;; ...but we do use font-lock functions here.
-    (font-lock-set-defaults)
-    ;; Safely change the value of this function as necessary.
-    (make-local-variable 'font-lock-syntactic-face-function)
     (let ((dispatch (context-coloring-get-current-dispatch)))
       (cond
        (dispatch
+        ;; Font lock is incompatible with this mode; the converse is also true.
+        (font-lock-mode 0)
+        ;; ...but we do use font-lock functions here.
+        (font-lock-set-defaults)
+        ;; Safely change the value of this function as necessary.
+        (make-local-variable 'font-lock-syntactic-face-function)
         (let ((setup (plist-get dispatch :setup)))
           (when setup
             (funcall setup))
@@ -443,8 +442,7 @@ Feature inspired by Douglas Crockford."
         (let ((teardown (plist-get dispatch :teardown)))
           (when teardown
             (funcall teardown)))))
-    (font-lock-mode)
-    (jit-lock-mode t))))
+    (turn-on-font-lock-if-desired))))
 
 (provide 'context-coloring)
 
