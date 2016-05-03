@@ -1,7 +1,6 @@
 ;;; subr.el --- basic lisp subroutines for Emacs  -*- coding: utf-8; lexical-binding:t -*-
 
-;; Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2015 Free Software
-;; Foundation, Inc.
+;; Copyright (C) 1985-1986, 1992, 1994-1995, 1999-2015 Free Software Foundation, Inc.
 
 ;; Maintainer: emacs-devel@gnu.org
 ;; Keywords: internal

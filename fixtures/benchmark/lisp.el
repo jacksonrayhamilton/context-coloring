@@ -1,7 +1,6 @@
 ;;; lisp.el --- Lisp editing commands for Emacs  -*- lexical-binding:t -*-
 
-;; Copyright (C) 1985-1986, 1994, 2000-2015 Free Software Foundation,
-;; Inc.
+;; Copyright (C) 1985-1986, 1994, 2000-2015 Free Software Foundation, Inc.
 
 ;; Maintainer: emacs-devel@gnu.org
 ;; Keywords: lisp, languages
