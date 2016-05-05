@@ -727,7 +727,6 @@ It could be a quoted or backquoted expression."
  'emacs-lisp
  (list :modes '(emacs-lisp-mode lisp-interaction-mode)
        :colorizer #'context-coloring-elisp-colorize
-       :delay 0.016 ;; Thanks to lazy colorization this can be 60 frames per second.
        :setup #'context-coloring-setup-idle-change-detection
        :teardown #'context-coloring-teardown-idle-change-detection)
  context-coloring-dispatch-hash-table)
@@ -765,7 +764,6 @@ It could be a quoted or backquoted expression."
  'eval-expression
  (list :predicate #'context-coloring-eval-expression-predicate
        :colorizer #'context-coloring-eval-expression-colorize
-       :delay 0.016
        :setup #'context-coloring-setup-idle-change-detection
        :teardown #'context-coloring-teardown-idle-change-detection)
  context-coloring-dispatch-hash-table)
