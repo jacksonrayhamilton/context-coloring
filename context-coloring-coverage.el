@@ -1,4 +1,4 @@
-;;; context-coloring-coverage.el --- Test coverage for context coloring  -*- lexical-binding: t; -*-
+;;; context-coloring-coverage.el --- Test coverage for context coloring  -*- lexical-binding: t; no-byte-compile: t; -*-
 
 ;; Copyright (C) 2014-2016  Free Software Foundation, Inc.
 
