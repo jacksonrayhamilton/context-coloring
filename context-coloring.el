@@ -279,7 +279,7 @@ KEYWORDS-P is non-nil, also color keywords from MIN to MAX."
   "Scope level at which to start coloring.
 
 If top-level variables and functions do not become global, but
-are scoped to a file (as in Node.js), set this to `1'."
+are scoped to a file (as in Node.js), set this to 1."
   :type 'integer
   :safe #'integerp
   :group 'context-coloring)
