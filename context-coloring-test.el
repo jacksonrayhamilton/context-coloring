@@ -485,15 +485,6 @@ other non-letters are guaranteed to always be discarded."
     11 111 2
         222 12
         222 22
-        22222 12
-    2
-}());
-
-(xxxxxxxx () {
-    'xxx xxxxxx';
-    11 111 2
-        222 12
-        222 22
         22222 22
     2
 }());"))
