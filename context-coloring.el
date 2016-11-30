@@ -427,6 +427,24 @@ permissible.")
 (defvar context-coloring-interruptable-p t
   "When non-nil, coloring may be interrupted by user input.")
 
+(defvar context-coloring-mode)
+
+(defun context-coloring-around-font-lock-flush (oldfun &rest r)
+  "Advice around `font-lock-flush' for this mode only."
+  (if context-coloring-mode
+      (apply #'context-coloring-font-lock-flush r)
+    (apply oldfun r)))
+
+(defun context-coloring-font-lock-flush (&optional start end)
+  "Reimplementation of `font-lock-flush' for this mode.
+The original relies on Font Lock variables that would be messy to
+maintain here."
+  (let* ((start (or start (point-min)))
+         (end (or end (point-max)))
+         (length (- end start)))
+    (context-coloring-change-function start end length)
+    (context-coloring-maybe-colorize-with-buffer (current-buffer))))
+
 ;;;###autoload
 (define-minor-mode context-coloring-mode
   "Toggle contextual code coloring.
@@ -464,6 +482,11 @@ Feature inspired by Douglas Crockford."
         (font-lock-set-defaults)
         ;; Safely change the value of this function as necessary.
         (make-local-variable 'font-lock-syntactic-face-function)
+        ;; Improve integration with modes relying on Font Lock.  Here, attempts
+        ;; to refontify in Font Lock contexts will instead refontifiy in Context
+        ;; Coloring contexts.  This is necessary for `prettify-symbols-mode'
+        ;; integration.
+        (advice-add #'font-lock-flush :around #'context-coloring-around-font-lock-flush)
         (let ((setup (plist-get dispatch :setup)))
           (when setup
             (funcall setup))
