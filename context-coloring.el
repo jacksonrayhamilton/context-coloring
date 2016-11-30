@@ -442,7 +442,6 @@ Feature inspired by Douglas Crockford."
         (let ((teardown (plist-get dispatch :teardown)))
           (when teardown
             (funcall teardown)))))
-    (kill-local-variable 'font-lock-syntactic-face-function)
     (turn-on-font-lock-if-desired))))
 
 (provide 'context-coloring)
