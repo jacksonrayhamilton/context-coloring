@@ -1,5 +1,5 @@
-EMACS = emacs
-CASK = EMACS=${EMACS} cask
+EMACS ?= emacs
+CASK ?= EMACS=${EMACS} cask
 DEPENDENCIES = .cask/
 SOURCE_FILES = \
 	context-coloring.el \
