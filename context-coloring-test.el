@@ -346,6 +346,10 @@ signaled."
 
 (when (fboundp 'prettify-symbols-mode)
 
+  (defun context-coloring-test-assert-prettify-symbols-coloring ()
+    (context-coloring-test-assert-coloring "
+(111111 () (222222 ()))"))
+
   (defun context-coloring-test-assert-prettify-symbols-text-properties ()
     (unless (cond
              ((version< emacs-version "25.0")
@@ -362,7 +366,8 @@ signaled."
                                     (emacs-lisp-mode)
                                     (prettify-symbols-mode)
                                     (context-coloring-mode)
-                                    (context-coloring-test-assert-prettify-symbols-text-properties))))
+                                    (context-coloring-test-assert-prettify-symbols-text-properties)
+                                    (context-coloring-test-assert-prettify-symbols-coloring))))
 
   (context-coloring-test-deftest prettify-symbols-enabled-after
                                  (lambda ()
@@ -371,7 +376,8 @@ signaled."
                                     (emacs-lisp-mode)
                                     (context-coloring-mode)
                                     (prettify-symbols-mode)
-                                    (context-coloring-test-assert-prettify-symbols-text-properties)))))
+                                    (context-coloring-test-assert-prettify-symbols-text-properties)
+                                    (context-coloring-test-assert-prettify-symbols-coloring)))))
 
 
 ;;; Coloring tests

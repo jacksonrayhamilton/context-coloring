@@ -468,6 +468,10 @@ Feature inspired by Douglas Crockford."
         ;; Lock's automatic fontification to apply it's changes on mode change,
         ;; so Context Coloring has to make those changes manually.
         (add-hook 'prettify-symbols-mode-hook #'context-coloring-maybe-fontify-keywords nil t)
+        ;; Furthermore, on Emacs < 25.0, `prettify-symbols-mode' calls
+        ;; `font-lock-fontify-buffer-function' which would overwrite context
+        ;; coloring, so make it a no-op.
+        (set (make-local-variable 'font-lock-fontify-buffer-function) (lambda ()))
         (let ((setup (plist-get dispatch :setup)))
           (when setup
             (funcall setup))
