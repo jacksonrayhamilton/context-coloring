@@ -663,6 +663,15 @@ ssssssssssss0"))
         (context-coloring-test-assert-javascript-global-level))))
   :fixture "initial-level.js")
 
+(context-coloring-test-deftest-javascript narrow-to-region
+  (lambda ()
+    (context-coloring-test-assert-coloring "
+1111111 0 11 11
+11111111 0 11 11
+11111111 0 11 1"))
+  :before (lambda ()
+            (narrow-to-region (+ (point-min) 1) (- (point-max) 2))))
+
 (context-coloring-test-deftest-emacs-lisp defun
   (lambda ()
     (context-coloring-test-assert-coloring "
