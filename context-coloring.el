@@ -381,7 +381,7 @@ completes.")
 
 (defvar context-coloring-fontify-keywords-predicates
   (list
-   (lambda () prettify-symbols-mode))
+   (lambda () (and (boundp 'prettify-symbols-mode) prettify-symbols-mode)))
   "Cases where the whole buffer should have keywords fontified.
 Necessary in cases where a mode relies on fontifications in
 regions where Context Coloring doesn't happen to touch.")

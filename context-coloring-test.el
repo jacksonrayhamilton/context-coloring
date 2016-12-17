@@ -344,28 +344,30 @@ signaled."
             '(context-coloring-level-0-face nil))
            (disable-theme 'context-coloring-test-custom-theme)))
 
-(defun context-coloring-test-assert-prettify-symbols-text-properties ()
-  (unless (and (get-text-property 2 'prettify-symbols-start)
-               (get-text-property 2 'prettify-symbols-end))
-    (ert-fail "Expected buffer to have it's symbols prettified, but it didn't.")))
+(when (fboundp 'prettify-symbols-mode)
 
-(context-coloring-test-deftest prettify-symbols-enabled-before
-  (lambda ()
-    (context-coloring-test-with-fixture
-     "./fixtures/test/prettify-symbols.el"
-     (emacs-lisp-mode)
-     (prettify-symbols-mode)
-     (context-coloring-mode)
-     (context-coloring-test-assert-prettify-symbols-text-properties))))
+  (defun context-coloring-test-assert-prettify-symbols-text-properties ()
+    (unless (and (get-text-property 2 'prettify-symbols-start)
+                 (get-text-property 2 'prettify-symbols-end))
+      (ert-fail "Expected buffer to have it's symbols prettified, but it didn't.")))
 
-(context-coloring-test-deftest prettify-symbols-enabled-after
-  (lambda ()
-    (context-coloring-test-with-fixture
-     "./fixtures/test/prettify-symbols.el"
-     (emacs-lisp-mode)
-     (context-coloring-mode)
-     (prettify-symbols-mode)
-     (context-coloring-test-assert-prettify-symbols-text-properties))))
+  (context-coloring-test-deftest prettify-symbols-enabled-before
+                                 (lambda ()
+                                   (context-coloring-test-with-fixture
+                                    "./fixtures/test/prettify-symbols.el"
+                                    (emacs-lisp-mode)
+                                    (prettify-symbols-mode)
+                                    (context-coloring-mode)
+                                    (context-coloring-test-assert-prettify-symbols-text-properties))))
+
+  (context-coloring-test-deftest prettify-symbols-enabled-after
+                                 (lambda ()
+                                   (context-coloring-test-with-fixture
+                                    "./fixtures/test/prettify-symbols.el"
+                                    (emacs-lisp-mode)
+                                    (context-coloring-mode)
+                                    (prettify-symbols-mode)
+                                    (context-coloring-test-assert-prettify-symbols-text-properties)))))
 
 
 ;;; Coloring tests
