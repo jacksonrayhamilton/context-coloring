@@ -3,7 +3,7 @@
 ;; Copyright (C) 2014-2016  Free Software Foundation, Inc.
 
 ;; Author: Jackson Ray Hamilton <jackson@jacksonrayhamilton.com>
-;; Version: 8.0.1
+;; Version: 8.1.0
 ;; Keywords: convenience faces tools
 ;; Package-Requires: ((emacs "24.3"))
 ;; URL: https://github.com/jacksonrayhamilton/context-coloring
