@@ -1,4 +1,4 @@
-;;; context-coloring-test.el --- Tests for context coloring  -*- lexical-binding: t; no-byte-compile: t; -*-
+;;; context-coloring-test.el --- Tests for context coloring  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014-2016  Free Software Foundation, Inc.
 
