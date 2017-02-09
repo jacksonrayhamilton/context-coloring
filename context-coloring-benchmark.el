@@ -126,10 +126,19 @@
     "./fixtures/benchmark/mkdirp-0.5.0.js")
   "Arbitrary JavaScript files for performance scrutiny.")
 
+(defun context-coloring-benchmark-js2-parse ()
+  "Force a synchronous parse (for after entering js2-mode).
+
+Normally the buffer is parsed asynchronously.  But it's much
+easier to deal with synchronous code."
+  (let ((js2-parse-interruptable-p nil))
+    (js2-reparse)))
+
 (defun context-coloring-benchmark-js2-mode-run ()
   "Benchmark `js2-mode'."
   (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
   (add-hook 'js2-mode-hook #'context-coloring-mode)
+  (add-hook 'js2-mode-hook #'context-coloring-benchmark-js2-parse)
   (let ((js2-mode-show-parse-errors nil)
         (js2-mode-show-strict-warnings nil))
     (context-coloring-benchmark
@@ -137,7 +146,8 @@
      context-coloring-benchmark-javascript-fixtures))
   (setq auto-mode-alist (delete '("\\.js\\'" . js2-mode)
                                 auto-mode-alist))
-  (remove-hook 'js2-mode-hook #'context-coloring-mode))
+  (remove-hook 'js2-mode-hook #'context-coloring-mode)
+  (remove-hook 'js2-mode-hook #'context-coloring-benchmark-js2-parse))
 
 (defconst context-coloring-benchmark-emacs-lisp-fixtures
   '("./fixtures/benchmark/lisp.el"
