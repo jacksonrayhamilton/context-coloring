@@ -26,7 +26,7 @@
 ;;; Code:
 
 (require 'json)
-(require 'undercover)
+(require 'undercover nil 'noerror)   ;Don't signal an error during compilation.
 
 
 (defconst context-coloring-coverage-directory
